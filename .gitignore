@@ -5,3 +5,14 @@ __pycache__/
 node_modules/
 dist/
 .DS_Store
+# Python
+backend/venv/
+__pycache__/
+
+# Node.js
+frontend/node_modules/
+dist/
+
+# General
+.env
+*.log
