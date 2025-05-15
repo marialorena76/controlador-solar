@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculador Solar</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Calculador Solar</h1>
+    </header>
+    <main>
+        <section id="datos-meteorologicos">
+            <h2>Datos Meteorológicos y de Radiación</h2>
+            <div id="mapa">
+                <p>Mapa de selección de ubicación</p>
+            </div>
+            <label for="entorno">Entorno de la Instalación:</label>
+            <select id="entorno">
+                <option value="urbano">Urbano</option>
+                <option value="suburbano">Suburbano</option>
+                <option value="rural">Rural</option>
+            </select>
+            <div id="datos-avanzados" style="display: none;">
+                <label for="suelo">Tipo de Suelo:</label>
+                <input type="text" id="suelo">
+                <label for="rugosidad">Rugosidad de la Superficie:</label>
+                <input type="text" id="rugosidad">
+            </div>
+            <button id="mostrar-avanzado">Mostrar Datos Avanzados</button>
+        </section>
+        </main>
+    <footer>
+        <p>&copy; 2024 Calculador Solar</p>
+    </footer>
+    <script src="script.js"></script>
+</body>
+</html>
