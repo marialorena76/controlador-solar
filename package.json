@@ -1,0 +1,31 @@
+{
+  "dependencies": {
+    "axios": "^1.9.0",
+    "leaflet": "^1.9.4",
+    "react-leaflet": "^5.0.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.6",
+    "tailwindcss-cli": "^0.1.2"
+  },
+  "name": "controlador-solar",
+  "version": "1.0.0",
+  "description": "\"# controlador-solar\"",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marialorena76/controlador-solar.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/marialorena76/controlador-solar/issues"
+  },
+  "homepage": "https://github.com/marialorena76/controlador-solar#readme"
+}
