@@ -1,3 +1,40 @@
+// Lógica para los botones de tipo de usuario
+const userBasicCard = document.getElementById('user-basic-card');
+const userExpertCard = document.getElementById('user-expert-card');
+
+userBasicCard.addEventListener('click', () => {
+    alert('Has seleccionado "Usuario Básico". Implementaremos la lógica de redirección aquí.');
+    // Aquí puedes redirigir a una página de ingreso de datos simplificada
+    // window.location.href = 'calculador-basico.html';
+});
+
+userExpertCard.addEventListener('click', () => {
+    alert('Has seleccionado "Usuario Experto". Implementaremos la lógica de redirección aquí.');
+    // Aquí puedes redirigir a la página del calculador principal con más opciones (tu actual RF1)
+    // window.location.href = 'calculador-experto.html';
+});
+
+// Lógica para los botones del header (Registro/Ingresar)
+const registerButton = document.querySelector('.register-button');
+const loginButton = document.querySelector('.login-button');
+
+registerButton.addEventListener('click', (e) => {
+    e.preventDefault(); // Evita que el enlace recargue la página
+    alert('Funcionalidad de Registro pendiente.');
+    // Aquí podrías mostrar un modal de registro o redirigir a una página de registro
+});
+
+loginButton.addEventListener('click', (e) => {
+    e.preventDefault(); // Evita que el enlace recargue la página
+    alert('Funcionalidad de Ingresar pendiente.');
+    // Aquí podrías mostrar un modal de inicio de sesión o redirigir a una página de login
+});
+
+
+// NOTA: El código de Leaflet y OpenWeatherMap NO va en este script si esta es solo la landing page.
+// Esos irán en el script de la página donde realmente esté el calculador.
+
+
 // Funcionalidad para mostrar/ocultar datos avanzados (de la iteración 1)
 const botonMostrarAvanzado = document.getElementById('mostrar-avanzado');
 const datosAvanzados = document.getElementById('datos-avanzados');
