@@ -1,4 +1,4 @@
-// Mostrar/Ocultar datos avanzados
+// Funcionalidad para mostrar/ocultar datos avanzados (de la iteración 1)
 const botonMostrarAvanzado = document.getElementById('mostrar-avanzado');
 const datosAvanzados = document.getElementById('datos-avanzados');
 
@@ -12,5 +12,86 @@ botonMostrarAvanzado.addEventListener('click', () => {
     }
 });
 
-// Aquí iría la lógica para integrar el mapa y obtener los datos meteorológicos
-// (Esto se hará en iteraciones posteriores, usando una API de mapas y clima)
+// Referencias a los elementos donde se mostrarán los datos del clima
+const latitudSpan = document.getElementById('latitud');
+const longitudSpan = document.getElementById('longitud');
+const temperaturaSpan = document.getElementById('temperatura');
+const condicionSpan = document.getElementById('condicion');
+const humedadSpan = document.getElementById('humedad');
+
+// 1. Inicialización del Mapa con Leaflet
+// Asegúrate de que 'mapa-container' existe en el HTML antes de que este script se ejecute
+const mapaContainer = document.getElementById('mapa-container');
+
+// VERIFICACIÓN CRÍTICA: Asegurarse de que mapaContainer no es null
+if (!mapaContainer) {
+    console.error("Error: El elemento con ID 'mapa-container' no fue encontrado en el HTML.");
+    // Podrías mostrar un mensaje al usuario aquí si lo deseas
+} else {
+    // Si el contenedor existe, inicializa el mapa
+    const mapa = L.map(mapaContainer).setView([-34.6037, -58.3816], 13); // Coordenadas de ejemplo (Buenos Aires)
+
+    // Añadimos un "tile layer" (capas de mapa) de OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(mapa);
+
+    let marcador; // Variable para almacenar el marcador actual
+
+    // 2. Manejo del Click en el Mapa
+    mapa.on('click', (e) => {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+
+        // Eliminar el marcador anterior si existe
+        if (marcador) {
+            mapa.removeLayer(marcador);
+        }
+
+        // Añadir un nuevo marcador en la ubicación del click
+        marcador = L.marker([lat, lng]).addTo(mapa)
+            .bindPopup(`Ubicación seleccionada: ${lat.toFixed(2)}, ${lng.toFixed(2)}`)
+            .openPopup();
+
+        console.log("Latitud seleccionada: " + lat + ", Longitud seleccionada: " + lng);
+
+        // Llamar a la función para obtener el clima
+        obtenerClima(lat, lng);
+    });
+
+    // 3. Función para Obtener Datos del Clima (OpenWeatherMap API)
+    function obtenerClima(lat, lng) {
+        // ¡IMPORTANTE! Reemplaza 'TU_API_KEY_DE_OPENWEATHERMAP' con tu clave API real.
+        const apiKey = 'TU_API_KEY_DE_OPENWEATHERMAP'; 
+        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric&lang=es`; // 'units=metric' para Celsius, 'lang=es' para español
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    // Manejar errores HTTP (por ejemplo, si la API Key es inválida o hay un error de servidor)
+                    throw new Error(`Error HTTP: ${response.status} - ${response.statusText}. Por favor, verifica tu API Key.`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Datos del clima:", data);
+
+                // Actualizar la interfaz con los datos del clima
+                latitudSpan.textContent = lat.toFixed(4); // Limitar decimales
+                longitudSpan.textContent = lng.toFixed(4); // Limitar decimales
+                temperaturaSpan.textContent = `${data.main.temp}°C`;
+                condicionSpan.textContent = data.weather[0].description;
+                humedadSpan.textContent = `${data.main.humidity}%`;
+
+            })
+            .catch(error => {
+                console.error("Error al obtener los datos del clima:", error);
+                // Mostrar un mensaje de error al usuario en la interfaz si lo deseas
+                latitudSpan.textContent = 'Error';
+                longitudSpan.textContent = 'Error';
+                temperaturaSpan.textContent = 'Error';
+                condicionSpan.textContent = 'Error al cargar';
+                humedadSpan.textContent = 'Error';
+            });
+    }
+} // Fin del bloque 'if (mapaContainer)'
