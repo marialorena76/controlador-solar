@@ -4,53 +4,85 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calculador Solar</title>
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <header>
-        <h1>Calculador Solar</h1>
+
+    <header class="main-header">
+        <div class="logo-container">
+            <img src="images/logo-proinged.png" alt="Logo Proinged" class="header-logo">
+        </div>
+        <nav class="main-nav">
+            <a href="#" class="nav-button register-button">Registro</a>
+            <a href="#" class="nav-button login-button">Ingresar</a>
+        </nav>
     </header>
-    <main>
-        <section id="datos-meteorologicos">
-            <h2>Datos Meteorológicos y de Radiación</h2>
-            
-            <div id="mapa-container">
-                <p>Cargando mapa...</p> 
-            </div>
 
-            <label for="entorno">Entorno de la Instalación:</label>
-            <select id="entorno">
-                <option value="urbano">Urbano</option>
-                <option value="suburbano">Suburbano</option>
-                <option value="rural">Rural</option>
-            </select>
-            <div id="datos-avanzados" style="display: none;">
-                <label for="suelo">Tipo de Suelo:</label>
-                <input type="text" id="suelo">
-                <label for="rugosidad">Rugosidad de la Superficie:</label>
-                <input type="text" id="rugosidad">
+    <section class="hero-section">
+        <div class="hero-content">
+            <h1>CALCULADOR SOLAR</h1>
+            <p>Calculador Solar permite monitorear en tiempo real tu sistema de energía, analizar históricos y estimar el rendimiento futuro de tu sistema solar. Con todos tus datos de forma simple, precisa y segura.</p>
+            <div class="hero-buttons">
+                <button class="btn primary-btn">Empieza Ahora</button>
+                <button class="btn secondary-btn">Ver Características</button>
             </div>
-            <button id="mostrar-avanzado">Mostrar Datos Avanzados</button>
+        </div>
+        <div class="hero-image">
+            <img src="images/mapa-sudamerica.png" alt="Mapa de Sudamérica" class="map-placeholder">
+            </div>
+    </section>
 
-            <div id="resultados-clima" style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;">
-                <h3>Datos Meteorológicos Seleccionados:</h3>
-                <p>Latitud: <span id="latitud"></span></p>
-                <p>Longitud: <span id="longitud"></span></p>
-                <p>Temperatura: <span id="temperatura"></span></p>
-                <p>Condición: <span id="condicion"></span></p>
-                <p>Humedad: <span id="humedad"></span></p>
+    <section class="logos-section">
+        <h3>Logos</h3>
+        <div class="logos-container">
+            <img src="images/logo-freba.png" alt="Logo FREBA" class="brand-logo">
+            <img src="images/logo-gba.png" alt="Logo Gobierno Buenos Aires" class="brand-logo">
+            <img src="images/logo-proinged-full.png" alt="Logo Proinged Completo" class="brand-logo">
+        </div>
+    </section>
+
+    <section class="steps-section">
+        <h2>Monitoreá tu energía solar en simples pasos</h2>
+        <p class="steps-subtitle">Siguiente proceso sencillo para empezar a analizar y gestionar el rendimiento de tu sistema solar.</p>
+        <div class="steps-container">
+            <div class="step-item">
+                <div class="step-icon">
+                    <i class="fas fa-map-marker-alt"></i> </div>
+                <h3>Regístrate y conectá tu sistema</h3>
+                <p>Crea tu usuario y vincula fácilmente tu instalación de paneles solares.</p>
             </div>
-        </section>
-        </main>
+            <div class="step-item">
+                <div class="step-icon">
+                    <i class="fas fa-chart-line"></i> </div>
+                <h3>Visualizá datos en tiempo real</h3>
+                <p>Accede a gráficos y mediciones de producción y consumo energético.</p>
+            </div>
+            <div class="step-item">
+                <div class="step-icon">
+                    <i class="fas fa-car-battery"></i> </div>
+                <h3>Optimizá tu rendimiento</h3>
+                <p>Análisis de datos, recomendaciones y mejora la eficiencia de tu sistema.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="user-type-section">
+        <h2>¿Posee conocimientos en sistemas de generación de energía fotovoltaica?</h2>
+        <div class="user-type-options">
+            <div class="user-type-card" id="user-basic-card">
+                <i class="fas fa-user"></i>
+                <p>Usuario Básico</p>
+            </div>
+            <div class="user-type-card" id="user-expert-card">
+                <i class="fas fa-user-tie"></i> <p>Usuario Experto</p>
+            </div>
+        </div>
+    </section>
+
     <footer>
         <p>&copy; 2024 Calculador Solar</p>
     </footer>
 
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    
-    <script src="script.js"></script>
-</body>
+    </body>
 </html>
