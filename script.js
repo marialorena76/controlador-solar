@@ -1,6 +1,28 @@
 // Lógica para los botones de tipo de usuario
 const userBasicCard = document.getElementById('user-basic-card');
 const userExpertCard = document.getElementById('user-expert-card');
+const btnEmpiezaAhora = document.querySelector('.primary-btn'); // Asume que "Empieza Ahora" tiene esta clase
+
+
+btnEmpiezaAhora.addEventListener('click', () => {
+    window.location.href = 'calculador.html'; // Redirige a la página del calculador
+});
+
+userBasicCard.addEventListener('click', () => {
+    // Si quieres alguna lógica específica para usuario básico antes de redirigir
+    // alert('Redirigiendo a Calculador como Usuario Básico.');
+    window.location.href = 'calculador.html'; // Redirige a la página del calculador
+});
+
+userExpertCard.addEventListener('click', () => {
+    // Si quieres alguna lógica específica para usuario experto antes de redirigir
+    // alert('Redirigiendo a Calculador como Usuario Experto.');
+    window.location.href = 'calculador.html'; // Redirige a la página del calculador
+});
+
+// NOTA IMPORTANTE: Si tenías algún script de Leaflet o la API del clima en este index.html, ¡QUÍTALO!
+// Esos scripts solo deben estar en calculador.html ahora.
+
 
 userBasicCard.addEventListener('click', () => {
     alert('Has seleccionado "Usuario Básico". Implementaremos la lógica de redirección aquí.');
