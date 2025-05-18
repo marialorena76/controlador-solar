@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculador Solar - Herramienta</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Calculador Solar</h1>
+        <nav>
+            <a href="index.html" class="nav-button">Volver al Inicio</a>
+        </nav>
+    </header>
+    <main>
+        <section id="datos-meteorologicos">
+            <h2>Datos Meteorológicos y de Radiación</h2>
+            <div id="mapa-container">
+                <p>Cargando mapa...</p>
+            </div>
+            <label for="entorno">Entorno de la Instalación:</label>
+            <select id="entorno">
+                <option value="urbano">Urbano</option>
+                <option value="suburbano">Suburbano</option>
+                <option value="rural">Rural</option>
+            </select>
+            <div id="datos-avanzados" style="display: none;">
+                <label for="suelo">Tipo de Suelo:</label>
+                <input type="text" id="suelo">
+                <label for="rugosidad">Rugosidad de la Superficie:</label>
+                <input type="text" id="rugosidad">
+            </div>
+            <button id="mostrar-avanzado">Mostrar Datos Avanzados</button>
+
+            <div id="resultados-clima" style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;">
+                <h3>Datos Meteorológicos Seleccionados:</h3>
+                <p>Latitud: <span id="latitud"></span></p>
+                <p>Longitud: <span id="longitud"></span></p>
+                <p>Temperatura: <span id="temperatura"></span></p>
+                <p>Condición: <span id="condicion"></span></p>
+                <p>Humedad: <span id="humedad"></span></p>
+            </div>
+        </section>
+
+        <section id="consumo-energetico">
+            <h2>Cálculo del Consumo Energético</h2>
+            <button id="alternar-consumo">Ingresar por Detalle de Electrodomésticos</button>
+
+            <div id="consumo-tabla">
+                <h3>Tabla Predefinida de Consumo</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Concepto</th>
+                            <th>Consumo Verano (kWh/mes)</th>
+                            <th>Consumo Invierno (kWh/mes)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Iluminación</td>
+                            <td><input type="number" value="100"></td>
+                            <td><input type="number" value="120"></td>
+                        </tr>
+                        <tr>
+                            <td>Electrodomésticos Básicos</td>
+                            <td><input type="number" value="150"></td>
+                            <td><input type="number" value="160"></td>
+                        </tr>
+                        </tbody>
+                </table>
+                <button id="calcular-consumo-tabla">Calcular Consumo</button>
+            </div>
+
+            <div id="consumo-electrodomesticos" style="display: none;">
+                <h3>Detalle de Electrodomésticos</h3>
+                <div id="lista-electrodomesticos">
+                    <div class="electrodomestico-item">
+                        <input type="text" placeholder="Nombre (ej. Heladera)">
+                        <input type="number" placeholder="Potencia (W)">
+                        <input type="number" placeholder="Horas/Día (Verano)">
+                        <input type="number" placeholder="Horas/Día (Invierno)">
+                        <button class="remove-item">X</button>
+                    </div>
+                </div>
+                <button id="add-electrodomestico">Añadir Electrodoméstico</button>
+                <button id="calcular-consumo-electrodomesticos">Calcular Consumo</button>
+            </div>
+            
+            <div id="resultados-consumo" style="margin-top: 20px;">
+                <h3>Resultados de Consumo:</h3>
+                <p>Consumo Estacional Verano: <span id="consumo-verano"></span> kWh/mes</p>
+                <p>Consumo Estacional Invierno: <span id="consumo-invierno"></span> kWh/mes</p>
+            </div>
+        </section>
+
+        <section id="seleccion-paneles" style="margin-top: 30px; padding: 20px; border: 1px dashed #ccc;">
+            <h2>RF3 - Selección de Paneles Solares (Pendiente)</h2>
+            <p>Aquí se implementará la lógica para elegir paneles y su potencia.</p>
+        </section>
+
+        <section id="eleccion-inversores" style="margin-top: 30px; padding: 20px; border: 1px dashed #ccc;">
+            <h2>RF4 - Elección del Inversor (Pendiente)</h2>
+            <p>Aquí se implementará la lógica para seleccionar el modelo de inversor.</p>
+        </section>
+
+        <section id="registro-perdidas" style="margin-top: 30px; padding: 20px; border: 1px dashed #ccc;">
+            <h2>RF5 - Registro de Pérdidas (Pendiente)</h2>
+            <p>Aquí se implementará la lógica para ingresar frecuencia de lluvias y polvo.</p>
+        </section>
+
+        <section id="analisis-economico" style="margin-top: 30px; padding: 20px; border: 1px dashed #ccc;">
+            <h2>RF6 - Análisis Económico (Pendiente)</h2>
+            <p>Aquí se implementará la lógica para costos de inversión, mantenimiento y tarifa inyectada.</p>
+        </section>
+
+    </main>
+    <footer>
+        <p>&copy; 2024 Calculador Solar</p>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
