@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Calculador Solar – Ingreso de Datos</title>
+
+  <!-- TIPOGRAFÍAS: Dosis y Bebas Neue desde Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+
+  <!-- LEAFLET & GEOCODER CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-o9N1j+fypJbwh0QSvP2BKMg44vf6f5Jp1t5GkMlPEgI="
+    crossorigin=""
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
+  />
+
+  <style>
+    /* ——— Variables de Marca ——— */
+    :root {
+      --color-primary: #FF8442;    /* Pantone 137 C */
+      --color-secondary: #60BE58;  /* Pantone 361 C */
+      --color-tertiary: #5884D6;   /* Pantone 2718 C */
+      --font-heading: 'Dosis', sans-serif;
+      --font-body: 'Akzidenz Grotesk BE', sans-serif; /* hosting local */
+    }
+    /* ——— Reset & Base ——— */
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body {
+      font-family: var(--font-body);
+      color: #333;
+      background: #fff;
+      padding: 1rem;
+      line-height: 1.4;
+    }
+    h1 {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      color: var(--color-primary);
+      margin-bottom: 1rem;
+    }
+    form {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      font-family: var(--font-heading);
+      font-weight: 500;
+      margin-bottom: 0.3rem;
+    }
+    select, input[type="number"] {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-family: var(--font-body);
+    }
+    /* Mapa */
+    #map { height: 300px; margin-bottom: 1rem; }
+    .leaflet-control-geocoder-form input {
+      width: 200px;
+    }
+    /* Botón */
+    button[type="submit"] {
+      font-family: var(--font-heading);
+      background: var(--color-secondary);
+      color: #fff;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button[type="submit"]:hover {
+      background: var(--color-primary);
+    }
+  </style>
+</head>
+<body>
+  <h1>Ingreso de Datos</h1>
+  <form id="data-form">
+    <!-- Tipo de usuario -->
+    <div class="form-group">
+      <label for="userType">Tipo de usuario</label>
+      <select id="userType" name="userType" required>
+        <option value="">Seleccionar</option>
+        <option>Residencial</option>
+        <option>Comercial</option>
+        <option>Industrial</option>
+      </select>
+    </div>
+
+    <!-- Nivel de ingresos -->
+    <div class="form-group">
+      <label for="incomeLevel">Nivel de ingresos</label>
+      <select id="incomeLevel" name="incomeLevel" required>
+        <option value="">Seleccionar</option>
+        <option>Alto</option>
+        <option>Medio</option>
+        <option>Bajo</option>
+      </select>
+    </div>
+
+    <!-- Provincia y Localidad -->
+    <div class="form-group">
+      <label for="province">Provincia</label>
+      <select id="province" name="province" required>
+        <option value="">Seleccionar</option>
+        <option>Buenos Aires</option>
+        <option>Catamarca</option>
+        <option>Chaco</option>
+        <option>Chubut</option>
+        <option>Córdoba</option>
+        <option>Corrientes</option>
+        <option>Entre Ríos</option>
+        <option>Formosa</option>
+        <option>Jujuy</option>
+        <option>La Pampa</option>
+        <option>La Rioja</option>
+        <option>Mendoza</option>
+        <option>Misiones</option>
+        <option>Neuquén</option>
+        <option>Río Negro</option>
+        <option>Salta</option>
+        <option>San Juan</option>
+        <option>San Luis</option>
+        <option>Santa Cruz</option>
+        <option>Santa Fe</option>
+        <option>Santiago del Estero</option>
+        <option>Tierra del Fuego</option>
+        <option>Tucumán</option>
+        <option>Ciudad Autónoma de Buenos Aires</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="locality">Localidad</label>
+      <select id="locality" name="locality" required>
+        <option value="">Primero elegí provincia</option>
+      </select>
+    </div>
+
+    <!-- Zona -->
+    <div class="form-group">
+      <label for="zone">Zona</label>
+      <select id="zone" name="zone" required>
+        <option value="">Seleccionar</option>
+        <option>Urbana</option>
+        <option>Suburbana</option>
+        <option>Rural</option>
+      </select>
+    </div>
+
+    <!-- Superficie -->
+    <div class="form-group">
+      <label for="surface">Superficie</label>
+      <select id="surface" name="surface" required>
+        <option value="">Seleccionar</option>
+        <option>Pasto/Césped</option>
+        <option>Asfalto</option>
+        <option>Hormigón</option>
+        <option>Tierra</option>
+      </select>
+    </div>
+
+    <!-- Rugosidad -->
+    <div class="form-group">
+      <label for="roughness">Rugosidad de superficie</label>
+      <select id="roughness" name="roughness" required>
+        <option value="">Seleccionar</option>
+        <option>Baja</option>
+        <option>Moderada</option>
+        <option>Alta</option>
+      </select>
+    </div>
+
+    <!-- Rotación -->
+    <div class="form-group">
+      <label for="rotation">Rotación de la instalación</label>
+      <select id="rotation" name="rotation" required>
+        <option value="">Seleccionar</option>
+        <option>Fijos</option>
+        <option>Seguidores de 1 eje</option>
+        <option>Seguidores de 2 ejes</option>
+      </select>
+    </div>
+
+    <!-- Método de radiación -->
+    <div class="form-group">
+      <label for="radiationMethod">Método de cálculo de radiación</label>
+      <select id="radiationMethod" name="radiationMethod" required>
+        <option value="">Seleccionar</option>
+        <option>Cielo Isotrópico</option>
+        <option>Cielo Anisotrópico</option>
+      </select>
+    </div>
+
+    <!-- Modelo de radiación -->
+    <div class="form-group">
+      <label for="radiationModel">Modelo de radiación</label>
+      <select id="radiationModel" name="radiationModel" required>
+        <option value="">Seleccionar</option>
+        <option>Modelo Riendl</option>
+        <option>Modelo Pérez</option>
+        <option>Modelo Hay y Davies</option>
+        <option>Modelo DISC</option>
+      </select>
+    </div>
+
+    <!-- Ingreso de consumo -->
+    <div class="form-group">
+      <label for="consumptionMode">Modo de ingreso de consumo</label>
+      <select id="consumptionMode" name="consumptionMode" required>
+        <option value="">Seleccionar</option>
+        <option>Manual</option>
+        <option>Boleta de luz</option>
+        <option>CSV</option>
+      </select>
+    </div>
+
+    <!-- % a cubrir -->
+    <div class="form-group">
+      <label for="coverage">Porcentaje de energía a cubrir (%)</label>
+      <input type="number" id="coverage" name="coverage" min="0" max="100" required>
+    </div>
+
+    <!-- Frecuencia de lluvias -->
+    <div class="form-group">
+      <label for="rainFrequency">Frecuencia de lluvias</label>
+      <select id="rainFrequency" name="rainFrequency" required>
+        <option value="">Seleccionar</option>
+        <option>Diaria</option>
+        <option>Semanal</option>
+        <option>Mensual</option>
+        <option>Semestral</option>
+        <option>Anual</option>
+      </select>
+    </div>
+
+    <!-- Polvo cercano -->
+    <div class="form-group">
+      <label for="dustPresence">¿Foco de polvo cercano?</label>
+      <select id="dustPresence" name="dustPresence" required>
+        <option value="">Seleccionar</option>
+        <option>Sí</option>
+        <option>No</option>
+      </select>
+    </div>
+
+    <!-- Moneda -->
+    <div class="form-group">
+      <label for="currency">Moneda</label>
+      <select id="currency" name="currency" required>
+        <option value="">Seleccionar</option>
+        <option>Pesos</option>
+        <option>Dólares</option>
+        <option>Euros</option>
+      </select>
+    </div>
+
+    <!-- Tarifa por bandas -->
+    <div class="form-group">
+      <label for="tariffBands">¿Tarifa diferenciada por bandas?</label>
+      <select id="tariffBands" name="tariffBands" required>
+        <option value="">Seleccionar</option>
+        <option>Sí</option>
+        <option>No</option>
+      </select>
+    </div>
+
+    <!-- Mapa para elegir ubicación -->
+    <div class="form-group">
+      <label for="map">Elegí tu ubicación en el mapa</label>
+      <div id="map"></div>
+      <input type="hidden" id="latitude" name="latitude" required>
+      <input type="hidden" id="longitude" name="longitude" required>
+    </div>
+
+    <button type="submit">Enviar</button>
+  </form>
+
+  <!-- LEAFLET & GEOCODER JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-jXjiLn6IxLrEN3v23gOdWJukq0JuzYh1zXRvWx0X04k="
+    crossorigin=""
+  ></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <script>
+    // — Dinámica de localidades (completar con tus datos reales) —
+    const localityData = {
+      'Buenos Aires': ['Olavarría','La Plata','Mar del Plata' /*…*/],
+      // TODO: completar con resto de provincias/localidades
+    };
+    document.getElementById('province').addEventListener('change', e => {
+      const prov = e.target.value;
+      const loc = document.getElementById('locality');
+      loc.innerHTML = '<option value="">Seleccionar</option>';
+      (localityData[prov]||[]).forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name; opt.textContent = name;
+        loc.appendChild(opt);
+      });
+    });
+
+    // — Inicializar mapa Leaflet con geocoder —
+    const map = L.map('map').setView([-34.6037, -58.3816], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const geocoder = L.Control.geocoder({
+      defaultMarkGeocode: false,
+      placeholder: 'Buscá tu dirección…'
+    })
+    .on('markgeocode', evt => {
+      const pt = evt.geocode.center;
+      placeMarker(pt);
+      map.fitBounds(evt.geocode.bbox);
+    })
+    .addTo(map);
+
+    let marker;
+    function placeMarker(latlng) {
+      if (marker) { marker.setLatLng(latlng); }
+      else {
+        marker = L.marker(latlng, {draggable:true}).addTo(map);
+        marker.on('dragend', () => {
+          const p = marker.getLatLng();
+          updateInputs(p.lat, p.lng);
+        });
+      }
+      updateInputs(latlng.lat, latlng.lng);
+    }
+    map.on('click', e => placeMarker(e.latlng));
+
+    function updateInputs(lat, lng) {
+      document.getElementById('latitude').value  = lat.toFixed(6);
+      document.getElementById('longitude').value = lng.toFixed(6);
+    }
+  </script>
+</body>
+</html>

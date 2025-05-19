@@ -1,17 +1,21 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Calculador Solar</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-</head>
-<body>
 
+    <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;700&family=Bebas+Neue&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
     <header class="main-header">
         <div class="logo-container">
-            <img src="images/logo-proinged.png" alt="Logo Proinged" class="header-logo">
+            <img src="images/logo-proinged.png" alt="Logo Proinged" class="header-logo" />
         </div>
         <nav class="main-nav">
             <a href="#" class="nav-button register-button">Registro</a>
@@ -19,70 +23,117 @@
         </nav>
     </header>
 
-    <section class="hero-section">
-        <div class="hero-content">
-            <h1>CALCULADOR SOLAR</h1>
-            <p>Calculador Solar permite monitorear en tiempo real tu sistema de energía, analizar históricos y estimar el rendimiento futuro de tu sistema solar. Con todos tus datos de forma simple, precisa y segura.</p>
-            <div class="hero-buttons">
-                <button class="btn primary-btn">Empieza Ahora</button>
-                <button class="btn secondary-btn">Ver Características</button>
+    <main>
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    Calculador <br />
+                    Solar
+                </h1>
+                <p class="hero-subtitle">
+                    Herramienta online para estimar la viabilidad de instalaciones
+                    fotovoltaicas.
+                </p>
             </div>
-        </div>
-        <div class="hero-image">
-            <img src="images/mapa-sudamerica.png" alt="Mapa de Sudamérica" class="map-placeholder">
+            <div class="hero-image">
+                <img src="images/hero-image.png" alt="Imagen principal" />
             </div>
-    </section>
+        </section>
 
-    <section class="logos-section">
-        <h3>Logos</h3>
-        <div class="logos-container">
-            <img src="images/logo-freba.png" alt="Logo FREBA" class="brand-logo">
-            <img src="images/logo-gba.png" alt="Logo Gobierno Buenos Aires" class="brand-logo">
-            <img src="images/logo-proinged-full.png" alt="Logo Proinged Completo" class="brand-logo">
-        </div>
-    </section>
+        <section class="features-section">
+            <h2>Características Principales</h2>
+            <div class="features-container">
+                <div class="feature-item">
+                    <i class="fas fa-solar-panel feature-icon"></i>
+                    <h3>Estimación de Producción</h3>
+                    <p>
+                        Calcula la energía generada por tus paneles solares según tu
+                        ubicación y condiciones climáticas.
+                    </p>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-chart-line feature-icon"></i>
+                    <h3>Análisis Financiero</h3>
+                    <p>
+                        Evalúa la rentabilidad de tu inversión, incluyendo costos,
+                        ahorros y tiempo de retorno.
+                    </p>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-map-marked-alt feature-icon"></i>
+                    <h3>Ubicación Precisa</h3>
+                    <p>
+                        Obtén datos meteorológicos exactos gracias a la integración con
+                        servicios de mapas y clima.
+                    </p>
+                </div>
+            </div>
+        </section>
 
-    <section class="steps-section">
-        <h2>Monitoreá tu energía solar en simples pasos</h2>
-        <p class="steps-subtitle">Siguiente proceso sencillo para empezar a analizar y gestionar el rendimiento de tu sistema solar.</p>
-        <div class="steps-container">
-            <div class="step-item">
-                <div class="step-icon">
-                    <i class="fas fa-map-marker-alt"></i> </div>
-                <h3>Regístrate y conectá tu sistema</h3>
-                <p>Crea tu usuario y vincula fácilmente tu instalación de paneles solares.</p>
+        <section class="steps-section">
+            <h2>Cómo funciona en pasos</h2>
+            <div class="steps-container">
+                <div class="step-item">
+                    <i class="fas fa-map-marker-alt step-icon"></i>
+                    <h3>Elegí tu ubicación</h3>
+                    <p>
+                        Localizá tu instalación en el mapa con un clic o buscador de
+                        direcciones.
+                    </p>
+                </div>
+                <div class="step-item">
+                    <i class="fas fa-user step-icon"></i>
+                    <h3>Definí tu perfil</h3>
+                    <p>
+                        Seleccioná si sos usuario básico o experto para un informe a tu
+                        medida.
+                    </p>
+                </div>
+                <div class="step-item">
+                    <i class="fas fa-calculator step-icon"></i>
+                    <h3>Obtené tu informe</h3>
+                    <p>
+                        Recibí recomendaciones, análisis de pérdidas y costos
+                        optimizados.
+                    </p>
+                </div>
             </div>
-            <div class="step-item">
-                <div class="step-icon">
-                    <i class="fas fa-chart-line"></i> </div>
-                <h3>Visualizá datos en tiempo real</h3>
-                <p>Accede a gráficos y mediciones de producción y consumo energético.</p>
-            </div>
-            <div class="step-item">
-                <div class="step-icon">
-                    <i class="fas fa-car-battery"></i> </div>
-                <h3>Optimizá tu rendimiento</h3>
-                <p>Análisis de datos, recomendaciones y mejora la eficiencia de tu sistema.</p>
-            </div>
-        </div>
-    </section>
+        </section>
 
-    <section class="user-type-section">
-        <h2>¿Posee conocimientos en sistemas de generación de energía fotovoltaica?</h2>
-        <div class="user-type-options">
-            <div class="user-type-card" id="user-basic-card">
-                <i class="fas fa-user"></i>
-                <p>Usuario Básico</p>
+        <section class="user-type-section">
+            <h2>¿Qué tipo de usuario sos?</h2>
+            <div class="user-type-options">
+                <a href="calculador.html" class="user-type-card" id="user-basic-card">
+                    <i class="fas fa-user"></i>
+                    <p>Usuario Básico</p>
+                </a>
+                <a href="calculador.html?expert=true" class="user-type-card" id="user-expert-card">
+                    <i class="fas fa-user-tie"></i>
+                    <p>Usuario Experto</p>
+                </a>
             </div>
-            <div class="user-type-card" id="user-expert-card">
-                <i class="fas fa-user-tie"></i> <p>Usuario Experto</p>
-            </div>
-        </div>
-    </section>
+        </section>
+    </main>
 
     <footer>
-        <p>&copy; 2024 Calculador Solar</p>
+        <div class="footer-container">
+            <div class="footer-links">
+                <a href="#">Términos y Condiciones</a>
+                <a href="#">Política de Privacidad</a>
+                <a href="#">Contacto</a>
+            </div>
+            <div class="social-icons">
+                <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+            </div>
+        </div>
+        <p class="copyright">
+            &copy; 2024 Calculador Solar. Todos los derechos reservados.
+        </p>
     </footer>
 
-    </body>
+    <script src="script.js"></script>
+</body>
+
 </html>

@@ -1,128 +1,303 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculador Solar - Herramienta</title>
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <title>Calculador Solar – Wizard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;700&family=Bebas+Neue&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css">
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Agrega aquí los estilos CSS que te proporcioné antes y los que necesites para la landing page */
+
+        /* Estilos para la entrada de datos del usuario */
+        #user-data-form {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #user-data-form h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #1f2937;
+        }
+
+        #user-data-form .form-group {
+            margin-bottom: 1rem;
+        }
+
+        #user-data-form label {
+            display: block;
+            font-size: 0.875rem;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        #user-data-form input[type="text"],
+        #user-data-form input[type="email"] {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            border: 1px solid #d1d5db;
+            font-size: 1rem;
+            color: #374151;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        #user-data-form input[type="text"]:focus,
+        #user-data-form input[type="email"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        #user-data-form button {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            background-color: #3b82f6;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            border: none;
+        }
+
+        #user-data-form button:hover {
+            background-color: #2563eb;
+        }
+
+        #user-data-form button:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        /* Estilos para la barra lateral (aside) */
+        .sidebar {
+            background-color: #f3f4f6;
+            /* Gris claro */
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 320px;
+            /* Ancho máximo de la barra lateral */
+        }
+
+        .sidebar h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #1f2937;
+        }
+
+        .sidebar .form-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar .form-section h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #4b5563;
+        }
+
+        .sidebar form {
+            margin-bottom: 1rem;
+        }
+
+        .sidebar form label {
+            display: block;
+            font-size: 0.875rem;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .sidebar form input[type="text"],
+        .sidebar form input[type="email"],
+        .sidebar form input[type="number"] {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            border: 1px solid #d1d5db;
+            font-size: 1rem;
+            color: #374151;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar form input[type="text"]:focus,
+        .sidebar form input[type="email"]:focus,
+        .sidebar form input[type="number"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            /* Azul de Tailwind */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            /* Anillo de enfoque azul */
+        }
+
+        .sidebar button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            background-color: #3b82f6;
+            /* Azul de Tailwind */
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            border: none;
+            margin-top: 0.5rem;
+        }
+
+        .sidebar button:hover {
+            background-color: #2563eb;
+            /* Azul más oscuro al hacer hover */
+        }
+
+        .sidebar button:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            /* Anillo de enfoque azul */
+        }
+
+        /* Estilos para el contenedor principal */
+        #main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* Centra horizontalmente en pantallas pequeñas */
+            margin-top: 2rem;
+        }
+
+        /* Media query para pantallas más grandes (como un desktop) */
+        @media (min-width: 768px) {
+            #main-content {
+                flex-direction: row;
+                /* Coloca el mapa y la barra lateral en fila horizontal */
+                justify-content: space-between;
+                /* Espacio entre el mapa y la barra lateral */
+                align-items: stretch;
+                /* Estira la barra lateral para que tenga la misma altura que el mapa */
+            }
+
+            #map-container {
+                margin-right: 2rem;
+                flex: 1;
+                /* El mapa ocupa el espacio restante */
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                margin-top: 2rem;
+            }
+        }
+    </style>
 </head>
+
 <body>
-    <header>
-        <h1>Calculador Solar</h1>
-        <nav>
-            <a href="index.html" class="nav-button">Volver al Inicio</a>
-        </nav>
-    </header>
-    <main>
-        <section id="datos-meteorologicos">
-            <h2>Datos Meteorológicos y de Radiación</h2>
-            <div id="mapa-container">
-                <p>Cargando mapa...</p>
+    <div class="wizard-container">
+        <div class="sidebar">
+            <div class="sidebar-item active">
+                Datos
             </div>
-            <label for="entorno">Entorno de la Instalación:</label>
-            <select id="entorno">
-                <option value="urbano">Urbano</option>
-                <option value="suburbano">Suburbano</option>
-                <option value="rural">Rural</option>
-            </select>
-            <div id="datos-avanzados" style="display: none;">
-                <label for="suelo">Tipo de Suelo:</label>
-                <input type="text" id="suelo">
-                <label for="rugosidad">Rugosidad de la Superficie:</label>
-                <input type="text" id="rugosidad">
+            <div class="sidebar-item">
+                Energía
             </div>
-            <button id="mostrar-avanzado">Mostrar Datos Avanzados</button>
-
-            <div id="resultados-clima" style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;">
-                <h3>Datos Meteorológicos Seleccionados:</h3>
-                <p>Latitud: <span id="latitud"></span></p>
-                <p>Longitud: <span id="longitud"></span></p>
-                <p>Temperatura: <span id="temperatura"></span></p>
-                <p>Condición: <span id="condicion"></span></p>
-                <p>Humedad: <span id="humedad"></span></p>
+            <div class="sidebar-item">
+                Paneles
             </div>
-        </section>
-
-        <section id="consumo-energetico">
-            <h2>Cálculo del Consumo Energético</h2>
-            <button id="alternar-consumo">Ingresar por Detalle de Electrodomésticos</button>
-
-            <div id="consumo-tabla">
-                <h3>Tabla Predefinida de Consumo</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Concepto</th>
-                            <th>Consumo Verano (kWh/mes)</th>
-                            <th>Consumo Invierno (kWh/mes)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Iluminación</td>
-                            <td><input type="number" value="100"></td>
-                            <td><input type="number" value="120"></td>
-                        </tr>
-                        <tr>
-                            <td>Electrodomésticos Básicos</td>
-                            <td><input type="number" value="150"></td>
-                            <td><input type="number" value="160"></td>
-                        </tr>
-                        </tbody>
-                </table>
-                <button id="calcular-consumo-tabla">Calcular Consumo</button>
+            <div class="sidebar-item">
+                Inversor
             </div>
+            <div class="sidebar-item">
+                Registro Pérdidas
+            </div>
+            <div class="sidebar-item">
+                Salir
+            </div>
+        </div>
+        <div class="main-content">
+            <div id="landing-page" class="step active">
+                <section id="user-data-form">
+                    <h2>Ingrese sus datos</h2>
+                    <div class="form-group">
+                        <label for="nombre">Nombre:</label>
+                        <input type="text" id="nombre" name="nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="apellido">Apellido:</label>
+                        <input type="text" id="apellido" name="apellido" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Correo Electrónico:</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <button type="submit" class="btn primary-btn">
+                        Enviar Datos
+                    </button>
+                </section>
 
-            <div id="consumo-electrodomesticos" style="display: none;">
-                <h3>Detalle de Electrodomésticos</h3>
-                <div id="lista-electrodomesticos">
-                    <div class="electrodomestico-item">
-                        <input type="text" placeholder="Nombre (ej. Heladera)">
-                        <input type="number" placeholder="Potencia (W)">
-                        <input type="number" placeholder="Horas/Día (Verano)">
-                        <input type="number" placeholder="Horas/Día (Invierno)">
-                        <button class="remove-item">X</button>
+                <div id="map-container">
+                    <h2>Buscá tu ubicación</h2>
+                    <p>Hacé clic en el mapa o buscá tu dirección.</p>
+                    <div id="map"></div>
+                    <div id="ubicacion-info">
+                        <p>Latitud: <span id="latitud-mostrar"></span></p>
+                        <p>Longitud: <span id="longitud-mostrar"></span></p>
                     </div>
                 </div>
-                <button id="add-electrodomestico">Añadir Electrodoméstico</button>
-                <button id="calcular-consumo-electrodomesticos">Calcular Consumo</button>
+
+                <aside class="sidebar">
+                    <h2>Formularios de la Fase 1</h2>
+                    <div class="form-section">
+                        <h3>Datos del Cliente</h3>
+                        <form id="client-form">
+                            <label for="client-name">Nombre del Cliente:</label>
+                            <input type="text" id="client-name" name="client-name" required>
+                            <label for="client-email">Email del Cliente:</label>
+                            <input type="email" id="client-email" name="client-email" required>
+                            <button type="submit">Guardar Cliente</button>
+                        </form>
+                    </div>
+                    <div class="form-section">
+                        <h3>Datos del Proyecto</h3>
+                        <form id="project-form">
+                            <label for="project-name">Nombre del Proyecto:</label>
+                            <input type="text" id="project-name" name="project-name" required>
+                            <label for="project-number">Número de Proyecto:</label>
+                            <input type="number" id="project-number" name="project-number" required>
+                            <button type="submit">Guardar Proyecto</button>
+                        </form>
+                    </div>
+                </aside>
             </div>
-            
-            <div id="resultados-consumo" style="margin-top: 20px;">
-                <h3>Resultados de Consumo:</h3>
-                <p>Consumo Estacional Verano: <span id="consumo-verano"></span> kWh/mes</p>
-                <p>Consumo Estacional Invierno: <span id="consumo-invierno"></span> kWh/mes</p>
+
+            <div id="form-steps" class="step">
+                <form id="solar-form">
+                    <h2>2. Datos de la Instalación (Fase 1)</h2>
+                    </form>
+                <div id="report"></div>
             </div>
-        </section>
-
-        <section id="seleccion-paneles" style="margin-top: 30px; padding: 20px; border: 1px dashed #ccc;">
-            <h2>RF3 - Selección de Paneles Solares (Pendiente)</h2>
-            <p>Aquí se implementará la lógica para elegir paneles y su potencia.</p>
-        </section>
-
-        <section id="eleccion-inversores" style="margin-top: 30px; padding: 20px; border: 1px dashed #ccc;">
-            <h2>RF4 - Elección del Inversor (Pendiente)</h2>
-            <p>Aquí se implementará la lógica para seleccionar el modelo de inversor.</p>
-        </section>
-
-        <section id="registro-perdidas" style="margin-top: 30px; padding: 20px; border: 1px dashed #ccc;">
-            <h2>RF5 - Registro de Pérdidas (Pendiente)</h2>
-            <p>Aquí se implementará la lógica para ingresar frecuencia de lluvias y polvo.</p>
-        </section>
-
-        <section id="analisis-economico" style="margin-top: 30px; padding: 20px; border: 1px dashed #ccc;">
-            <h2>RF6 - Análisis Económico (Pendiente)</h2>
-            <p>Aquí se implementará la lógica para costos de inversión, mantenimiento y tarifa inyectada.</p>
-        </section>
-
-    </main>
-    <footer>
-        <p>&copy; 2024 Calculador Solar</p>
-    </footer>
-
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="script.js"></script>
+        </div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="calculador.js"></script>
 </body>
+
 </html>

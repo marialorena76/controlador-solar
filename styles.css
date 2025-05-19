@@ -1,24 +1,31 @@
+/* 1. Variables globales de marca */
+:root {
+    --color-primary: #FF8442;
+    /* tu Pantone 137 C */
+    --color-secondary: #60BE58;
+    /* tu Pantone 361 C */
+    --color-tertiary: #5884D6;
+    /* tu Pantone 2718 C */
+    --font-heading: 'Dosis', sans-serif;
+    --font-body: 'Akzidenz Grotesk BE', sans-serif;
+}
+
 /* Variables CSS (opcional pero recomendado para colores) */
 :root {
-    --primary-color: #4CAF50; /* Un verde similar al del diseño */
-    --secondary-color: #007bff; /* Un azul para los botones */
+    --primary-color: #4CAF50;
+    /* Un verde similar al del diseño */
+    --secondary-color: #007bff;
+    /* Un azul para los botones */
     --text-dark: #333;
     --text-light: #f4f4f4;
     --bg-light: #f4f4f4;
-    --bg-dark: #2c3e50; /* Un azul oscuro para las secciones de abajo */
+    --bg-dark: #2c3e50;
+    /* Un azul oscuro para las secciones de abajo */
 }
 
-/* Estilos globales */
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    line-height: 1.6;
-    color: var(--text-dark);
-    background-color: #fff; /* Fondo blanco general */
-}
-
-h1, h2, h3 {
+h1,
+h2,
+h3 {
     color: var(--text-dark);
 }
 
@@ -33,320 +40,49 @@ h1, h2, h3 {
     text-align: center;
 }
 
-.primary-btn {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-.primary-btn:hover {
-    background-color: #45a049;
-}
-
-.secondary-btn {
-    background-color: transparent;
-    color: var(--primary-color);
-    border: 2px solid var(--primary-color);
-}
-
-.secondary-btn:hover {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-/* --- HEADER --- */
-.main-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 5%;
-    background-color: #fff;
-    border-bottom: 1px solid #eee;
-}
-
-.header-logo {
-    height: 40px; /* Ajusta según el tamaño de tu logo */
-}
-
-.main-nav .nav-button {
-    padding: 8px 15px;
-    border-radius: 5px;
-    text-decoration: none;
-    font-weight: bold;
-    margin-left: 10px;
-}
-
-.register-button {
-    background-color: var(--secondary-color);
-    color: white;
-}
-
-.login-button {
-    background-color: transparent;
-    border: 1px solid #ccc;
-    color: var(--text-dark);
-}
-
-/* --- HERO SECTION --- */
-.hero-section {
-    display: flex;
-    align-items: center;
-    padding: 50px 5%;
-    background-color: var(--bg-light); /* Fondo claro para esta sección */
-    gap: 30px; /* Espacio entre el contenido y la imagen */
-}
-
-.hero-content {
-    flex: 1;
-    max-width: 600px;
-}
-
-.hero-content h1 {
-    font-size: 3em;
-    color: #333;
-    margin-bottom: 15px;
-}
-
-.hero-content p {
-    font-size: 1.1em;
-    line-height: 1.8;
-    margin-bottom: 30px;
-}
-
-.hero-buttons .btn {
-    margin-right: 15px;
-}
-
-.hero-image {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    max-width: 600px;
-    background-color: #e0f2f7; /* Color de fondo del mapa en Figma */
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.map-placeholder {
-    max-width: 100%;
-    height: auto;
-    display: block;
-    /* Ajusta si la imagen tiene espacios en blanco alrededor */
-}
-
-/* --- LOGOS SECTION --- */
-.logos-section {
-    text-align: center;
-    padding: 30px 5%;
-    background-color: #fff;
-    border-top: 1px solid #eee;
-    border-bottom: 1px solid #eee;
-}
-
-.logos-section h3 {
-    color: #666;
-    font-weight: normal;
-    margin-bottom: 20px;
-}
-
-.logos-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 40px; /* Espacio entre logos */
-    flex-wrap: wrap; /* Para que los logos se envuelvan en pantallas pequeñas */
-}
-
-.brand-logo {
-    height: 50px; /* Ajusta el tamaño de los logos */
-    opacity: 0.7;
-    transition: opacity 0.3s ease;
-}
-
-.brand-logo:hover {
-    opacity: 1;
-}
-
-
-/* --- STEPS SECTION --- */
-.steps-section {
-    text-align: center;
-    padding: 60px 5%;
-    background-color: #fff;
-}
-
-.steps-section h2 {
-    font-size: 2.5em;
-    margin-bottom: 10px;
-}
-
-.steps-subtitle {
-    font-size: 1.1em;
-    color: #555;
-    margin-bottom: 40px;
-}
-
-.steps-container {
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-    flex-wrap: wrap;
-}
-
-.step-item {
-    flex-basis: 30%; /* Ajusta el ancho para 3 columnas */
-    min-width: 280px; /* Ancho mínimo para evitar que se aplasten */
-    background-color: #fff;
-    padding: 25px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    text-align: center;
-}
-
-.step-icon {
-    font-size: 3em;
-    color: var(--primary-color);
-    margin-bottom: 15px;
-}
-
-.step-item h3 {
-    font-size: 1.4em;
-    margin-bottom: 10px;
-    color: var(--text-dark);
-}
-
-.step-item p {
-    font-size: 0.95em;
-    color: #666;
-}
-
-/* --- USER TYPE SECTION --- */
-.user-type-section {
-    text-align: center;
-    padding: 60px 5%;
-    background-color: var(--bg-dark); /* Fondo azul oscuro como en Figma */
-    color: var(--text-light);
-}
-
-.user-type-section h2 {
-    font-size: 2em;
-    margin-bottom: 40px;
-    color: var(--text-light);
-}
-
-.user-type-options {
-    display: flex;
-    justify-content: center;
-    gap: 40px;
-    flex-wrap: wrap;
-}
-
-.user-type-card {
-    background-color: #444; /* Fondo oscuro para las tarjetas */
-    color: var(--text-light);
-    padding: 30px 40px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: transform 0.3s ease, background-color 0.3s ease;
-    min-width: 200px;
-    max-width: 250px;
-    box-shadow: 0 40px 80px rgba(0,0,0,0.1);
-}
-
-.user-type-card:hover {
-    transform: translateY(-10px);
-    background-color: #555;
-}
-
-.user-type-card .fas {
-    font-size: 4em;
-    margin-bottom: 15px;
-    color: var(--primary-color); /* Icono verde */
-}
-
-.user-type-card p {
-    font-size: 1.2em;
-    font-weight: bold;
-}
-
-/* --- FOOTER (Básico) --- */
-footer {
-    text-align: center;
-    padding: 20px;
-    background-color: #333;
-    color: white;
-    font-size: 0.9em;
-}
-
-/* --- Media Queries para Responsive (Ajustes para pantallas pequeñas) --- */
-@media (max-width: 768px) {
-    .hero-section {
-        flex-direction: column; /* Apilar en pantallas pequeñas */
-        text-align: center;
-    }
-
-    .hero-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
-    .hero-buttons .btn {
-        margin-right: 0;
-    }
-
-    .steps-container,
-    .user-type-options,
-    .logos-container {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .step-item,
-    .user-type-card {
-        flex-basis: 90%; /* Ocupar casi todo el ancho */
-        margin-bottom: 20px;
-    }
-
-    .main-header {
-        flex-direction: column;
-        gap: 10px;
-    }
-    .main-nav {
-        margin-top: 10px;
-    }
-}
-
-/* Estilos básicos (ajusta a tu gusto) */
+/* Estilos generales */
 body {
     font-family: sans-serif;
     margin: 0;
     padding: 0;
+    display: flex;
+    /* Usamos flexbox para el layout */
 }
+
 header {
     background-color: #f0f0f0;
     padding: 10px;
     text-align: center;
 }
+
 main {
     padding: 20px;
 }
+
 section {
     margin-bottom: 20px;
 }
+
 label {
     display: block;
     margin-bottom: 5px;
 }
-input, select, button {
+
+input,
+select,
+button {
     margin-bottom: 10px;
     padding: 5px;
 }
 
 /* ¡CRUCIAL para el mapa! Define la altura del contenedor del mapa */
 #mapa-container {
-    height: 400px; /* Puedes ajustar esta altura */
-    width: 100%;  /* Esto hace que ocupe todo el ancho disponible */
-    border: 1px solid #ccc; /* Un borde para que sea visible */
+    height: 400px;
+    /* Puedes ajustar esta altura */
+    width: 100%;
+    /* Esto hace que ocupe todo el ancho disponible */
+    border: 1px solid #ccc;
+    /* Un borde para que sea visible */
     margin-bottom: 20px;
 }
 
@@ -356,11 +92,133 @@ input, select, button {
     padding: 15px;
     border-radius: 5px;
 }
+
 #resultados-clima h3 {
     margin-top: 0;
-    color: #333;
+    color: #;
 }
-#resultados-clima p {
-    margin: 5px 0;
-    font-size: 0.9em;
+
+/* Estilos de la barra lateral */
+.sidebar {
+    width: 200px;
+    /* Ancho fijo para la barra lateral */
+    background-color: #f0f0f0;
+    padding: 20px;
+    border-right: 1px solid #ccc;
+    /* Separador visual */
+    box-sizing: border-box;
+    /* Incluir padding y border en el ancho */
+    height: 100vh;
+    /* Altura completa de la ventana */
+}
+
+.sidebar-item {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.sidebar-item:hover {
+    background-color: #ddd;
+}
+
+.sidebar-item.active {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+/* Estilos del contenido principal */
+.main-content {
+    flex: 1;
+    /* El contenido principal ocupa el espacio restante */
+    padding: 20px;
+    box-sizing: border-box;
+    /* Incluir padding en el ancho */
+}
+
+#form-container {
+    display: none;
+    /* Oculta el formulario inicialmente */
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+
+#map {
+    height: 300px;
+    /* Altura fija para el mapa */
+    width: 100%;
+    /* Ancho completo del contenedor */
+    background: #eee;
+    margin-bottom: 20px;
+    /* Espacio debajo del mapa */
+    border-radius: 10px;
+}
+
+.leaflet-control-geocoder-form {
+    margin-bottom: 10px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #555;
+    font-weight: bold;
+    font-family: var(--font-heading);
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 1em;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(255, 132, 66, 0.25);
+}
+
+.btn.primary-btn {
+    background-color: var(--color-primary);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+    font-family: var(--font-heading);
+    font-weight: bold;
+}
+
+.btn.primary-btn:hover {
+    background-color: #ff6b21;
+}
+
+#report {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#report h2 {
+    color: var(--color-primary);
+    font-family: var(--font-heading);
+    margin-bottom: 15px;
 }
