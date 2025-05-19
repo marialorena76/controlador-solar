@@ -7,27 +7,62 @@
     --color-tertiary: #5884D6;
     /* tu Pantone 2718 C */
     --font-heading: 'Dosis', sans-serif;
-    --font-body: 'Akzidenz Grotesk BE', sans-serif;
+    /* Tipografía para títulos */
+    --font-body: 'Arial', sans-serif;
+    /* Usar una fuente similar a Akzidenz Grotesk BE si no está disponible, o cargarla */
+     /* Si tienes el archivo de fuente Akzidenz Grotesk BE, puedes cargarlo usando @font-face */
+     /* Ejemplo:
+     @font-face {
+         font-family: 'Akzidenz Grotesk BE';
+         src: url('fonts/AkzidenzGroteskBE-Regular.woff2') format('woff2'),
+              url('fonts/AkzidenzGroteskBE-Regular.woff') format('woff');
+         font-weight: normal;
+         font-style: normal;
+     }
+     --font-body: 'Akzidenz Grotesk BE', sans-serif;
+     */
+
+    --text-dark: #333;
+    /* Color de texto oscuro general */
+    --text-light: #f4f4f4;
+    /* Color de texto claro general */
+    --bg-light: #f4f4f4;
+    /* Fondo claro general */
+    --bg-dark: #2c3e50;
+    /* Fondo oscuro general */
 }
 
-/* Variables CSS (opcional pero recomendado para colores) */
-:root {
-    --primary-color: #4CAF50;
-    /* Un verde similar al del diseño */
-    --secondary-color: #007bff;
-    /* Un azul para los botones */
-    --text-dark: #333;
-    --text-light: #f4f4f4;
-    --bg-light: #f4f4f4;
-    --bg-dark: #2c3e50;
-    /* Un azul oscuro para las secciones de abajo */
+/* Estilos generales del cuerpo y tipografía */
+body {
+    font-family: var(--font-body);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    color: var(--text-dark);
 }
 
 h1,
 h2,
 h3 {
-    color: var(--text-dark);
+    font-family: var(--font-heading);
+    color: var(--text-dark); /* O puedes usar colores de marca si prefieres */
+    margin-top: 0;
 }
+
+h1 {
+    font-size: 2.5em;
+}
+
+h2 {
+    font-size: 2em;
+    margin-bottom: 1em;
+}
+
+h3 {
+    font-size: 1.5em;
+    margin-bottom: 0.8em;
+}
+
 
 .btn {
     display: inline-block;
@@ -38,78 +73,42 @@ h3 {
     font-size: 1em;
     text-decoration: none;
     text-align: center;
+    transition: background-color 0.3s ease;
 }
 
-/* Estilos generales */
-body {
-    font-family: sans-serif;
-    margin: 0;
-    padding: 0;
+/* Estilo para el contenedor principal del "wizard" (usado en calculador.html) */
+.wizard-container {
     display: flex;
-    /* Usamos flexbox para el layout */
+    min-height: 100vh; /* Ocupa al menos la altura de la ventana */
+    flex-direction: column; /* Apilar secciones en móviles por defecto */
 }
 
-header {
-    background-color: #f0f0f0;
-    padding: 10px;
-    text-align: center;
-}
-
-main {
-    padding: 20px;
-}
-
-section {
-    margin-bottom: 20px;
-}
-
-label {
-    display: block;
-    margin-bottom: 5px;
-}
-
-input,
-select,
-button {
-    margin-bottom: 10px;
-    padding: 5px;
-}
-
-/* ¡CRUCIAL para el mapa! Define la altura del contenedor del mapa */
-#mapa-container {
-    height: 400px;
-    /* Puedes ajustar esta altura */
-    width: 100%;
-    /* Esto hace que ocupe todo el ancho disponible */
-    border: 1px solid #ccc;
-    /* Un borde para que sea visible */
-    margin-bottom: 20px;
-}
-
-/* Estilos para el div de resultados del clima (opcional, para que se vea mejor) */
-#resultados-clima {
-    background-color: #e9e9e9;
-    padding: 15px;
-    border-radius: 5px;
-}
-
-#resultados-clima h3 {
-    margin-top: 0;
-    color: #;
-}
-
-/* Estilos de la barra lateral */
+/* Estilos de la barra lateral (usado en calculador.html) */
 .sidebar {
-    width: 200px;
-    /* Ancho fijo para la barra lateral */
-    background-color: #f0f0f0;
-    padding: 20px;
-    border-right: 1px solid #ccc;
-    /* Separador visual */
+    background-color: var(--bg-light); /* Fondo claro */
+    padding: 2rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    width: 100%; /* Ocupa todo el ancho en móviles */
+    max-width: none; /* Eliminar ancho máximo en móviles */
+    border-bottom: 1px solid #ccc; /* Separador inferior en móviles */
+    border-right: none; /* Eliminar borde derecho en móviles */
     box-sizing: border-box;
-    /* Incluir padding y border en el ancho */
-    height: 100vh;
-    /* Altura completa de la ventana */
+    flex-shrink: 0; /* Evita que la barra lateral se encoja */
+    display: none; /* Ocultar barra lateral por defecto */
+}
+
+.sidebar.visible { /* Clase para mostrar la barra lateral con JS */
+    display: block;
+}
+
+
+.sidebar h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #1f2937; /* Puedes ajustar este color según tu paleta */
+    font-family: var(--font-heading);
 }
 
 .sidebar-item {
@@ -117,7 +116,9 @@ button {
     margin-bottom: 10px;
     border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    font-family: var(--font-heading); /* Usar fuente de títulos para los ítems del menú */
+    font-weight: 500;
 }
 
 .sidebar-item:hover {
@@ -125,100 +126,518 @@ button {
 }
 
 .sidebar-item.active {
-    background-color: var(--color-primary);
+    background-color: var(--color-primary); /* Color primario para el ítem activo */
     color: white;
 }
 
-/* Estilos del contenido principal */
-.main-content {
-    flex: 1;
-    /* El contenido principal ocupa el espacio restante */
-    padding: 20px;
+
+/* Estilos del contenido principal (inicialmente solo el mapa) */
+.main-content { /* Renombrado para mayor claridad */
+    flex-grow: 1; /* El contenido principal (mapa) ocupa todo el espacio restante */
+    padding: 0; /* Eliminar padding para que el mapa ocupe todo el ancho */
     box-sizing: border-box;
-    /* Incluir padding en el ancho */
+    display: flex; /* Usar flexbox para la disposición interna */
+    flex-direction: column; /* Dirección por defecto en columna */
+    align-items: center; /* Centrar horizontalmente */
 }
 
-#form-container {
-    display: none;
-    /* Oculta el formulario inicialmente */
-    background-color: #f9f9f9;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    margin-top: 20px;
+/* Contenedor para el mapa y la información de ubicación (usado en calculador.html) */
+#map-section {
+    width: 100%; /* Ocupa todo el ancho disponible */
+    flex-grow: 1; /* Permite que la sección del mapa crezca */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px; /* Añadir padding interno */
+    box-sizing: border-box;
 }
 
-#map {
-    height: 300px;
-    /* Altura fija para el mapa */
-    width: 100%;
-    /* Ancho completo del contenedor */
+#map { /* Usado en calculador.html */
+    height: 70vh; /* Aumentada la altura del mapa para ocupar más pantalla */
+    width: 100%; /* Ocupa todo el ancho de su contenedor */
     background: #eee;
-    margin-bottom: 20px;
-    /* Espacio debajo del mapa */
+    margin-bottom: 1rem;
     border-radius: 10px;
+    border: 1px solid #ccc;
 }
 
-.leaflet-control-geocoder-form {
+.leaflet-control-geocoder-form { /* Usado en calculador.html */
     margin-bottom: 10px;
 }
 
+#ubicacion-info { /* Usado en calculador.html */
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: var(--bg-light);
+    border-radius: 0.5rem;
+    border: 1px solid #ddd;
+    font-family: var(--font-body);
+    text-align: left; /* Alinear texto a la izquierda dentro de la caja de info */
+    width: 100%; /* Ocupa todo el ancho del contenedor */
+    max-width: 800px; /* Ancho máximo para la información */
+}
+
+ #ubicacion-info p { /* Usado en calculador.html */
+     margin: 0.5rem 0;
+     color: var(--text-dark);
+ }
+
+ #weather-info { /* Usado en calculador.html */
+     margin-top: 1rem;
+     padding-top: 1rem;
+     border-top: 1px solid #eee;
+     font-family: var(--font-body);
+ }
+  #weather-info h3 { /* Usado en calculador.html */
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      font-size: 1.2em;
+      color: var(--text-dark); /* O un color de marca */
+  }
+
+/* Estilos para el botón Siguiente (usado en calculador.html) */
+#next-button {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.375rem;
+    background-color: var(--color-primary); /* Usar color primario */
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    border: none;
+    margin-top: 1rem;
+    font-family: var(--font-heading);
+    display: none; /* Oculto por defecto */
+}
+
+#next-button:hover {
+    background-color: #ff6b21; /* Tono más oscuro del color primario */
+}
+
+#next-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255, 132, 66, 0.25); /* Usar color primario con transparencia */
+}
+
+
+/* Estilos de la sección principal de la aplicación (sidebar + forms) (usado en calculador.html) */
+#main-app-area {
+    display: none; /* Oculto por defecto */
+    flex-grow: 1; /* Ocupa el espacio restante cuando está visible */
+    flex-direction: column; /* Apilar barra lateral y formularios en móviles */
+}
+
+/* Estilos del área principal de formularios (usado en calculador.html) */
+#main-forms-area {
+    flex-grow: 1; /* Ocupa el espacio restante */
+    padding: 20px; /* Añadir padding */
+    box-sizing: border-box;
+}
+
+/* Estilos de los formularios dentro del área principal (usado en calculador.html) */
+#fase1-forms-container {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #ccc;
+}
+
+.form-section { /* Estilos generales para secciones de formulario si las usas dentro de fase1-forms-container */
+    background-color: white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 1rem;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 5px;
-    color: #555;
-    font-weight: bold;
-    font-family: var(--font-heading);
+    margin-bottom: 0.5rem;
+    color: var(--text-dark);
+    font-weight: 500;
+    font-family: var(--font-body);
 }
 
-.form-group input,
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="number"],
 .form-group select {
     width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    box-sizing: border-box;
-    font-size: 1em;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid #d1d5db;
+    font-size: 1rem;
+    color: var(--text-dark);
+    box-sizing: border-box; /* Incluir padding en el ancho */
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+     font-family: var(--font-body);
 }
 
-.form-group input:focus,
+.form-group input[type="text"]:focus,
+.form-group input[type="email"]:focus,
+.form-group input[type="number"]:focus,
 .form-group select:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(255, 132, 66, 0.25);
+    box-shadow: 0 0 0 3px rgba(255, 132, 66, 0.25);
 }
 
-.btn.primary-btn {
-    background-color: var(--color-primary);
+.form-section button {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    background-color: var(--color-secondary); /* Usar color secundario para botones de formulario */
     color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
+    font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
-    font-size: 1em;
     transition: background-color 0.3s ease;
+    border: none;
+    margin-top: 1rem;
     font-family: var(--font-heading);
-    font-weight: bold;
 }
 
-.btn.primary-btn:hover {
-    background-color: #ff6b21;
+.form-section button:hover {
+    background-color: #4CAF50; /* Tono más oscuro del color secundario */
 }
 
+.form-section button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(96, 190, 88, 0.25); /* Usar color secundario con transparencia */
+}
+
+
+/* Estilos para el reporte (si lo usas al final) (usado en calculador.html) */
 #report {
     margin-top: 20px;
     padding: 15px;
-    background-color: #f9f9f9;
+    background-color: var(--bg-light);
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: 100%; /* Que ocupe todo el ancho disponible */
+    max-width: 800px; /* O el mismo max-width que la sección del mapa */
 }
 
 #report h2 {
     color: var(--color-primary);
     font-family: var(--font-heading);
     margin-bottom: 15px;
+}
+
+/* Estilos para ocultar pasos no activos (usado en calculador.html) */
+.step:not(.active) {
+    display: none;
+}
+
+/* Estilos de la página de inicio (index.html) */
+.main-header {
+    background-color: #fff; /* Puedes ajustar según tu diseño */
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-logo {
+    height: 50px; /* Ajusta el tamaño del logo */
+}
+
+.main-nav a {
+    margin-left: 20px;
+    text-decoration: none;
+    color: var(--text-dark);
+    font-family: var(--font-body);
+}
+
+.hero-section {
+    background-color: #e9f5ee; /* Fondo claro para la sección hero */
+    padding: 4rem 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative; /* Necesario para posicionar la imagen de fondo */
+    overflow: hidden; /* Oculta partes de la imagen que se salgan */
+}
+
+.hero-section .hero-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1; /* Coloca la imagen detrás del contenido */
+}
+
+.hero-section .hero-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Cubre el área manteniendo la relación de aspecto */
+    object-position: center; /* Centra la imagen */
+    filter: brightness(0.8); /* Oscurece un poco la imagen para que el texto resalte */
+}
+
+
+.hero-content {
+    position: relative; /* Coloca el contenido encima de la imagen de fondo */
+    z-index: 2; /* Asegura que el contenido esté encima de la imagen */
+    margin-bottom: 2rem;
+    color: white; /* Color de texto claro para resaltar sobre el fondo oscuro */
+}
+
+.hero-title {
+    font-size: 3em;
+    color: white; /* Color de título claro */
+    margin-bottom: 0.5rem;
+}
+
+.hero-subtitle {
+    font-size: 1.2em;
+    color: white; /* Color de subtítulo claro */
+}
+
+.hero-buttons {
+    margin-top: 2rem;
+}
+
+.hero-buttons .btn {
+    margin: 0 10px; /* Espacio entre botones */
+}
+
+.btn.primary-btn {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.btn.primary-btn:hover {
+    background-color: #ff6b21; /* Tono más oscuro */
+}
+
+.btn.secondary-btn {
+    background-color: transparent;
+    color: white;
+    border: 2px solid white;
+}
+
+.btn.secondary-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+
+/* Estilos de la sección de logos */
+.logos-section {
+    padding: 2rem 20px;
+    text-align: center;
+    background-color: #fff; /* Fondo blanco */
+}
+
+.logos-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px; /* Espacio entre logos */
+}
+
+.client-logo {
+    height: 50px; /* Ajusta el tamaño de los logos */
+    max-width: 120px; /* Ancho máximo para evitar que sean demasiado grandes */
+    object-fit: contain; /* Asegura que el logo se ajuste sin distorsionarse */
+}
+
+
+.steps-section, .user-type-section {
+    padding: 3rem 20px;
+    text-align: center;
+}
+
+.steps-subtitle {
+    font-size: 1.1em;
+    color: #555;
+    margin-bottom: 2rem;
+}
+
+
+.features-container, .steps-container, .user-type-options {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px; /* Espacio entre elementos */
+}
+
+.feature-item, .step-item, .user-type-card {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    max-width: 300px;
+    text-align: center;
+    text-decoration: none; /* Quitar subrayado de los enlaces */
+    color: inherit; /* Heredar color de texto */
+    transition: transform 0.3s ease;
+}
+
+.feature-item:hover, .step-item:hover, .user-type-card:hover {
+    transform: translateY(-5px); /* Efecto hover */
+}
+
+.feature-icon, .step-icon, .user-type-card i {
+    font-size: 2.5em;
+    color: var(--color-secondary); /* O puedes usar otro color de marca */
+    margin-bottom: 15px;
+}
+
+.user-type-card {
+    display: block; /* Asegura que la tarjeta sea un bloque clickeable */
+    cursor: pointer;
+}
+ .user-type-card p {
+     margin: 0;
+     font-weight: bold;
+     font-family: var(--font-heading);
+ }
+
+footer {
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    padding: 20px;
+    text-align: center;
+}
+
+.footer-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap; /* Permite que los elementos se envuelvan en pantallas pequeñas */
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.footer-links a {
+    color: var(--text-light);
+    text-decoration: none;
+    margin: 0 10px;
+    font-family: var(--font-body);
+}
+
+.social-icons a {
+    color: var(--text-light);
+    font-size: 1.5em;
+    margin: 0 10px;
+    text-decoration: none;
+}
+
+.copyright {
+    margin-top: 20px;
+    font-size: 0.9em;
+    color: #bbb;
+}
+
+/* Media queries para responsividad */
+@media (max-width: 768px) {
+    .main-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .main-nav {
+        margin-top: 10px;
+    }
+
+    .hero-section {
+        padding: 3rem 20px; /* Ajustar padding en móviles */
+    }
+
+    .hero-content {
+        margin-bottom: 1.5rem;
+    }
+
+    .hero-title {
+        font-size: 2em; /* Ajustar tamaño de título en móviles */
+    }
+
+    .hero-subtitle {
+         font-size: 1em; /* Ajustar tamaño de subtítulo en móviles */
+    }
+
+    .hero-buttons {
+        flex-direction: column; /* Apilar botones en móviles */
+    }
+
+    .hero-buttons .btn {
+        margin: 10px 0; /* Espacio vertical entre botones */
+    }
+
+
+    .features-container, .steps-container, .user-type-options {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .feature-item, .step-item, .user-type-card {
+        width: 90%; /* Ocupa más ancho en móviles */
+        max-width: none; /* Eliminar ancho máximo */
+    }
+
+     /* Estilos específicos para calculador.html en móviles */
+     .wizard-container {
+         flex-direction: column; /* Asegura que las secciones se apilen */
+     }
+
+     #main-app-area {
+         flex-direction: column; /* Asegura que barra lateral y formularios se apilen */
+     }
+
+     .sidebar {
+         width: 100%; /* Ocupa todo el ancho */
+         max-width: none;
+         margin-top: 2rem; /* Espacio entre secciones */
+         border-right: none;
+         border-top: 1px solid #ccc;
+     }
+
+     #main-forms-area {
+         padding: 20px; /* Añadir padding */
+     }
+
+
+    .footer-container {
+        flex-direction: column;
+    }
+
+    .footer-links, .social-icons {
+        margin-bottom: 15px;
+    }
+}
+
+/* Media query para pantallas más grandes (desktop) */
+@media (min-width: 768px) {
+     /* Estilos específicos para calculador.html en desktop */
+    .wizard-container {
+        flex-direction: row; /* Barra lateral y área principal lado a lado */
+    }
+
+    #landing-page {
+        padding: 20px; /* Restaurar padding */
+    }
+
+    #main-app-area {
+        flex-direction: row; /* Barra lateral y área de formularios lado a lado */
+    }
+
+    .sidebar {
+        width: 250px; /* Ancho fijo para la barra lateral */
+        max-width: 250px; /* Ancho máximo */
+        border-right: 1px solid #ccc; /* Borde derecho */
+        border-bottom: none; /* Eliminar borde inferior */
+    }
+
+    #main-forms-area {
+        padding: 20px; /* Añadir padding */
+    }
 }

@@ -4,206 +4,336 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculador Solar – Wizard</title>
+    <title>Calculador Solar – Usuario Básico</title>
     <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;700&family=Bebas+Neue&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css">
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* Agrega aquí los estilos CSS que te proporcioné antes y los que necesites para la landing page */
+        /* Estilos específicos para la disposición del mapa y la barra lateral en esta página */
 
-        /* Estilos para la entrada de datos del usuario */
-        #user-data-form {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
+        /* Estilo para el contenedor principal del "wizard" */
+        .wizard-container {
+            display: flex;
+            min-height: 100vh;
+            /* Ocupa al menos la altura de la ventana */
+            flex-direction: column;
+            /* Apilar secciones en móviles */
+        }
+
+        /* Estilos de la sección del mapa inicial */
+        #landing-page {
+            flex-grow: 1;
+            /* Permite que el mapa ocupe el espacio restante */
+            padding: 0;
+            /* Eliminar padding para que el mapa ocupe todo el ancho */
+            box-sizing: border-box;
+            display: flex;
+            /* Usar flexbox para el contenido del mapa */
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            /* Añadir padding interno */
+        }
+
+        /* Estilos del mapa */
+        #map-section {
             width: 100%;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
+            /* Ocupa todo el ancho disponible */
+            flex-grow: 1;
+            /* Permite que la sección del mapa crezca */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        #user-data-form h2 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            color: #1f2937;
-        }
-
-        #user-data-form .form-group {
+        #map {
+            height: 70vh;
+            /* Aumentada la altura del mapa para ocupar más pantalla */
+            width: 100%;
+            /* Ocupa todo el ancho de su contenedor */
+            background: #eee;
             margin-bottom: 1rem;
+            border-radius: 10px;
+            border: 1px solid #ccc;
         }
 
-        #user-data-form label {
-            display: block;
-            font-size: 0.875rem;
-            color: #374151;
+        .leaflet-control-geocoder-form {
+            margin-bottom: 10px;
+        }
+
+        #ubicacion-info {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: var(--bg-light);
+            border-radius: 0.5rem;
+            border: 1px solid #ddd;
+            font-family: var(--font-body);
+            text-align: left;
+            /* Alinear texto a la izquierda dentro de la caja de info */
+            width: 100%;
+            /* Ocupa todo el ancho del contenedor */
+            max-width: 800px;
+            /* Ancho máximo para la información */
+        }
+
+        #ubicacion-info p {
+            margin: 0.5rem 0;
+            color: var(--text-dark);
+        }
+
+        #weather-info {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+            font-family: var(--font-body);
+        }
+
+        #weather-info h3 {
+            margin-top: 0;
             margin-bottom: 0.5rem;
-            font-weight: 500;
+            font-size: 1.2em;
+            color: var(--text-dark);
+            /* O un color de marca */
         }
 
-        #user-data-form input[type="text"],
-        #user-data-form input[type="email"] {
-            width: 100%;
-            padding: 0.75rem;
+        /* Estilos para el botón Siguiente */
+        #next-button {
+            padding: 0.75rem 1.5rem;
             border-radius: 0.375rem;
-            border: 1px solid #d1d5db;
-            font-size: 1rem;
-            color: #374151;
-            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
-        }
-
-        #user-data-form input[type="text"]:focus,
-        #user-data-form input[type="email"]:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-        }
-
-        #user-data-form button {
-            width: 100%;
-            padding: 0.75rem;
-            border-radius: 0.375rem;
-            background-color: #3b82f6;
+            background-color: var(--color-primary);
+            /* Usar color primario */
             color: white;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             transition: background-color 0.3s ease;
             border: none;
+            margin-top: 1rem;
+            font-family: var(--font-heading);
+            display: none;
+            /* Oculto por defecto */
         }
 
-        #user-data-form button:hover {
-            background-color: #2563eb;
+        #next-button:hover {
+            background-color: #ff6b21;
+            /* Tono más oscuro del color primario */
         }
 
-        #user-data-form button:focus {
+        #next-button:focus {
             outline: none;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            box-shadow: 0 0 0 3px rgba(255, 132, 66, 0.25);
+            /* Usar color primario con transparencia */
         }
 
-        /* Estilos para la barra lateral (aside) */
+
+        /* Estilos de la sección principal de la aplicación (sidebar + forms) */
+        #main-app-area {
+            display: none;
+            /* Oculto por defecto */
+            flex-grow: 1;
+            /* Ocupa el espacio restante cuando está visible */
+            flex-direction: column;
+            /* Dirección por defecto en móviles */
+        }
+
+        /* Estilos de la barra lateral */
         .sidebar {
-            background-color: #f3f4f6;
-            /* Gris claro */
+            background-color: var(--bg-light);
+            /* Fondo claro */
             padding: 2rem;
             border-radius: 0.5rem;
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 320px;
-            /* Ancho máximo de la barra lateral */
+            /* Ocupa todo el ancho en móviles */
+            max-width: none;
+            /* Eliminar ancho máximo en móviles */
+            border-bottom: 1px solid #ccc;
+            /* Separador inferior en móviles */
+            border-right: none;
+            /* Eliminar borde derecho en móviles */
+            box-sizing: border-box;
+            flex-shrink: 0;
+            /* Evita que la barra lateral se encoja */
         }
+
 
         .sidebar h2 {
             font-size: 1.25rem;
             font-weight: 600;
             margin-bottom: 1.5rem;
             color: #1f2937;
+            /* Puedes ajustar este color según tu paleta */
+            font-family: var(--font-heading);
         }
 
-        .sidebar .form-section {
-            margin-bottom: 1.5rem;
-        }
-
-        .sidebar .form-section h3 {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #4b5563;
-        }
-
-        .sidebar form {
-            margin-bottom: 1rem;
-        }
-
-        .sidebar form label {
-            display: block;
-            font-size: 0.875rem;
-            color: #374151;
-            margin-bottom: 0.5rem;
+        .sidebar-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            font-family: var(--font-heading);
+            /* Usar fuente de títulos para los ítems del menú */
             font-weight: 500;
         }
 
-        .sidebar form input[type="text"],
-        .sidebar form input[type="email"],
-        .sidebar form input[type="number"] {
+        .sidebar-item:hover {
+            background-color: #ddd;
+        }
+
+        .sidebar-item.active {
+            background-color: var(--color-primary);
+            /* Color primario para el ítem activo */
+            color: white;
+        }
+
+
+        /* Estilos del área principal de formularios */
+        #main-forms-area {
+            flex-grow: 1;
+            /* Ocupa el espacio restante */
+            padding: 20px;
+            /* Añadir padding */
+            box-sizing: border-box;
+        }
+
+        /* Estilos de los formularios dentro del área principal */
+        #fase1-forms-container {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #ccc;
+        }
+
+        .form-section {
+            background-color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+            font-weight: 500;
+            font-family: var(--font-body);
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="number"],
+        .form-group select {
             width: 100%;
             padding: 0.75rem;
             border-radius: 0.375rem;
             border: 1px solid #d1d5db;
             font-size: 1rem;
-            color: #374151;
+            color: var(--text-dark);
+            box-sizing: border-box;
+            /* Incluir padding en el ancho */
             box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+            font-family: var(--font-body);
         }
 
-        .sidebar form input[type="text"]:focus,
-        .sidebar form input[type="email"]:focus,
-        .sidebar form input[type="number"]:focus {
+        .form-group input[type="text"]:focus,
+        .form-group input[type="email"]:focus,
+        .form-group input[type="number"]:focus,
+        .form-group select:focus {
             outline: none;
-            border-color: #3b82f6;
-            /* Azul de Tailwind */
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-            /* Anillo de enfoque azul */
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(255, 132, 66, 0.25);
         }
 
-        .sidebar button {
-            padding: 0.75rem 1.5rem;
+        .form-section button {
+            width: 100%;
+            padding: 0.75rem;
             border-radius: 0.375rem;
-            background-color: #3b82f6;
-            /* Azul de Tailwind */
+            background-color: var(--color-secondary);
+            /* Usar color secundario para botones de formulario */
             color: white;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             transition: background-color 0.3s ease;
             border: none;
-            margin-top: 0.5rem;
+            margin-top: 1rem;
+            font-family: var(--font-heading);
         }
 
-        .sidebar button:hover {
-            background-color: #2563eb;
-            /* Azul más oscuro al hacer hover */
+        .form-section button:hover {
+            background-color: #4CAF50;
+            /* Tono más oscuro del color secundario */
         }
 
-        .sidebar button:focus {
+        .form-section button:focus {
             outline: none;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-            /* Anillo de enfoque azul */
+            box-shadow: 0 0 0 3px rgba(96, 190, 88, 0.25);
+            /* Usar color secundario con transparencia */
         }
 
-        /* Estilos para el contenedor principal */
-        #main-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            /* Centra horizontalmente en pantallas pequeñas */
-            margin-top: 2rem;
+
+        /* Estilos para el reporte (si lo usas al final) */
+        #report {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: var(--bg-light);
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            /* Que ocupe todo el ancho disponible */
+            max-width: 800px;
+            /* O el mismo max-width que la sección del mapa */
         }
 
-        /* Media query para pantallas más grandes (como un desktop) */
+        #report h2 {
+            color: var(--color-primary);
+            font-family: var(--font-heading);
+            margin-bottom: 15px;
+        }
+
+        /* Estilos para ocultar pasos no activos */
+        .step:not(.active) {
+            display: none;
+        }
+
+        /* Media query para pantallas más grandes (desktop) */
         @media (min-width: 768px) {
-            #main-content {
+            .wizard-container {
                 flex-direction: row;
-                /* Coloca el mapa y la barra lateral en fila horizontal */
-                justify-content: space-between;
-                /* Espacio entre el mapa y la barra lateral */
-                align-items: stretch;
-                /* Estira la barra lateral para que tenga la misma altura que el mapa */
+                /* Barra lateral y área principal lado a lado en desktop */
             }
 
-            #map-container {
-                margin-right: 2rem;
-                flex: 1;
-                /* El mapa ocupa el espacio restante */
+            #landing-page {
+                padding: 20px;
+                /* Restaurar padding en desktop */
             }
-        }
 
-        @media (max-width: 768px) {
+            #main-app-area {
+                flex-direction: row;
+                /* Barra lateral y área de formularios lado a lado */
+            }
+
             .sidebar {
-                margin-top: 2rem;
+                width: 250px;
+                /* Ancho fijo para la barra lateral en desktop */
+                max-width: 250px;
+                /* Ancho máximo en desktop */
+                border-right: 1px solid #ccc;
+                /* Borde derecho en desktop */
+                border-bottom: none;
+                /* Eliminar borde inferior en desktop */
+            }
+
+            #main-forms-area {
+                padding: 20px;
+                /* Añadir padding al área de formularios en desktop */
             }
         }
     </style>
@@ -211,87 +341,181 @@
 
 <body>
     <div class="wizard-container">
-        <div class="sidebar">
-            <div class="sidebar-item active">
-                Datos
-            </div>
-            <div class="sidebar-item">
-                Energía
-            </div>
-            <div class="sidebar-item">
-                Paneles
-            </div>
-            <div class="sidebar-item">
-                Inversor
-            </div>
-            <div class="sidebar-item">
-                Registro Pérdidas
-            </div>
-            <div class="sidebar-item">
-                Salir
+        <div id="landing-page" class="step active">
+            <div id="map-section">
+                <h2>Buscá tu ubicación</h2>
+                <p>Hacé clic en el mapa o buscá tu dirección.</p>
+                <div id="map"></div>
+                <div id="ubicacion-info">
+                    <p>Latitud: <span id="latitud-mostrar"></span></p>
+                    <p>Longitud: <span id="longitud-mostrar"></span></p>
+                    <div id="weather-info" style="margin-top: 1rem;">
+                        <h3>Datos Climáticos</h3>
+                        <p>Temperatura: <span id="temperatura"></span></p>
+                        <p>Condición: <span id="condicion"></span></p>
+                        <p>Humedad: <span id="humedad"></span></p>
+                    </div>
+                </div>
+                <button id="next-button">Siguiente</button>
             </div>
         </div>
-        <div class="main-content">
-            <div id="landing-page" class="step active">
-                <section id="user-data-form">
-                    <h2>Ingrese sus datos</h2>
-                    <div class="form-group">
-                        <label for="nombre">Nombre:</label>
-                        <input type="text" id="nombre" name="nombre" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="apellido">Apellido:</label>
-                        <input type="text" id="apellido" name="apellido" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Correo Electrónico:</label>
-                        <input type="email" id="email" name="email" required>
-                    </div>
-                    <button type="submit" class="btn primary-btn">
-                        Enviar Datos
-                    </button>
-                </section>
 
-                <div id="map-container">
-                    <h2>Buscá tu ubicación</h2>
-                    <p>Hacé clic en el mapa o buscá tu dirección.</p>
-                    <div id="map"></div>
-                    <div id="ubicacion-info">
-                        <p>Latitud: <span id="latitud-mostrar"></span></p>
-                        <p>Longitud: <span id="longitud-mostrar"></span></p>
+        <div id="main-app-area" class="step">
+            <div class="sidebar">
+                <div class="sidebar-item active">
+                    Datos
+                </div>
+                <div class="sidebar-item">
+                    Energía
+                </div>
+                <div class="sidebar-item">
+                    Paneles
+                </div>
+                <div class="sidebar-item">
+                    Inversor
+                </div>
+                <div class="sidebar-item">
+                    Registro Pérdidas
+                </div>
+                <div class="sidebar-item">
+                    Salir
+                </div>
+            </div>
+
+            <div id="main-forms-area">
+                <h2>Fase 1 - Datos</h2>
+                <div id="fase1-forms-container">
+                    <div class="form-section">
+                        <h3>Datos de la Instalación</h3>
+                        <form id="fase1-data-form">
+                            <div class="form-group">
+                                <label for="zonaInstalacion">¿En qué zona se encuentra la instalación?</label>
+                                <select id="zonaInstalacion" name="zonaInstalacion" required>
+                                    <option value="">Seleccionar</option>
+                                    <option value="Urbana">Urbana</option>
+                                    <option value="Suburbana">Suburbana</option>
+                                    <option value="Rural">Rural</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="superficieRodea">¿Qué superficie rodea el lugar donde llevar a cabo la instalación?</label>
+                                <select id="superficieRodea" name="superficieRodea" required>
+                                    <option value="">Seleccionar</option>
+                                    <option value="Pintura blanca">Pintura blanca</option>
+                                    <option value="Nieve">Nieve</option>
+                                    <option value="Hielo">Hielo</option>
+                                    <option value="Pintura colores claros">Pintura colores claros</option>
+                                    <option value="Pintura colores medios y grises">Pintura colores medios y grises</option>
+                                    <option value="Desierto de arena">Desierto de arena</option>
+                                    <option value="Hormigon claro">Hormigon claro</option>
+                                    <option value="Dunas, arena">Dunas, arena</option>
+                                    <option value="Pasto/Cesped">Pasto/Cesped</option>
+                                    <option value="Piedras">Piedras</option>
+                                    <option value="Hormigón medio, ladrillo rojo">Hormigón medio, ladrillo rojo</option>
+                                    <option value="Suelo arenoso">Suelo arenoso</option>
+                                    <option value="Tundra">Tundra</option>
+                                    <option value="Suelo agricola">Suelo agricola</option>
+                                    <option value="Bosques de hoja caduca">Bosques de hoja caduca</option>
+                                    <option value="Urbano medio">Urbano medio</option>
+                                    <option value="Bosques coniferas">Bosques coniferas</option>
+                                    <option value="Agua profunda">Agua profunda</option>
+                                    <option value="Asfalto">Asfalto</option>
+                                    <option value="Edificios">Edificios</option>
+                                    <option value="Océano">Océano</option>
+                                    <option value="Suelo volcánico">Suelo volcánico</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="rugosidadSuperficie">¿Cuál es la rugosidad de la superficie que rodea la instalación?</label>
+                                <select id="rugosidadSuperficie" name="rugosidadSuperficie" required>
+                                    <option value="">Seleccionar</option>
+                                    <option value="Pintura blanca">Pintura blanca</option>
+                                    <option value="Nieve">Nieve</option>
+                                    <option value="Hielo">Hielo</option>
+                                    <option value="Pintura colores claros">Pintura colores claros</option>
+                                    <option value="Pintura colores medios y grises">Pintura colores medios y grises</option>
+                                    <option value="Desierto de arena">Desierto de arena</option>
+                                    <option value="Hormigon claro">Hormigon claro</option>
+                                    <option value="Dunas, arena">Dunas, arena</option>
+                                    <option value="Pasto/Cesped">Pasto/Cesped</option>
+                                    <option value="Piedras">Piedras</option>
+                                    <option value="Hormigón medio, ladrillo rojo">Hormigón medio, ladrillo rojo</option>
+                                    <option value="Suelo arenoso">Suelo arenoso</option>
+                                    <option value="Tundra">Tundra</option>
+                                    <option value="Suelo agricola">Suelo agricola</option>
+                                    <option value="Bosques de hoja caduca">Bosques de hoja caduca</option>
+                                    <option value="Urbano medio">Urbano medio</option>
+                                    <option value="Bosques coniferas">Bosques coniferas</option>
+                                    <option value="Agua profunda">Agua profunda</option>
+                                    <option value="Asfalto">Asfalto</option>
+                                    <option value="Edificios">Edificios</option>
+                                    <option value="Océano">Océano</option>
+                                    <option value="Suelo volcánico">Suelo volcánico</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="rotacionInstalacion">¿Con qué rotación contaría la instalación?</label>
+                                <select id="rotacionInstalacion" name="rotacionInstalacion" required>
+                                    <option value="">Seleccionar</option>
+                                    <option value="Fijos">Fijos</option>
+                                    <option value="Rotación sobre un eje horizontal este-oeste con ajuste diario">Rotación sobre un eje horizontal este-oeste con ajuste diario</option>
+                                    <option value="Rotación sobre un eje horizontal este-oeste con ajuste continuo">Rotación sobre un eje horizontal este-oeste con ajuste continuo</option>
+                                    <option value="Rotación sobre un eje horizontal norte-sur con ajuste continuo">Rotación sobre un eje horizontal norte-sur con ajuste continuo</option>
+                                    <option value="Inclinación fija, rotación sobre un eje vertical">Inclinación fija, rotación sobre un eje vertical</option>
+                                    <option value="Rotación sobre un eje norte-sur paralelo al eje de la tierra con ajuste continuo">Rotación sobre un eje norte-sur paralelo al eje de la tierra con ajuste continuo</option>
+                                    <option value="Rotación en dos ejes minimizando angulo de incidencia">Rotación en dos ejes minimizando angulo de incidencia</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="alturaInstalacion">¿Cuál es la altura a la cual se encontrará la instalación fotovoltaica, desde la superficie de apoyo? (metros)</label>
+                                <input type="number" id="alturaInstalacion" name="alturaInstalacion" step="0.01" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="metodoCalculoRadiacion">¿Con qué método de cálculo de radiación desea realizar el dimensionamiento?</label>
+                                <select id="metodoCalculoRadiacion" name="metodoCalculoRadiacion" required>
+                                    <option value="">Seleccionar</option>
+                                    <option value="Cielo Isotrópico">Cielo Isotrópico</option>
+                                    <option value="Cielo Anisotrópico">Cielo Anisotrópico</option>
+                                    <option value="Modelo Liu-Jordan">Modelo Liu-Jordan</option>
+                                    <option value="Modelo Hay and Davies">Modelo Hay and Davies</option>
+                                    <option value="Modelo Riendl">Modelo Riendl</option>
+                                    <option value="Modelo Perez">Modelo Perez</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="modeloMetodo">¿Con qué modelo del método desea realizar el dimensionamiento?</label>
+                                <select id="modeloMetodo" name="modeloMetodo" required>
+                                    <option value="">Seleccionar</option>
+                                    <option value="Cielo Isotrópico">Cielo Isotrópico</option>
+                                    <option value="Cielo Anisotrópico">Cielo Anisotrópico</option>
+                                    <option value="Modelo Liu-Jordan">Modelo Liu-Jordan</option>
+                                    <option value="Modelo Hay and Davies">Modelo Hay and Davies</option>
+                                    <option value="Modelo Riendl">Modelo Riendl</option>
+                                    <option value="Modelo Perez">Modelo Perez</option>
+                                </select>
+                            </div>
+
+                            <button type="submit">Guardar Datos de Fase 1</button>
+                        </form>
                     </div>
                 </div>
 
-                <aside class="sidebar">
-                    <h2>Formularios de la Fase 1</h2>
-                    <div class="form-section">
-                        <h3>Datos del Cliente</h3>
-                        <form id="client-form">
-                            <label for="client-name">Nombre del Cliente:</label>
-                            <input type="text" id="client-name" name="client-name" required>
-                            <label for="client-email">Email del Cliente:</label>
-                            <input type="email" id="client-email" name="client-email" required>
-                            <button type="submit">Guardar Cliente</button>
+                <div id="form-steps" class="step">
+                    <form id="solar-form">
+                        <h2>Fases Posteriores</h2>
+                        <div class="form-group">
+                            <label for="otraZonaInstalacion">Otra Zona de Instalación (Ejemplo):</label>
+                            <input type="text" id="otraZonaInstalacion" name="otraZonaInstalacion">
+                        </div>
                         </form>
-                    </div>
-                    <div class="form-section">
-                        <h3>Datos del Proyecto</h3>
-                        <form id="project-form">
-                            <label for="project-name">Nombre del Proyecto:</label>
-                            <input type="text" id="project-name" name="project-name" required>
-                            <label for="project-number">Número de Proyecto:</label>
-                            <input type="number" id="project-number" name="project-number" required>
-                            <button type="submit">Guardar Proyecto</button>
-                        </form>
-                    </div>
-                </aside>
-            </div>
-
-            <div id="form-steps" class="step">
-                <form id="solar-form">
-                    <h2>2. Datos de la Instalación (Fase 1)</h2>
-                    </form>
-                <div id="report"></div>
+                    <div id="report"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -301,3 +525,4 @@
 </body>
 
 </html>
+ 
