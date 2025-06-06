@@ -319,7 +319,6 @@ function showScreen(screenId) {
 
     // Actualiza el indicador de paso
     updateStepIndicator(screenId);
-    localStorage.setItem('currentScreenId', screenId); // Guarda la pantalla actual
 }
 
 function updateStepIndicator(screenId) {
@@ -422,6 +421,11 @@ function setupNavigationButtons() {
             userSelections.incomeLevel = 'ALTO';
             saveUserSelections();
             showScreen('data-form-screen'); // Transitions to the detailed form
+
+            // Explicitly manage sub-sections for this flow
+            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'none';
+            if (energiaSection) energiaSection.style.display = 'block';
+            updateStepIndicator('energia-section');
         });
     }
 
@@ -430,6 +434,11 @@ function setupNavigationButtons() {
             userSelections.incomeLevel = 'BAJO';
             saveUserSelections();
             showScreen('data-form-screen'); // Transitions to the detailed form
+
+            // Explicitly manage sub-sections for this flow
+            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'none';
+            if (energiaSection) energiaSection.style.display = 'block';
+            updateStepIndicator('energia-section');
         });
     }
 
@@ -576,7 +585,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupNavigationButtons(); // 5. Configura todos los botones de navegación y otros listeners.
 
     // 6. Muestra la pantalla guardada o la inicial después de que todo esté cargado y listo
-    const currentScreenId = localStorage.getItem('currentScreenId') || 'map-screen';
+    const currentScreenId = 'map-screen';
     showScreen(currentScreenId);
 
     // Si la pantalla inicial es la de energía, nos aseguramos de que el consumo se muestre correctamente
