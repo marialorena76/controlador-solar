@@ -165,13 +165,13 @@ async function cargarElectrodomesticosDesdeBackend() {
         // Datos de respaldo en caso de falla para desarrollo/prueba
         electrodomesticosCategorias = {
             "Cocina": [
-                { name: "Heladera", watts: 150, hoursPerDay: 24 },
-                { name: "Microondas", watts: 1200, hoursPerDay: 0.5 },
-                { name: "Lavarropas", watts: 2000, hoursPerDay: 1 }
+                { name: "Heladera", consumo_diario_kwh: 1.5 },
+                { name: "Microondas", consumo_diario_kwh: 0.6 },
+                { name: "Lavarropas", consumo_diario_kwh: 0.7 }
             ],
             "Entretenimiento": [
-                { name: "Televisor", watts: 100, hoursPerDay: 4 },
-                { name: "Computadora", watts: 200, hoursPerDay: 6 }
+                { name: "Televisor", consumo_diario_kwh: 0.4 },
+                { name: "Computadora", consumo_diario_kwh: 1.2 }
             ]
         };
         initElectrodomesticosSection();
@@ -206,7 +206,6 @@ function initElectrodomesticosSection() {
             const input = document.createElement('input');
             input.type = 'number';
             input.min = '0';
-            input.style = 'width: 60px; text-align: center; margin-left: 15px; text-align: right;';
             // Carga la cantidad guardada para este electrodoméstico, o 0 si no existe
             input.value = userSelections.electrodomesticos[item.name] || 0;
             input.id = `cant-${item.name.replace(/\s+/g, '-')}`;
@@ -220,7 +219,7 @@ function initElectrodomesticosSection() {
             // Calcula el consumo diario individual y lo muestra
             // Asumiendo que tu backend proporciona 'watts' y 'hoursPerDay'
             // Si tu backend solo da 'consumo_diario', puedes usar item.consumo_diario directamente.
-            const consumoDiario = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
+            const consumoDiario = item.consumo_diario_kwh || 0;
             const consumoLabel = document.createElement('span');
             consumoLabel.textContent = `${consumoDiario.toFixed(3)} kWh/día`;
 
@@ -240,7 +239,7 @@ function calcularConsumo() {
             electrodomesticosCategorias[categoria].forEach(item => {
                 const cant = userSelections.electrodomesticos[item.name] || 0;
                 // Ajusta esta lógica si tu backend solo da 'consumo_diario'
-                const consumoDiarioItem = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
+                const consumoDiarioItem = item.consumo_diario_kwh || 0;
                 totalDiario += consumoDiarioItem * cant;
             });
         }
