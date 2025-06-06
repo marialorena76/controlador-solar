@@ -50,6 +50,12 @@ const stepIndicatorText = document.getElementById('step-indicator-text');
 const totalConsumoMensualDisplay = document.getElementById('total-consumo-mensual');
 const totalConsumoAnualDisplay = document.getElementById('total-consumo-anual');
 
+// Elementos de las secciones del formulario en map-screen
+const userTypeSection = document.getElementById('user-type-section');
+const supplySection = document.getElementById('supply-section');
+const incomeSection = document.getElementById('income-section');
+const expertSection = document.getElementById('expert-section');
+
 
 // --- Funciones de Persistencia (NUEVO BLOQUE INTEGRADO) ---
 
@@ -333,22 +339,106 @@ function updateStepIndicator(screenId) {
     }
 }
 
+// Helper function to manage visibility of form sections within map-screen
+function showMapScreenFormSection(sectionIdToShow) {
+    if (userTypeSection) userTypeSection.style.display = 'none';
+    if (supplySection) supplySection.style.display = 'none';
+    if (incomeSection) incomeSection.style.display = 'none';
+    if (expertSection) expertSection.style.display = 'none';
+
+    const sectionToShow = document.getElementById(sectionIdToShow);
+    if (sectionToShow) {
+        sectionToShow.style.display = 'block';
+    } else {
+        console.error('Section with ID ' + sectionIdToShow + ' not found for showMapScreenFormSection.');
+    }
+}
+
 
 // --- Configuración de Event Listeners para Botones y Selects (EXISTENTE, MODIFICADA) ---
 
 function setupNavigationButtons() {
+    // Get buttons - ensure these IDs exist in calculador.html
     const basicUserButton = document.getElementById('basic-user-button');
+    const expertUserButton = document.getElementById('expert-user-button');
+
+    const residentialButton = document.getElementById('residential-button');
+    const commercialButton = document.getElementById('commercial-button');
+    const pymeButton = document.getElementById('pyme-button');
+
+    const incomeHighButton = document.getElementById('income-high-button');
+    const incomeLowButton = document.getElementById('income-low-button');
+
+    const expertDataForm = document.getElementById('expert-data-form'); // Form itself
+
+    // Initial state on map-screen: show only user-type-section
+    // This should ideally be handled by default HTML (display:block for user-type, none for others)
+    // or called once in DOMContentLoaded after defining showMapScreenFormSection
+    // For safety, can call it here if not sure about initial HTML state:
+    // showMapScreenFormSection('user-type-section');
+
     if (basicUserButton) {
         basicUserButton.addEventListener('click', () => {
-            showScreen('data-form-screen');
+            userSelections.userType = 'basico';
+            saveUserSelections();
+            showMapScreenFormSection('supply-section');
         });
     }
 
-    const expertUserButton = document.getElementById('expert-user-button');
     if (expertUserButton) {
         expertUserButton.addEventListener('click', () => {
-            // For now, also directs to data-form-screen.
-            // This can be refined later based on desired expert user flow.
+            userSelections.userType = 'experto';
+            saveUserSelections();
+            showMapScreenFormSection('expert-section');
+        });
+    }
+
+    if (residentialButton) {
+        residentialButton.addEventListener('click', () => {
+            userSelections.installationType = 'Residencial';
+            saveUserSelections();
+            showMapScreenFormSection('income-section');
+        });
+    }
+
+    if (commercialButton) {
+        commercialButton.addEventListener('click', () => {
+            userSelections.installationType = 'Comercial';
+            saveUserSelections();
+            showScreen('data-form-screen'); // Transitions to the detailed form
+        });
+    }
+
+    if (pymeButton) {
+        pymeButton.addEventListener('click', () => {
+            userSelections.installationType = 'PYME';
+            saveUserSelections();
+            showScreen('data-form-screen'); // Transitions to the detailed form
+        });
+    }
+
+    if (incomeHighButton) {
+        incomeHighButton.addEventListener('click', () => {
+            userSelections.incomeLevel = 'ALTO';
+            saveUserSelections();
+            showScreen('data-form-screen'); // Transitions to the detailed form
+        });
+    }
+
+    if (incomeLowButton) {
+        incomeLowButton.addEventListener('click', () => {
+            userSelections.incomeLevel = 'BAJO';
+            saveUserSelections();
+            showScreen('data-form-screen'); // Transitions to the detailed form
+        });
+    }
+
+    if (expertDataForm) {
+        expertDataForm.addEventListener('submit', (event) => {
+            event.preventDefault(); // Prevent actual form submission
+            // Assuming data from expert-data-form is already handled by its 'zona-instalacion-expert' select listener
+            // The main purpose here is to navigate
+            console.log('Formulario experto guardado (simulado), procediendo a data-form-screen.');
             showScreen('data-form-screen');
         });
     }
