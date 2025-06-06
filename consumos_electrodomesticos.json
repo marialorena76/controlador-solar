@@ -1,0 +1,84 @@
+{
+    "Iluminación": [
+        { "name": "Lampara LED 5W", "watts": 5, "hoursPerDay": 5, "daysPerMonth": 30 },
+        { "name": "Lampara LED 9W", "watts": 9, "hoursPerDay": 5, "daysPerMonth": 30 },
+        { "name": "Lampara LED 11W", "watts": 11, "hoursPerDay": 5, "daysPerMonth": 30 },
+        { "name": "Lampara bajo consumo 11W", "watts": 11, "hoursPerDay": 5, "daysPerMonth": 30 },
+        { "name": "Lampara bajo consumo 15W", "watts": 15, "hoursPerDay": 5, "daysPerMonth": 30 },
+        { "name": "Lampara bajo consumo 20W", "watts": 20, "hoursPerDay": 5, "daysPerMonth": 30 },
+        { "name": "Lampara halogena 40W", "watts": 40, "hoursPerDay": 3, "daysPerMonth": 30 },
+        { "name": "Lampara halogena 60W", "watts": 60, "hoursPerDay": 3, "daysPerMonth": 30 },
+        { "name": "Lampara halogena 100W", "watts": 100, "hoursPerDay": 3, "daysPerMonth": 30 },
+        { "name": "Tubo fluorescente 18W", "watts": 18, "hoursPerDay": 8, "daysPerMonth": 30 },
+        { "name": "Tubo fluorescente 36W", "watts": 36, "hoursPerDay": 8, "daysPerMonth": 30 },
+        { "name": "Tubo fluorescente 58W", "watts": 58, "hoursPerDay": 8, "daysPerMonth": 30 },
+        { "name": "Dicróica", "watts": 50, "hoursPerDay": 4, "daysPerMonth": 30 }
+    ],
+    "Climatización": [
+        { "name": "Aire acondicionado 2200 frigorias F/C", "watts": 2000, "hoursPerDay": 6, "daysPerMonth": 20 },
+        { "name": "Aire acondicionado 3500 frigorias F/C", "watts": 3200, "hoursPerDay": 6, "daysPerMonth": 20 },
+        { "name": "Caloventilador chico c/termostato", "watts": 1500, "hoursPerDay": 4, "daysPerMonth": 15 },
+        { "name": "Estufa halogena de 3 velas c/termostato", "watts": 1200, "hoursPerDay": 4, "daysPerMonth": 15 },
+        { "name": "Estufa de cuarzo c/termostato", "watts": 1000, "hoursPerDay": 4, "daysPerMonth": 15 },
+        { "name": "Radiador electrico mediano", "watts": 1000, "hoursPerDay": 5, "daysPerMonth": 20 },
+        { "name": "Ventilador de techo", "watts": 75, "hoursPerDay": 8, "daysPerMonth": 30 },
+        { "name": "Ventilador de pie", "watts": 60, "hoursPerDay": 8, "daysPerMonth": 30 },
+        { "name": "Vitroconvector 54x57 cm", "watts": 1000, "hoursPerDay": 3, "daysPerMonth": 20 },
+        { "name": "Vitroconvector 86x58 cm", "watts": 2000, "hoursPerDay": 3, "daysPerMonth": 20 }
+    ],
+    "Refrigeración": [
+        { "name": "Freezer", "watts": 150, "hoursPerDay": 24, "daysPerMonth": 30 },
+        { "name": "Heladera", "watts": 100, "hoursPerDay": 24, "daysPerMonth": 30 },
+        { "name": "Heladera con freezer", "watts": 150, "hoursPerDay": 24, "daysPerMonth": 30 }
+    ],
+    "Lavado y Secado": [
+        { "name": "Lavarropas automatico 5kg con agua caliente", "watts": 2500, "hoursPerDay": 0.5, "daysPerMonth": 4 },
+        { "name": "Lavarropas automatico 5kg", "watts": 2000, "hoursPerDay": 0.5, "daysPerMonth": 4 },
+        { "name": "Lavarropas semi-automatico 5kg", "watts": 1500, "hoursPerDay": 0.5, "daysPerMonth": 4 },
+        { "name": "Lavavajilla para 12 cubiertos", "watts": 1800, "hoursPerDay": 1, "daysPerMonth": 15 },
+        { "name": "Secarropas a calor", "watts": 2500, "hoursPerDay": 1, "daysPerMonth": 4 },
+        { "name": "Secarropas centrifugo", "watts": 300, "hoursPerDay": 0.2, "daysPerMonth": 4 }
+    ],
+    "Cocina": [
+        { "name": "Cafetera de filtro electrica", "watts": 800, "hoursPerDay": 0.2, "daysPerMonth": 30 },
+        { "name": "Horno electrico de 25 a 30 lts", "watts": 1500, "hoursPerDay": 0.5, "daysPerMonth": 15 },
+        { "name": "Microondas", "watts": 1200, "hoursPerDay": 0.2, "daysPerMonth": 30 },
+        { "name": "Tostadora", "watts": 800, "hoursPerDay": 0.1, "daysPerMonth": 15 }
+    ],
+    "Entretenimiento": [
+        { "name": "Televisor TRC 21\"", "watts": 100, "hoursPerDay": 4, "daysPerMonth": 30 },
+        { "name": "Televisor TRC 25\"", "watts": 150, "hoursPerDay": 4, "daysPerMonth": 30 },
+        { "name": "Televisor TRC 29\" a 34\"", "watts": 200, "hoursPerDay": 4, "daysPerMonth": 30 },
+        { "name": "Televisor LCD de 40\"", "watts": 180, "hoursPerDay": 5, "daysPerMonth": 30 },
+        { "name": "Televisor LED 24\"", "watts": 30, "hoursPerDay": 5, "daysPerMonth": 30 },
+        { "name": "Televisor LED 32\" a 50\"", "watts": 80, "hoursPerDay": 5, "daysPerMonth": 30 },
+        { "name": "Minicomponentes", "watts": 100, "hoursPerDay": 3, "daysPerMonth": 30 },
+        { "name": "Reproductor DVD", "watts": 20, "hoursPerDay": 2, "daysPerMonth": 30 }
+    ],
+    "Informática": [
+        { "name": "Cargador de celular", "watts": 5, "hoursPerDay": 4, "daysPerMonth": 30 },
+        { "name": "Computadora (CPU)", "watts": 200, "hoursPerDay": 6, "daysPerMonth": 30 },
+        { "name": "Monitor LED 19\"", "watts": 20, "hoursPerDay": 6, "daysPerMonth": 30 },
+        { "name": "Notebook", "watts": 50, "hoursPerDay": 8, "daysPerMonth": 30 }
+    ],
+    "Cuidado Personal": [
+        { "name": "Afeitadora", "watts": 15, "hoursPerDay": 0.1, "daysPerMonth": 30 },
+        { "name": "Planchita de pelo o buclera", "watts": 300, "hoursPerDay": 0.2, "daysPerMonth": 15 },
+        { "name": "Secador de cabellos", "watts": 1500, "hoursPerDay": 0.2, "daysPerMonth": 15 }
+    ],
+    "Otras Aplicaciones": [
+        { "name": "Aspiradora", "watts": 1000, "hoursPerDay": 0.5, "daysPerMonth": 4 },
+        { "name": "Batidora de mano", "watts": 250, "hoursPerDay": 0.1, "daysPerMonth": 10 },
+        { "name": "Bomba de agua de 1/2 HP", "watts": 370, "hoursPerDay": 2, "daysPerMonth": 30 },
+        { "name": "Bomba de agua de 3/4 HP", "watts": 550, "hoursPerDay": 2, "daysPerMonth": 30 },
+        { "name": "Cortadora de Césped", "watts": 1200, "hoursPerDay": 0.5, "daysPerMonth": 2 },
+        { "name": "Extractor de Aire", "watts": 80, "hoursPerDay": 3, "daysPerMonth": 30 },
+        { "name": "Licuadora de mano o de pie", "watts": 300, "hoursPerDay": 0.1, "daysPerMonth": 10 },
+        { "name": "Lustraspiradora", "watts": 500, "hoursPerDay": 0.2, "daysPerMonth": 4 },
+        { "name": "Máquina de coser", "watts": 75, "hoursPerDay": 0.5, "daysPerMonth": 10 },
+        { "name": "Motor de 1 HP", "watts": 746, "hoursPerDay": 2, "daysPerMonth": 30 },
+        { "name": "Multiprocesadora", "watts": 600, "hoursPerDay": 0.1, "daysPerMonth": 10 },
+        { "name": "Plancha", "watts": 1200, "hoursPerDay": 0.5, "daysPerMonth": 4 },
+        { "name": "Termotanque electrico", "watts": 1500, "hoursPerDay": 4, "daysPerMonth": 30 }
+    ]
+}

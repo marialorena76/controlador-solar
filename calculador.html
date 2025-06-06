@@ -1,528 +1,612 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculador Solar – Usuario Básico</title>
-    <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;700&family=Bebas+Neue&display=swap"
-        rel="stylesheet">
+    <title>Calculador Solar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css">
-    <link rel="stylesheet" href="styles.css">
     <style>
-        /* Estilos específicos para la disposición del mapa y la barra lateral en esta página */
-
-        /* Estilo para el contenedor principal del "wizard" */
-        .wizard-container {
-            display: flex;
-            min-height: 100vh;
-            /* Ocupa al menos la altura de la ventana */
-            flex-direction: column;
-            /* Apilar secciones en móviles */
+        :root {
+            --color-primary: #FF8442;
+            --color-secondary: #6BBE66;
+            --color-tertiary: #5884D6;
+            --bg-light: #f3f4f6;
+            --text-dark: #374151;
+            --font-heading: 'Bebas Neue', sans-serif;
+            --font-body: 'Dosis', sans-serif;
+            --shadow-subtle: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
+            --border-color: #e5e7eb;
         }
-
-        /* Estilos de la sección del mapa inicial */
-        #landing-page {
-            flex-grow: 1;
-            /* Permite que el mapa ocupe el espacio restante */
-            padding: 0;
-            /* Eliminar padding para que el mapa ocupe todo el ancho */
+        body {
+            font-family: var(--font-body);
+            margin: 0;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .app-header {
+            width: 100%;
+            background: white;
+            box-shadow: var(--shadow-subtle);
+            padding: 15px 20px;
             box-sizing: border-box;
             display: flex;
-            /* Usar flexbox para el contenido del mapa */
             flex-direction: column;
             align-items: center;
-            padding: 20px;
-            /* Añadir padding interno */
+            flex-shrink: 0;
         }
-
-        /* Estilos del mapa */
-        #map-section {
+        .logo-row-1, .logo-row-2 {
+            display: flex;
             width: 100%;
-            /* Ocupa todo el ancho disponible */
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .logo-row-1 .left-logo,
+        .logo-row-1 .middle-logo,
+        .logo-row-1 .right-logo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .logo-row-1 .left-logo { margin-right: auto; }
+        .logo-row-1 .right-logo { margin-left: auto; }
+        .logo-row-1 .middle-logo { flex-grow: 1; text-align: center; }
+        .logo-row-2 {
+            justify-content: center;
+            margin-bottom: 0;
+        }
+        .logo-row-2 img { margin: 0 15px; }
+        .logo { max-height: 70px; width: auto; }
+        .logo-small { max-height: 50px; width: auto; }
+        .main-content-wrapper {
+            display: flex;
             flex-grow: 1;
-            /* Permite que la sección del mapa crezca */
+            width: 100%;
+            max-width: 1600px;
+            margin: 2rem auto;
+            box-sizing: border-box;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 2rem;
+            padding: 0 2rem;
+        }
+        .map-area {
+            flex: 3;
+            position: relative;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow-subtle);
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-
         #map {
-            height: 70vh;
-            /* Aumentada la altura del mapa para ocupar más pantalla */
             width: 100%;
-            /* Ocupa todo el ancho de su contenedor */
-            background: #eee;
-            margin-bottom: 1rem;
+            height: 480px;
             border-radius: 10px;
             border: 1px solid #ccc;
+            box-shadow: var(--shadow-subtle);
+            position: relative;
+            z-index: 1;
         }
-
-        .leaflet-control-geocoder-form {
-            margin-bottom: 10px;
-        }
-
-        #ubicacion-info {
-            margin-top: 1rem;
-            padding: 1rem;
-            background-color: var(--bg-light);
-            border-radius: 0.5rem;
-            border: 1px solid #ddd;
-            font-family: var(--font-body);
-            text-align: left;
-            /* Alinear texto a la izquierda dentro de la caja de info */
-            width: 100%;
-            /* Ocupa todo el ancho del contenedor */
-            max-width: 800px;
-            /* Ancho máximo para la información */
-        }
-
-        #ubicacion-info p {
-            margin: 0.5rem 0;
-            color: var(--text-dark);
-        }
-
-        #weather-info {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid #eee;
-            font-family: var(--font-body);
-        }
-
-        #weather-info h3 {
-            margin-top: 0;
-            margin-bottom: 0.5rem;
-            font-size: 1.2em;
-            color: var(--text-dark);
-            /* O un color de marca */
-        }
-
-        /* Estilos para el botón Siguiente */
-        #next-button {
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.375rem;
-            background-color: var(--color-primary);
-            /* Usar color primario */
-            color: white;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            border: none;
-            margin-top: 1rem;
-            font-family: var(--font-heading);
-            display: none;
-            /* Oculto por defecto */
-        }
-
-        #next-button:hover {
-            background-color: #ff6b21;
-            /* Tono más oscuro del color primario */
-        }
-
-        #next-button:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(255, 132, 66, 0.25);
-            /* Usar color primario con transparencia */
-        }
-
-
-        /* Estilos de la sección principal de la aplicación (sidebar + forms) */
-        #main-app-area {
-            display: none;
-            /* Oculto por defecto */
-            flex-grow: 1;
-            /* Ocupa el espacio restante cuando está visible */
-            flex-direction: column;
-            /* Dirección por defecto en móviles */
-        }
-
-        /* Estilos de la barra lateral */
-        .sidebar {
-            background-color: var(--bg-light);
-            /* Fondo claro */
-            padding: 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            /* Ocupa todo el ancho en móviles */
-            max-width: none;
-            /* Eliminar ancho máximo en móviles */
-            border-bottom: 1px solid #ccc;
-            /* Separador inferior en móviles */
-            border-right: none;
-            /* Eliminar borde derecho en móviles */
-            box-sizing: border-box;
-            flex-shrink: 0;
-            /* Evita que la barra lateral se encoja */
-        }
-
-
-        .sidebar h2 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            color: #1f2937;
-            /* Puedes ajustar este color según tu paleta */
-            font-family: var(--font-heading);
-        }
-
-        .sidebar-item {
-            padding: 10px;
-            margin-bottom: 10px;
+        .leaflet-control-geocoder {
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
             border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease, color 0.3s ease;
-            font-family: var(--font-heading);
-            /* Usar fuente de títulos para los ítems del menú */
-            font-weight: 500;
+            background-color: white;
+            padding: 5px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 90%;
+            margin-top: 15px;
         }
-
-        .sidebar-item:hover {
-            background-color: #ddd;
+        .leaflet-control-geocoder .leaflet-control-geocoder-form {
+            display: flex;
+            width: 100%;
+            align-items: center;
         }
-
-        .sidebar-item.active {
-            background-color: var(--color-primary);
-            /* Color primario para el ítem activo */
-            color: white;
-        }
-
-
-        /* Estilos del área principal de formularios */
-        #main-forms-area {
+        .leaflet-control-geocoder .leaflet-control-geocoder-form input {
+            border: 1px solid #d1d5db;
+            outline: none;
             flex-grow: 1;
-            /* Ocupa el espacio restante */
-            padding: 20px;
-            /* Añadir padding */
+            padding: 8px 10px;
+            font-size: 1rem;
+            color: #333;
+            box-sizing: border-box;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+        .leaflet-control-geocoder .leaflet-control-geocoder-form button {
+            background-color: var(--color-tertiary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+            flex-shrink: 0;
+        }
+        .leaflet-control-geocoder .leaflet-control-geocoder-form button:hover {
+            background-color: #4665a9;
+        }
+        .location-info {
+            margin-top: 1.2rem;
+            padding: 1rem 1.5rem;
+            background: var(--bg-light);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 1.1rem;
+            width: 100%;
             box-sizing: border-box;
         }
-
-        /* Estilos de los formularios dentro del área principal */
-        #fase1-forms-container {
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid #ccc;
+        .form-sections-container {
+            flex: 1;
+            max-width: 320px;
+            min-width: 280px;
+            background: white;
+            padding: 2.2rem 2rem;
+            border-radius: 10px;
+            box-shadow: var(--shadow-subtle);
+            box-sizing: border-box;
         }
-
-        .form-section {
-            background-color: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-            margin-bottom: 1.5rem;
+        .form-section { margin-bottom: 2rem; }
+        .form-section h2 {
+            font-family: var(--font-heading);
+            font-size: 1.45rem;
+            margin-top: 0;
+            color: var(--color-tertiary);
         }
-
-        .form-group {
-            margin-bottom: 1rem;
+        .selection-button {
+            display: block;
+            width: 100%;
+            padding: 12px 15px;
+            margin: 0.6rem 0 10px 0;
+            border-radius: 8px;
+            background: var(--color-tertiary);
+            color: #fff;
+            font-family: var(--font-body);
+            font-size: 1.1rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            box-sizing: border-box;
+            transition: background .2s;
         }
-
+        .selection-button:hover { background: #4665a9; }
+        .form-group { margin-bottom: 1.2rem; }
         .form-group label {
             display: block;
-            margin-bottom: 0.5rem;
-            color: var(--text-dark);
             font-weight: 500;
-            font-family: var(--font-body);
+            margin-bottom: 0.4rem;
         }
-
-        .form-group input[type="text"],
-        .form-group input[type="email"],
-        .form-group input[type="number"],
-        .form-group select {
+        .form-group select, .form-group input {
             width: 100%;
-            padding: 0.75rem;
-            border-radius: 0.375rem;
+            padding: 0.7rem;
+            border-radius: 6px;
             border: 1px solid #d1d5db;
             font-size: 1rem;
-            color: var(--text-dark);
-            box-sizing: border-box;
-            /* Incluir padding en el ancho */
-            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
-            font-family: var(--font-body);
         }
-
-        .form-group input[type="text"]:focus,
-        .form-group input[type="email"]:focus,
-        .form-group input[type="number"]:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: var(--color-primary);
-            box-shadow: 0 0 0 3px rgba(255, 132, 66, 0.25);
-        }
-
-        .form-section button {
+        .data-form-screen {
+            display: flex;
+            flex-direction: row;
             width: 100%;
-            padding: 0.75rem;
-            border-radius: 0.375rem;
-            background-color: var(--color-secondary);
-            /* Usar color secundario para botones de formulario */
-            color: white;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            border: none;
-            margin-top: 1rem;
-            font-family: var(--font-heading);
-        }
-
-        .form-section button:hover {
-            background-color: #4CAF50;
-            /* Tono más oscuro del color secundario */
-        }
-
-        .form-section button:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(96, 190, 88, 0.25);
-            /* Usar color secundario con transparencia */
-        }
-
-
-        /* Estilos para el reporte (si lo usas al final) */
-        #report {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: var(--bg-light);
+            max-width: 1200px;
+            margin: 2rem auto;
+            background-color: white;
             border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            /* Que ocupe todo el ancho disponible */
-            max-width: 800px;
-            /* O el mismo max-width que la sección del mapa */
+            box-shadow: var(--shadow-subtle);
+            overflow: hidden;
         }
-
-        #report h2 {
-            color: var(--color-primary);
+        .data-form-screen .sidebar {
+            width: 250px;
+            background-color: #f8fafc;
+            padding: 2rem 1.5rem;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .data-form-screen .sidebar-item {
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+        .data-form-screen .sidebar-item.active {
+            background-color: var(--color-tertiary);
+            color: white;
+            font-weight: 700;
+        }
+        .data-form-screen .sidebar-item:hover:not(.active) {
+            background-color: var(--bg-light);
+        }
+        .data-form-screen .sidebar-item svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+        .data-form-screen .main-content {
+            flex-grow: 1;
+            padding: 2.5rem;
+        }
+        .data-form-screen .main-content h1 {
             font-family: var(--font-heading);
-            margin-bottom: 15px;
+            font-size: 2rem;
+            color: var(--color-tertiary);
+            margin-top: 0;
+            margin-bottom: 2rem;
         }
-
-        /* Estilos para ocultar pasos no activos */
-        .step:not(.active) {
-            display: none;
+        .data-form-screen .step-indicator {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
         }
-
-        /* Media query para pantallas más grandes (desktop) */
-        @media (min-width: 768px) {
-            .wizard-container {
+        .data-form-screen .step-indicator strong { color: var(--color-tertiary); }
+        .data-form-screen .form-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: var(--shadow-subtle);
+            margin-bottom: 2rem;
+        }
+        .data-form-screen .form-group select {
+            border: 1px solid var(--border-color);
+            padding: 0.8rem;
+            border-radius: 6px;
+            background-color: white;
+            font-size: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%20viewBox%3D%220%200%20292.4%20292.4%22%3E%3Cpath%20fill%3D%22%236B7280%22%20d%3D%22M287%2C197.9c-3.2%2C3.2-8.3%2C3.2-11.5%2C0L146.2%2C68.9L17.5%2C197.9c-3.2%2C3.2-8.3%2C3.2-11.5%2C0c-3.2-3.2-3.2-8.3%2C0-11.5l134-134c3.2-3.2%2C8.3-3.2%2C11.5%2C0l134%2C134C290.2%2C189.6%2C290.2%2C194.7%2C287%2C197.9z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 0.7em top 50%, 0 0;
+            background-size: 0.65em auto, 100%;
+        }
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            padding: 1rem;
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            background-color: var(--bg-light);
+        }
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            font-weight: 400;
+        }
+        .radio-group input[type="radio"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--color-tertiary);
+            border-radius: 50%;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .radio-group input[type="radio"]:checked {
+            background-color: var(--color-tertiary);
+            border-color: var(--color-tertiary);
+        }
+        .radio-group input[type="radio"]:checked::before {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            background-color: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .data-form-screen .form-actions {
+            display: flex;
+            justify-content: space-between;
+            padding: 1.5rem 0;
+            border-top: 1px solid var(--border-color);
+            margin-top: 2rem;
+        }
+        .data-form-screen .form-actions button {
+            background-color: var(--color-secondary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .data-form-screen .form-actions button.back-button {
+            background-color: #6c757d;
+        }
+        .data-form-screen .form-actions button:hover {
+            background-color: #55a050;
+        }
+        .data-form-screen .form-actions button.back-button:hover {
+            background-color: #5a6268;
+        }
+        .energy-summary {
+            margin-top: 1.5rem;
+            padding: 1rem 1.5rem;
+            background: var(--bg-light);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .energy-summary label {
+            font-weight: 500;
+            margin-right: 10px;
+        }
+        .energy-summary input[type="text"] {
+            background-color: #e2e8f0;
+            border: 1px solid #cbd5e0;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-weight: bold;
+            color: var(--text-dark);
+            width: 120px;
+            text-align: right;
+        }
+        .acordeon-categoria[aria-expanded="true"] {
+            background: #6BBE66;
+            color: #fff;
+        }
+        .acordeon-items {
+            border-left: 4px solid #6BBE66;
+        }
+        @media (max-width: 900px) {
+            .main-content-wrapper, .data-form-screen {
+                flex-direction: column;
+                margin: 1rem auto;
+                gap: 1rem;
+                padding: 0 1rem;
+            }
+            .map-area {
+                padding: 1rem;
+                margin-bottom: 0;
+            }
+            .form-sections-container {
+                padding: 1.5rem 1rem;
+                max-width: 100%;
+                min-width: unset;
+            }
+            .data-form-screen .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
                 flex-direction: row;
-                /* Barra lateral y área principal lado a lado en desktop */
+                justify-content: space-around;
+                flex-wrap: wrap;
             }
-
-            #landing-page {
-                padding: 20px;
-                /* Restaurar padding en desktop */
+            .data-form-screen .form-actions {
+                flex-direction: column;
+                gap: 0.8rem;
             }
-
-            #main-app-area {
-                flex-direction: row;
-                /* Barra lateral y área de formularios lado a lado */
-            }
-
-            .sidebar {
-                width: 250px;
-                /* Ancho fijo para la barra lateral en desktop */
-                max-width: 250px;
-                /* Ancho máximo en desktop */
-                border-right: 1px solid #ccc;
-                /* Borde derecho en desktop */
-                border-bottom: none;
-                /* Eliminar borde inferior en desktop */
-            }
-
-            #main-forms-area {
-                padding: 20px;
-                /* Añadir padding al área de formularios en desktop */
+            .data-form-screen .form-actions button {
+                width: 100%;
             }
         }
     </style>
 </head>
-
 <body>
-    <div class="wizard-container">
-        <div id="landing-page" class="step active">
-            <div id="map-section">
-                <h2>Buscá tu ubicación</h2>
-                <p>Hacé clic en el mapa o buscá tu dirección.</p>
-                <div id="map"></div>
-                <div id="ubicacion-info">
-                    <p>Latitud: <span id="latitud-mostrar"></span></p>
-                    <p>Longitud: <span id="longitud-mostrar"></span></p>
-                    <div id="weather-info" style="margin-top: 1rem;">
-                        <h3>Datos Climáticos</h3>
-                        <p>Temperatura: <span id="temperatura"></span></p>
-                        <p>Condición: <span id="condicion"></span></p>
-                        <p>Humedad: <span id="humedad"></span></p>
-                    </div>
-                </div>
-                <button id="next-button">Siguiente</button>
+    <div class="app-header">
+        <div class="logo-row-1">
+            <div class="left-logo">
+                <img src="logo-freba.png" alt="FREBA Logo" class="logo">
+            </div>
+            <div class="middle-logo">
+                <img src="logo-buenosaires.png" alt="Buenos Aires Provincia Logo" class="logo">
+            </div>
+            <div class="right-logo">
+                <img src="logo-proinged.png" alt="PROINGED Logo" class="logo">
             </div>
         </div>
+        <div class="logo-row-2">
+            <img src="logo-ctae.png" alt="CTAE Logo" class="logo-small">
+            <img src="logo-facultad.png" alt="Facultad de Ingeniería Logo" class="logo-small">
+        </div>
+    </div>
 
-        <div id="main-app-area" class="step">
-            <div class="sidebar">
-                <div class="sidebar-item active">
-                    Datos
-                </div>
-                <div class="sidebar-item">
-                    Energía
-                </div>
-                <div class="sidebar-item">
-                    Paneles
-                </div>
-                <div class="sidebar-item">
-                    Inversor
-                </div>
-                <div class="sidebar-item">
-                    Registro Pérdidas
-                </div>
-                <div class="sidebar-item">
-                    Salir
+    <div id="map-screen" class="screen">
+        <div class="main-content-wrapper">
+            <div class="map-area">
+                <div id="map"></div>
+                <div id="geocoder-container" class="leaflet-control-geocoder"></div>
+                <div class="location-info">
+                    <b>Latitud:</b> <span id="latitud-display"></span> &nbsp;
+                    <b>Longitud:</b> <span id="longitud-display"></span>
                 </div>
             </div>
-
-            <div id="main-forms-area">
-                <h2>Fase 1 - Datos</h2>
-                <div id="fase1-forms-container">
-                    <div class="form-section">
-                        <h3>Datos de la Instalación</h3>
-                        <form id="fase1-data-form">
-                            <div class="form-group">
-                                <label for="zonaInstalacion">¿En qué zona se encuentra la instalación?</label>
-                                <select id="zonaInstalacion" name="zonaInstalacion" required>
-                                    <option value="">Seleccionar</option>
-                                    <option value="Urbana">Urbana</option>
-                                    <option value="Suburbana">Suburbana</option>
-                                    <option value="Rural">Rural</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="superficieRodea">¿Qué superficie rodea el lugar donde llevar a cabo la instalación?</label>
-                                <select id="superficieRodea" name="superficieRodea" required>
-                                    <option value="">Seleccionar</option>
-                                    <option value="Pintura blanca">Pintura blanca</option>
-                                    <option value="Nieve">Nieve</option>
-                                    <option value="Hielo">Hielo</option>
-                                    <option value="Pintura colores claros">Pintura colores claros</option>
-                                    <option value="Pintura colores medios y grises">Pintura colores medios y grises</option>
-                                    <option value="Desierto de arena">Desierto de arena</option>
-                                    <option value="Hormigon claro">Hormigon claro</option>
-                                    <option value="Dunas, arena">Dunas, arena</option>
-                                    <option value="Pasto/Cesped">Pasto/Cesped</option>
-                                    <option value="Piedras">Piedras</option>
-                                    <option value="Hormigón medio, ladrillo rojo">Hormigón medio, ladrillo rojo</option>
-                                    <option value="Suelo arenoso">Suelo arenoso</option>
-                                    <option value="Tundra">Tundra</option>
-                                    <option value="Suelo agricola">Suelo agricola</option>
-                                    <option value="Bosques de hoja caduca">Bosques de hoja caduca</option>
-                                    <option value="Urbano medio">Urbano medio</option>
-                                    <option value="Bosques coniferas">Bosques coniferas</option>
-                                    <option value="Agua profunda">Agua profunda</option>
-                                    <option value="Asfalto">Asfalto</option>
-                                    <option value="Edificios">Edificios</option>
-                                    <option value="Océano">Océano</option>
-                                    <option value="Suelo volcánico">Suelo volcánico</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="rugosidadSuperficie">¿Cuál es la rugosidad de la superficie que rodea la instalación?</label>
-                                <select id="rugosidadSuperficie" name="rugosidadSuperficie" required>
-                                    <option value="">Seleccionar</option>
-                                    <option value="Pintura blanca">Pintura blanca</option>
-                                    <option value="Nieve">Nieve</option>
-                                    <option value="Hielo">Hielo</option>
-                                    <option value="Pintura colores claros">Pintura colores claros</option>
-                                    <option value="Pintura colores medios y grises">Pintura colores medios y grises</option>
-                                    <option value="Desierto de arena">Desierto de arena</option>
-                                    <option value="Hormigon claro">Hormigon claro</option>
-                                    <option value="Dunas, arena">Dunas, arena</option>
-                                    <option value="Pasto/Cesped">Pasto/Cesped</option>
-                                    <option value="Piedras">Piedras</option>
-                                    <option value="Hormigón medio, ladrillo rojo">Hormigón medio, ladrillo rojo</option>
-                                    <option value="Suelo arenoso">Suelo arenoso</option>
-                                    <option value="Tundra">Tundra</option>
-                                    <option value="Suelo agricola">Suelo agricola</option>
-                                    <option value="Bosques de hoja caduca">Bosques de hoja caduca</option>
-                                    <option value="Urbano medio">Urbano medio</option>
-                                    <option value="Bosques coniferas">Bosques coniferas</option>
-                                    <option value="Agua profunda">Agua profunda</option>
-                                    <option value="Asfalto">Asfalto</option>
-                                    <option value="Edificios">Edificios</option>
-                                    <option value="Océano">Océano</option>
-                                    <option value="Suelo volcánico">Suelo volcánico</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="rotacionInstalacion">¿Con qué rotación contaría la instalación?</label>
-                                <select id="rotacionInstalacion" name="rotacionInstalacion" required>
-                                    <option value="">Seleccionar</option>
-                                    <option value="Fijos">Fijos</option>
-                                    <option value="Rotación sobre un eje horizontal este-oeste con ajuste diario">Rotación sobre un eje horizontal este-oeste con ajuste diario</option>
-                                    <option value="Rotación sobre un eje horizontal este-oeste con ajuste continuo">Rotación sobre un eje horizontal este-oeste con ajuste continuo</option>
-                                    <option value="Rotación sobre un eje horizontal norte-sur con ajuste continuo">Rotación sobre un eje horizontal norte-sur con ajuste continuo</option>
-                                    <option value="Inclinación fija, rotación sobre un eje vertical">Inclinación fija, rotación sobre un eje vertical</option>
-                                    <option value="Rotación sobre un eje norte-sur paralelo al eje de la tierra con ajuste continuo">Rotación sobre un eje norte-sur paralelo al eje de la tierra con ajuste continuo</option>
-                                    <option value="Rotación en dos ejes minimizando angulo de incidencia">Rotación en dos ejes minimizando angulo de incidencia</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="alturaInstalacion">¿Cuál es la altura a la cual se encontrará la instalación fotovoltaica, desde la superficie de apoyo? (metros)</label>
-                                <input type="number" id="alturaInstalacion" name="alturaInstalacion" step="0.01" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="metodoCalculoRadiacion">¿Con qué método de cálculo de radiación desea realizar el dimensionamiento?</label>
-                                <select id="metodoCalculoRadiacion" name="metodoCalculoRadiacion" required>
-                                    <option value="">Seleccionar</option>
-                                    <option value="Cielo Isotrópico">Cielo Isotrópico</option>
-                                    <option value="Cielo Anisotrópico">Cielo Anisotrópico</option>
-                                    <option value="Modelo Liu-Jordan">Modelo Liu-Jordan</option>
-                                    <option value="Modelo Hay and Davies">Modelo Hay and Davies</option>
-                                    <option value="Modelo Riendl">Modelo Riendl</option>
-                                    <option value="Modelo Perez">Modelo Perez</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="modeloMetodo">¿Con qué modelo del método desea realizar el dimensionamiento?</label>
-                                <select id="modeloMetodo" name="modeloMetodo" required>
-                                    <option value="">Seleccionar</option>
-                                    <option value="Cielo Isotrópico">Cielo Isotrópico</option>
-                                    <option value="Cielo Anisotrópico">Cielo Anisotrópico</option>
-                                    <option value="Modelo Liu-Jordan">Modelo Liu-Jordan</option>
-                                    <option value="Modelo Hay and Davies">Modelo Hay and Davies</option>
-                                    <option value="Modelo Riendl">Modelo Riendl</option>
-                                    <option value="Modelo Perez">Modelo Perez</option>
-                                </select>
-                            </div>
-
-                            <button type="submit">Guardar Datos de Fase 1</button>
-                        </form>
-                    </div>
+            <div class="form-sections-container">
+                <div class="form-section" id="user-type-section">
+                    <h2>Tipo de Usuario</h2>
+                    <button class="selection-button" id="basic-user-button">Usuario Básico</button>
+                    <button class="selection-button" id="expert-user-button">Usuario Experto</button>
                 </div>
-
-                <div id="form-steps" class="step">
-                    <form id="solar-form">
-                        <h2>Fases Posteriores</h2>
+                <div class="form-section" id="supply-section" style="display:none;">
+                    <h2>Tipo de instalación</h2>
+                    <button class="selection-button" id="residential-button">Residencial</button>
+                    <button class="selection-button" id="commercial-button">Comercial</button>
+                    <button class="selection-button" id="pyme-button">PYME</button>
+                </div>
+                <div class="form-section" id="income-section" style="display:none;">
+                    <h2>Nivel de ingreso</h2>
+                    <button class="selection-button" id="income-high-button">ALTO</button>
+                    <button class="selection-button" id="income-low-button">BAJO</button>
+                </div>
+                <div class="form-section" id="expert-section" style="display:none;">
+                    <h2>Datos adicionales</h2>
+                    <form id="expert-data-form">
                         <div class="form-group">
-                            <label for="otraZonaInstalacion">Otra Zona de Instalación (Ejemplo):</label>
-                            <input type="text" id="otraZonaInstalacion" name="otraZonaInstalacion">
+                            <label for="zonaInstalacion">Zona de la instalación</label>
+                            <select id="zonaInstalacion" name="zonaInstalacion" required>
+                                <option value="">Seleccionar</option>
+                                <option value="Urbana">Urbana</option>
+                                <option value="Suburbana">Suburbana</option>
+                                <option value="Rural">Rural</option>
+                            </select>
                         </div>
-                        </form>
-                    <div id="report"></div>
+                        <button type="submit" class="selection-button" style="background: var(--color-secondary);">Guardar</button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
+
+    <div id="data-form-screen" class="screen" style="display:none;">
+        <div class="data-form-screen">
+            <div class="sidebar">
+                <div class="sidebar-item active" id="sidebar-datos">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    Datos
+                </div>
+                <div class="sidebar-item" id="sidebar-energia">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 13V6h-2v7H4v2h7v7h2v-7h7v-2h-7z"/></svg>
+                    Energía
+                </div>
+                <div class="sidebar-item" id="sidebar-paneles">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h16c1.11 0 2-.9 2-2V6c0-1.11-.89-2-2-2zm0 14H4V6h16v12zm-2-7h-4V7h-2v4H6v2h4v4h2v-4h4v-2z"/></svg>
+                    Paneles
+                </div>
+                <div class="sidebar-item" id="sidebar-inversor">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 12h-2V4h-2v8h-2V4h-2v8H9V4H7v8H5V4H3v8c0 2.21 1.79 4 4 4h10c2.21 0 4-1.79 4-4V4h-2v8z"/></svg>
+                    Inversor
+                </div>
+                <div class="sidebar-item" id="sidebar-perdidas">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 15H9V9h6v6zm-2-4h-2v2h2v-2zm8-4h-2V7h-2V5h-2v2h-2V5H9v2H7V5H5v2H3v2h2v2H3v2h2v2H3v2h2v2h2v-2h2v2h2v-2h2v2h2v-2h2v-2h-2v-2h2v-2h-2V9h2V7z"/></svg>
+                    Registro Pérdidas
+                </div>
+                <div class="sidebar-item" id="sidebar-analisis-economico">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-4H7l4-4 4 4h-2v4z"/></svg>
+                    Análisis Económico
+                </div>
+                <div class="sidebar-item" id="sidebar-resultados">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-4H7l4-4 4 4h-2v4z"/></svg>
+                    Resultados
+                </div>
+                <div class="sidebar-item" style="color: #dc3545; margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="fill: #dc3545;"><path d="M13.41 12l4.3-4.29a1 1 0 000-1.41 1 1 0 00-1.41 0L12 10.59l-4.29-4.3a1 1 0 00-1.41 0 1 1 0 000 1.41l4.3 4.29-4.3 4.29a1 1 0 000 1.41 1 1 0 001.41 0L12 13.41l4.29 4.3a1 1 0 001.41 0 1 1 0 000-1.41z"/></svg>
+                    Salir
+                </div>
+            </div>
+            <div class="main-content">
+                <div class="step-indicator" id="step-indicator-text">Paso 1 > <strong>Datos Meteorológicos</strong></div>
+                <div id="data-meteorologicos-section">
+                    <h1>¿En qué zona se encuentra la intalación?</h1>
+                    <div class="form-group">
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="zonaInstalacionNewScreen" value="Urbana" required>
+                                Urbana
+                            </label>
+                            <label>
+                                <input type="radio" name="zonaInstalacionNewScreen" value="Suburbana">
+                                Suburbana
+                            </label>
+                            <label>
+                                <input type="radio" name="zonaInstalacionNewScreen" value="Rural">
+                                Rural
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" id="next-to-energia">Siguiente</button>
+                    </div>
+                </div>
+                <div id="energia-section" style="display:none;">
+                    <h1>Paso 2: Consumo de Energía</h1>
+                    <p>A continuación, ingrese la cantidad de cada electrodoméstico que posee.</p>
+                    <div id="electrodomesticos-categorias"></div>
+                    <div class="energy-summary">
+                        <div>
+                            <label for="totalConsumoMensual">Consumo Mensual Estimado (kWh/mes):</label>
+                            <input type="text" id="totalConsumoMensual" readonly value="0">
+                        </div>
+                        <div>
+                            <label for="totalConsumoAnual">Consumo Anual Estimado (kWh/año):</label>
+                            <input type="text" id="totalConsumoAnual" readonly value="0">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-datos" class="back-button">Atrás</button>
+                        <button type="submit" id="next-to-paneles">Siguiente</button>
+                    </div>
+                </div>
+                <div id="paneles-section" style="display:none;">
+                    <h1>Paso 3: Paneles</h1>
+                    <p>Contenido para la sección de Paneles...</p>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-energia" class="back-button">Atrás</button>
+                        <button type="submit" id="next-to-inversor">Siguiente</button>
+                    </div>
+                </div>
+                <div id="inversor-section" style="display:none;">
+                    <h1>Paso 4: Inversor</h1>
+                    <p>Contenido para la sección de Inversor...</p>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-paneles" class="back-button">Atrás</button>
+                        <button type="submit" id="next-to-perdidas">Siguiente</button>
+                    </div>
+                </div>
+                <div id="perdidas-section" style="display:none;">
+                    <h1>Paso 5: Registro Pérdidas</h1>
+                    <p>Contenido para la sección de Pérdidas...</p>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-inversor" class="back-button">Atrás</button>
+                        <button type="submit" id="next-to-analisis-economico">Siguiente</button>
+                    </div>
+                </div>
+                <div id="analisis-economico-section" style="display:none;">
+                    <h1>Paso 6: Análisis Económico</h1>
+                    <div class="form-group">
+                        <label for="moneda">¿Qué moneda desea utilizar?</label>
+                        <select id="moneda" name="moneda" required>
+                            <option value="Pesos argentinos">Pesos argentinos</option>
+                            <option value="Dólares">Dólares</option>
+                        </select>
+                    </div>
+                    <p>Aquí se realizará el análisis de la inversión, costos y beneficios económicos de la instalación.</p>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-perdidas" class="back-button">Atrás</button>
+                        <button type="submit" id="finalizar-calculo">Finalizar Cálculo</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ESTE ES EL CONTENEDOR DEL INFORME -->
+    <div id="resultados-informe" style="max-width:900px; margin: 2rem auto; background: #fffbe7; border-radius: 8px; padding: 2rem; font-size: 1.2rem; box-shadow: 0 1px 8px rgba(0,0,0,0.06);"></div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script src="calculador.js"></script>
 </body>
-
 </html>
- 

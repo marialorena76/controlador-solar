@@ -1,15 +1,15 @@
-/* 1. Variables globales de marca */
+/* 1. Variables globales de marca según Manual de Identidad PROINGED */
 :root {
     --color-primary: #FF8442;
-    /* tu Pantone 137 C */
+    /* Pantone 137 C */
     --color-secondary: #60BE58;
-    /* tu Pantone 361 C */
+    /* Pantone 361 C */
     --color-tertiary: #5884D6;
-    /* tu Pantone 2718 C */
+    /* Pantone 2718 C */
     --font-heading: 'Dosis', sans-serif;
-    /* Tipografía para títulos */
+    /* Tipografía para títulos y destacados */
     --font-body: 'Arial', sans-serif;
-    /* Usar una fuente similar a Akzidenz Grotesk BE si no está disponible, o cargarla */
+    /* Fallback para Akzidenz Grotesk BE */
      /* Si tienes el archivo de fuente Akzidenz Grotesk BE, puedes cargarlo usando @font-face */
      /* Ejemplo:
      @font-face {
@@ -27,9 +27,13 @@
     --text-light: #f4f4f4;
     /* Color de texto claro general */
     --bg-light: #f4f4f4;
-    /* Fondo claro general */
+    /* Fondo claro general (usado para la barra lateral y secciones claras) */
     --bg-dark: #2c3e50;
-    /* Fondo oscuro general */
+    /* Fondo oscuro general (usado para el footer) */
+    --bg-grey-banner: #e0e0e0; /* Un gris claro para el banner de logos, similar al de la imagen */
+    --text-grey-dark: #333; /* Definir un gris oscuro para títulos y subtítulos */
+    --border-grey-dark: #555; /* Un gris más oscuro para el borde */
+    --shadow-subtle: 0 2px 5px rgba(0, 0, 0, 0.1); /* Sombra sutil para elementos */
 }
 
 /* Estilos generales del cuerpo y tipografía */
@@ -45,7 +49,7 @@ h1,
 h2,
 h3 {
     font-family: var(--font-heading);
-    color: var(--text-dark); /* O puedes usar colores de marca si prefieres */
+    color: var(--text-grey-dark); /* Usar color gris oscuro para títulos */
     margin-top: 0;
 }
 
@@ -74,6 +78,8 @@ h3 {
     text-decoration: none;
     text-align: center;
     transition: background-color 0.3s ease;
+    font-family: var(--font-heading); /* Usar fuente de títulos para botones */
+    font-weight: 500;
 }
 
 /* Estilo para el contenedor principal del "wizard" (usado en calculador.html) */
@@ -107,7 +113,7 @@ h3 {
     font-size: 1.25rem;
     font-weight: 600;
     margin-bottom: 1.5rem;
-    color: #1f2937; /* Puedes ajustar este color según tu paleta */
+    color: var(--text-dark); /* Usar color oscuro para títulos en fondos claros */
     font-family: var(--font-heading);
 }
 
@@ -131,7 +137,7 @@ h3 {
 }
 
 
-/* Estilos del contenido principal (inicialmente solo el mapa) */
+/* Estilos del contenido principal (inicialmente solo el mapa) (usado en calculador.html) */
 .main-content { /* Renombrado para mayor claridad */
     flex-grow: 1; /* El contenido principal (mapa) ocupa todo el espacio restante */
     padding: 0; /* Eliminar padding para que el mapa ocupe todo el ancho */
@@ -148,9 +154,48 @@ h3 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px; /* Añadir padding interno */
+    padding: 0 20px 20px 20px; /* Ajustar padding (eliminar superior) */
     box-sizing: border-box;
 }
+
+/* Contenedor para el logo y el texto del encabezado del mapa (usado en calculador.html) */
+.map-header-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    /* Espacio debajo del encabezado */
+    flex-direction: column;
+    /* Apilar en móviles por defecto */
+    text-align: center;
+    /* Centrar texto en móviles */
+    width: 100%; /* Ocupa todo el ancho */
+    justify-content: center; /* Centrar contenido horizontalmente */
+    padding-top: 20px; /* Añadir padding superior */
+}
+
+.map-logo {
+    height: 60px;
+    /* Tamaño del logo en la sección del mapa */
+    margin-bottom: 10px;
+    /* Espacio debajo del logo en móviles */
+}
+
+.map-text {
+    flex: 1;
+    /* Permite que el texto ocupe el espacio restante */
+}
+
+.map-text h2 {
+    font-size: 2em; /* Ajustar tamaño del título */
+    margin-bottom: 0.5rem; /* Espacio debajo del título */
+    color: var(--text-grey-dark); /* Color gris oscuro */
+}
+
+.map-text p {
+    font-size: 1.1em; /* Ajustar tamaño del subtítulo */
+    color: var(--text-grey-dark); /* Color gris oscuro */
+}
+
 
 #map { /* Usado en calculador.html */
     height: 70vh; /* Aumentada la altura del mapa para ocupar más pantalla */
@@ -159,6 +204,7 @@ h3 {
     margin-bottom: 1rem;
     border-radius: 10px;
     border: 1px solid #ccc;
+    box-shadow: var(--shadow-subtle); /* Añadir sombra sutil al mapa */
 }
 
 .leaflet-control-geocoder-form { /* Usado en calculador.html */
@@ -167,14 +213,22 @@ h3 {
 
 #ubicacion-info { /* Usado en calculador.html */
     margin-top: 1rem;
-    padding: 1rem;
-    background-color: var(--bg-light);
+    padding: 1.5rem;
+    /* Aumentar padding */
+    background-color: white;
+    /* Fondo blanco */
     border-radius: 0.5rem;
     border: 1px solid #ddd;
+    /* Borde sutil */
     font-family: var(--font-body);
-    text-align: left; /* Alinear texto a la izquierda dentro de la caja de info */
-    width: 100%; /* Ocupa todo el ancho del contenedor */
-    max-width: 800px; /* Ancho máximo para la información */
+    text-align: left;
+    /* Alinear texto a la izquierda dentro de la caja de info */
+    width: 100%;
+    /* Ocupa todo el ancho del contenedor */
+    max-width: 800px;
+    /* Ancho máximo para la información */
+    box-shadow: var(--shadow-subtle);
+    /* Añadir sombra sutil a la caja de info */
 }
 
  #ubicacion-info p { /* Usado en calculador.html */
@@ -355,103 +409,179 @@ h3 {
 }
 
 .hero-section {
-    background-color: #e9f5ee; /* Fondo claro para la sección hero */
+    background-color: white; /* Fondo blanco según la foto */
+    /* Eliminar margen superior y borde superior */
+    margin-top: 0;
+    border-top: none;
+    border-radius: 10px; /* Mantener bordes redondeados */
     padding: 4rem 20px;
+    /* Ajustar padding según necesites */
     text-align: center;
     display: flex;
+    /* Usar flexbox para el layout */
     flex-direction: column;
+    /* Apilar en móviles por defecto */
     align-items: center;
-    position: relative; /* Necesario para posicionar la imagen de fondo */
-    overflow: hidden; /* Oculta partes de la imagen que se salgan */
+    /* Centrar en móviles */
+    position: relative;
+    /* Necesario para posicionar la imagen de fondo */
+    overflow: hidden;
+    /* Oculta partes de la imagen que se salgan */
 }
 
+.hero-section .hero-content {
+    position: relative;
+    /* Coloca el contenido encima de la imagen de fondo */
+    z-index: 2;
+    /* Asegura que el contenido esté encima de la imagen */
+    margin-bottom: 2rem;
+    /* Espacio debajo del contenido en móviles */
+    color: var(--text-grey-dark); /* Color gris oscuro para el texto */
+    flex: 1;
+    /* Permite que el contenido crezca */
+    text-align: left;
+    /* Alinear texto a la izquierda */
+    max-width: 600px;
+    /* Ancho máximo para el contenido de texto */
+    margin-right: 20px;
+    /* Espacio a la derecha del contenido en desktop */
+    /* Eliminar display: flex, align-items para revertir layout del logo en hero section */
+    display: block;
+    align-items: initial;
+}
+
+/* Eliminar estilos específicos para el contenedor del título y logo en hero section */
+.hero-section .hero-title-container {
+    display: block;
+    align-items: initial;
+    margin-bottom: initial;
+}
+
+/* Eliminar estilos específicos para el logo en hero section */
+.hero-section .hero-logo {
+    display: none; /* Ocultar el logo en la sección hero */
+}
+
+.hero-section .hero-text {
+    flex: initial; /* Revertir flex */
+}
+
+
 .hero-section .hero-image {
-    position: absolute;
+    position: relative;
+    /* Cambiado a relative para Flexbox */
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: auto;
     overflow: hidden;
-    z-index: 1; /* Coloca la imagen detrás del contenido */
+    z-index: 1;
+    /* Coloca la imagen detrás del contenido */
+    flex: 1;
+    /* Permite que la imagen crezca */
+    display: flex;
+    /* Centrar la imagen dentro de su contenedor */
+    justify-content: center;
+    align-items: center;
 }
 
 .hero-section .hero-image img {
     width: 100%;
-    height: 100%;
-    object-fit: cover; /* Cubre el área manteniendo la relación de aspecto */
-    object-position: center; /* Centra la imagen */
-    filter: brightness(0.8); /* Oscurece un poco la imagen para que el texto resalte */
+    /* Ocupa todo el ancho de su contenedor flex */
+    height: auto;
+    /* Altura automática para mantener la relación de aspecto */
+    object-fit: contain; /* Cambiado a contain para que la imagen se vea completa y más pequeña */
+    object-position: center;
+    /* Centra la imagen */
+    filter: none; /* Eliminar filtro de brillo */
+    max-width: 500px; /* Ajustar tamaño máximo de la imagen según la foto */
 }
 
-
-.hero-content {
-    position: relative; /* Coloca el contenido encima de la imagen de fondo */
-    z-index: 2; /* Asegura que el contenido esté encima de la imagen */
-    margin-bottom: 2rem;
-    color: white; /* Color de texto claro para resaltar sobre el fondo oscuro */
-}
 
 .hero-title {
     font-size: 3em;
-    color: white; /* Color de título claro */
+    color: var(--text-grey-dark); /* Color gris oscuro para el título */
     margin-bottom: 0.5rem;
+    line-height: 1.1; /* Ajustar interlineado del título */
 }
 
 .hero-subtitle {
     font-size: 1.2em;
-    color: white; /* Color de subtítulo claro */
+    color: var(--text-grey-dark); /* Color gris oscuro para el subtítulo */
 }
 
 .hero-buttons {
     margin-top: 2rem;
+    text-align: left;
+    /* Alinear botones a la izquierda */
 }
 
 .hero-buttons .btn {
-    margin: 0 10px; /* Espacio entre botones */
+    margin-right: 10px;
+    /* Espacio a la derecha de los botones */
+    margin-bottom: 10px;
+    /* Espacio debajo de los botones en móviles */
+    color: var(--text-grey-dark); /* Color gris oscuro para el texto del botón */
 }
 
 .btn.primary-btn {
     background-color: var(--color-primary);
-    color: white;
+    color: white; /* Mantener texto blanco para el botón primario por contraste */
 }
 
 .btn.primary-btn:hover {
-    background-color: #ff6b21; /* Tono más oscuro */
+    background-color: #ff6b21;
+    /* Tono más oscuro */
 }
 
 .btn.secondary-btn {
     background-color: transparent;
-    color: white;
-    border: 2px solid white;
+    color: var(--text-grey-dark); /* Color gris oscuro para el texto del botón secundario */
+    border: 2px solid var(--text-grey-dark); /* Borde gris oscuro */
 }
 
 .btn.secondary-btn:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(51, 51, 51, 0.1); /* Fondo ligeramente oscuro al pasar el ratón */
 }
 
 
 /* Estilos de la sección de logos */
 .logos-section {
-    padding: 2rem 20px;
+    /* Añadir margen superior, margen lateral y bordes redondeados */
+    margin-top: 20px; /* Margen superior para separar de la sección de arriba */
+    margin-left: 20px; /* Margen izquierdo */
+    margin-right: 20px; /* Margen derecho */
+    border-radius: 10px; /* Bordes redondeados */
+    padding: 2rem 0; /* Eliminar padding horizontal para que el fondo ocupe todo el ancho */
     text-align: center;
-    background-color: #fff; /* Fondo blanco */
+    background-color: var(--bg-grey-banner); /* Fondo gris según la imagen */
+    width: auto; /* Ajustar ancho automáticamente con los márgenes */
+    max-width: none; /* Eliminar ancho máximo si existía */
+    box-sizing: border-box; /* Incluir padding y border en el ancho */
 }
 
 .logos-container {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 20px; /* Espacio entre logos */
+    gap: 40px; /* Aumentar espacio entre logos para simetría */
+    max-width: 1200px; /* Ancho máximo para centrar los logos */
+    margin: 0 auto; /* Centrar el contenedor de logos */
+    padding: 0 20px; /* Añadir padding horizontal interno para que los logos no toquen los bordes */
 }
 
 .client-logo {
-    height: 50px; /* Ajusta el tamaño de los logos */
-    max-width: 120px; /* Ancho máximo para evitar que sean demasiado grandes */
-    object-fit: contain; /* Asegura que el logo se ajuste sin distorsionarse */
+    height: 50px;
+    /* Ajusta el tamaño de los logos */
+    max-width: 120px;
+    /* Ancho máximo para evitar que sean demasiado grandes */
+    object-fit: contain;
+    /* Asegura que el logo se ajuste sin distorsionarse */
 }
 
 
-.steps-section, .user-type-section {
+.steps-section,
+.user-type-section {
     padding: 3rem 20px;
     text-align: center;
 }
@@ -463,44 +593,59 @@ h3 {
 }
 
 
-.features-container, .steps-container, .user-type-options {
+.features-container,
+.steps-container,
+.user-type-options {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 20px; /* Espacio entre elementos */
+    gap: 20px;
+    /* Espacio entre elementos */
 }
 
-.feature-item, .step-item, .user-type-card {
+.feature-item,
+.step-item,
+.user-type-card {
     background-color: #fff;
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     max-width: 300px;
     text-align: center;
-    text-decoration: none; /* Quitar subrayado de los enlaces */
-    color: inherit; /* Heredar color de texto */
+    text-decoration: none;
+    /* Quitar subrayado de los enlaces */
+    color: inherit;
+    /* Heredar color de texto */
     transition: transform 0.3s ease;
 }
 
-.feature-item:hover, .step-item:hover, .user-type-card:hover {
-    transform: translateY(-5px); /* Efecto hover */
+.feature-item:hover,
+.step-item:hover,
+.user-type-card:hover {
+    transform: translateY(-5px);
+    /* Efecto hover */
 }
 
-.feature-icon, .step-icon, .user-type-card i {
+.feature-icon,
+.step-icon,
+.user-type-card i {
     font-size: 2.5em;
-    color: var(--color-secondary); /* O puedes usar otro color de marca */
+    color: var(--color-secondary);
+    /* Usar color secundario para los iconos de pasos */
     margin-bottom: 15px;
 }
 
 .user-type-card {
-    display: block; /* Asegura que la tarjeta sea un bloque clickeable */
+    display: block;
+    /* Asegura que la tarjeta sea un bloque clickeable */
     cursor: pointer;
 }
- .user-type-card p {
-     margin: 0;
-     font-weight: bold;
-     font-family: var(--font-heading);
- }
+
+.user-type-card p {
+    margin: 0;
+    font-weight: bold;
+    font-family: var(--font-heading);
+}
 
 footer {
     background-color: var(--bg-dark);
@@ -513,7 +658,8 @@ footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap; /* Permite que los elementos se envuelvan en pantallas pequeñas */
+    flex-wrap: wrap;
+    /* Permite que los elementos se envuelvan en pantallas pequeñas */
     max-width: 1000px;
     margin: 0 auto;
 }
@@ -550,94 +696,319 @@ footer {
     }
 
     .hero-section {
-        padding: 3rem 20px; /* Ajustar padding en móviles */
+        flex-direction: column;
+        /* Apilar en móviles */
+        padding: 3rem 20px;
+        /* Ajustar padding en móviles */
+        margin-top: 0; /* Eliminar margen superior en móviles */
+        border-radius: 5px; /* Reducir bordes redondeados en móviles */
     }
 
-    .hero-content {
+     .hero-section .hero-title-container {
+         flex-direction: column; /* Apilar logo y texto en móviles */
+         align-items: center;
+     }
+
+     .hero-section .hero-logo {
+         margin-right: 0; /* Eliminar margen derecho en móviles */
+         margin-bottom: 10px; /* Espacio debajo del logo en móviles */
+     }
+
+    .hero-section .hero-content {
+        margin-right: 0;
+        /* Eliminar margen derecho en móviles */
         margin-bottom: 1.5rem;
+        /* Espacio debajo del contenido en móviles */
+        text-align: center;
+        /* Centrar texto en móviles */
     }
+
+    .hero-section .hero-image {
+        width: 100%;
+        /* Imagen ocupa todo el ancho en móviles */
+        height: auto;
+        /* Altura automática */
+    }
+
 
     .hero-title {
-        font-size: 2em; /* Ajustar tamaño de título en móviles */
+        font-size: 2em;
+        /* Ajustar tamaño de título en móviles */
     }
 
     .hero-subtitle {
-         font-size: 1em; /* Ajustar tamaño de subtítulo en móviles */
+        font-size: 1em;
+        /* Ajustar tamaño de subtítulo en móviles */
     }
 
     .hero-buttons {
-        flex-direction: column; /* Apilar botones en móviles */
+        flex-direction: column;
+        /* Apilar botones en móviles */
+        text-align: center;
+        /* Centrar botones en móviles */
     }
 
     .hero-buttons .btn {
-        margin: 10px 0; /* Espacio vertical entre botones */
+        margin: 10px 0;
+        /* Espacio vertical entre botones */
     }
 
 
-    .features-container, .steps-container, .user-type-options {
+    .features-container,
+    .steps-container,
+    .user-type-options {
         flex-direction: column;
         align-items: center;
     }
 
-    .feature-item, .step-item, .user-type-card {
-        width: 90%; /* Ocupa más ancho en móviles */
-        max-width: none; /* Eliminar ancho máximo */
+    .feature-item,
+    .step-item,
+    .user-type-card {
+        width: 90%;
+        /* Ocupa más ancho en móviles */
+        max-width: none;
+        /* Eliminar ancho máximo */
     }
 
-     /* Estilos específicos para calculador.html en móviles */
-     .wizard-container {
-         flex-direction: column; /* Asegura que las secciones se apilen */
-     }
+    /* Estilos específicos para calculador.html en móviles */
+    .wizard-container {
+        flex-direction: column;
+        /* Asegura que las secciones se apilen */
+    }
 
-     #main-app-area {
-         flex-direction: column; /* Asegura que barra lateral y formularios se apilen */
-     }
+    #main-app-area {
+        flex-direction: column;
+        /* Asegura que barra lateral y formularios se apilen */
+    }
 
-     .sidebar {
-         width: 100%; /* Ocupa todo el ancho */
-         max-width: none;
-         margin-top: 2rem; /* Espacio entre secciones */
-         border-right: none;
-         border-top: 1px solid #ccc;
-     }
+    .sidebar {
+        width: 100%;
+        /* Ocupa todo el ancho */
+        max-width: none;
+        margin-top: 2rem;
+        /* Espacio entre secciones */
+        border-right: none;
+        border-top: 1px solid #ccc;
+    }
 
-     #main-forms-area {
-         padding: 20px; /* Añadir padding */
-     }
+    #main-forms-area {
+        padding: 20px;
+        /* Añadir padding */
+    }
 
 
     .footer-container {
         flex-direction: column;
     }
 
-    .footer-links, .social-icons {
+    .footer-links,
+    .social-icons {
         margin-bottom: 15px;
+    }
+
+    /* Ajustes para el banner de logos en móviles */
+    .logos-section {
+        margin-left: 10px; /* Reducir margen lateral en móviles */
+        margin-right: 10px;
+        border-radius: 5px; /* Reducir bordes redondeados en móviles */
     }
 }
 
 /* Media query para pantallas más grandes (desktop) */
 @media (min-width: 768px) {
-     /* Estilos específicos para calculador.html en desktop */
+    .hero-section {
+        flex-direction: row;
+        /* Layout lado a lado en desktop */
+        text-align: left;
+        /* Alinear texto a la izquierda */
+        padding: 6rem 40px;
+        /* Aumentar padding en desktop */
+    }
+
+    .hero-section .hero-content {
+        margin-bottom: 0;
+        /* Eliminar margen inferior en desktop */
+        margin-right: 40px;
+        /* Aumentar espacio a la derecha del contenido */
+        text-align: left;
+        /* Asegurar alineación a la izquierda */
+    }
+
+    .hero-section .hero-image {
+        width: 50%;
+        /* La imagen ocupa la mitad del ancho en desktop */
+        height: auto;
+        /* Altura automática */
+    }
+
+    .hero-buttons {
+        text-align: left;
+        /* Alinear botones a la izquierda */
+    }
+
+    .hero-buttons .btn {
+        margin-bottom: 0;
+        /* Eliminar margen inferior en desktop */
+    }
+
+
+    /* Estilos específicos para calculador.html en desktop */
     .wizard-container {
-        flex-direction: row; /* Barra lateral y área principal lado a lado */
+        flex-direction: row;
+        /* Barra lateral y área principal lado a lado */
     }
 
     #landing-page {
-        padding: 20px; /* Restaurar padding */
+        padding: 40px; /* Aumentar padding en desktop */
+        margin: 40px; /* Aumentar margen en desktop */
     }
 
+    .map-header-container {
+        flex-direction: row; /* Logo y texto lado a lado en desktop */
+        text-align: left; /* Alinear texto a la izquierda */
+        justify-content: flex-start; /* Alinear contenido a la izquierda */
+    }
+
+    .map-logo {
+        margin-bottom: 0; /* Eliminar margen inferior en desktop */
+        margin-right: 20px; /* Espacio a la derecha del logo */
+    }
+
+
     #main-app-area {
-        flex-direction: row; /* Barra lateral y área de formularios lado a lado */
+        flex-direction: row;
+        /* Barra lateral y área de formularios lado a lado */
     }
 
     .sidebar {
-        width: 250px; /* Ancho fijo para la barra lateral */
-        max-width: 250px; /* Ancho máximo */
-        border-right: 1px solid #ccc; /* Borde derecho */
-        border-bottom: none; /* Eliminar borde inferior */
+        width: 250px;
+        /* Ancho fijo para la barra lateral */
+        max-width: 250px;
+        /* Ancho máximo */
+        border-right: 1px solid #ccc;
+        /* Borde derecho */
+        border-bottom: none;
+        /* Eliminar borde inferior */
     }
 
     #main-forms-area {
-        padding: 20px; /* Añadir padding */
+        padding: 20px;
+        /* Añadir padding */
     }
+
+    /* Ajustes para el banner de logos en desktop */
+    .logos-section {
+        margin-left: 40px; /* Margen izquierdo en desktop */
+        margin-right: 40px; /* Margen derecho en desktop */
+    }
+}
+/* Dentro de tu bloque <style> en calculador.html */
+.electrodomesticos-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid var(--bg-light);
+    border-radius: 8px;
+    background-color: #fcfcfc;
+}
+
+.electrodomesticos-controls .form-group {
+    flex: 1 1 calc(50% - 15px); /* Two columns on larger screens */
+    min-width: 250px; /* Minimum width for each column */
+}
+
+.electrodomesticos-controls button {
+    flex: 1 1 100%; /* Button takes full width */
+    padding: 10px 15px;
+    background-color: var(--color-secondary);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+}
+
+.electrodomesticos-controls button:hover {
+    background-color: #58a454; /* Darker shade of secondary color */
+}
+
+.energy-consumption-table-container {
+    margin-top: 20px;
+    max-height: 400px; /* Limit height for scrollability */
+    overflow-y: auto; /* Enable vertical scrolling */
+    border: 1px solid var(--bg-light);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.energy-consumption-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.energy-consumption-table th,
+.energy-consumption-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.energy-consumption-table th {
+    background-color: var(--bg-light);
+    font-weight: bold;
+    color: var(--text-dark);
+}
+
+.energy-consumption-table input[type="number"] {
+    width: 60px; /* Adjust width for quantity input */
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.energy-consumption-table .remove-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: background-color 0.3s ease;
+}
+
+.energy-consumption-table .remove-btn:hover {
+    background-color: #c82333;
+}
+
+.total-consumption-display {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #e0f2f7; /* Light blue background */
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.1em;
+    font-weight: bold;
+}
+
+.total-consumption-display label {
+    margin-right: 10px;
+    color: var(--text-dark);
+}
+
+.total-consumption-display input[type="text"] {
+    border: none;
+    background: transparent;
+    font-size: 1.1em;
+    font-weight: bold;
+    color: var(--color-primary);
+    width: 100px; /* Adjust width as needed */
+    text-align: right;
 }

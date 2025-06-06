@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Informe Solar</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+  <style>
+    body {
+        background: #f4f7fa;
+        font-family: 'Dosis', Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+    .solar-report {
+      max-width: 780px;
+      margin: 32px auto;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 3px 20px 0 #0002;
+      padding: 32px;
+    }
+    .report-title {
+      text-align: center;
+      background: #337ab7;
+      color: #fff;
+      margin: -32px -32px 24px -32px;
+      padding: 24px 0;
+      font-size: 1.5rem;
+      border-radius: 10px 10px 0 0;
+      letter-spacing: 0.5px;
+      font-family: 'Bebas Neue', Arial, sans-serif;
+    }
+    .report-section {
+        margin-bottom: 32px;
+    }
+    .section-header {
+      background: #e5ecf6;
+      color: #337ab7;
+      font-weight: bold;
+      padding: 8px 12px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      font-size: 1.2rem;
+    }
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      font-size: 1.1rem;
+    }
+    .report-table th,
+    .report-table td {
+      border: 1px solid #ddd;
+      padding: 10px 15px;
+      text-align: left;
+    }
+    .report-table th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    .result-blue {
+      color: #007bff;
+      font-weight: bold;
+    }
+    .result-green {
+      color: #28a745;
+      font-weight: bold;
+    }
+    .result-box {
+      background-color: #e6f7ff;
+      border: 1px solid #b3e0ff;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #0056b3;
+      text-align: center;
+      margin-top: 20px;
+    }
+    .informe-btns {
+      text-align: center;
+      margin-top: 30px;
+    }
+    .informe-btn {
+      background-color: #28a745;
+      color: white;
+      padding: 12px 25px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.5px;
+      margin: 0 10px;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+    .informe-btn:hover {
+      background-color: #218838;
+      transform: translateY(-1px);
+    }
+
+    /* Estilos para impresión */
+    @media print {
+      body {
+        background-color: #fff;
+      }
+      .solar-report {
+        box-shadow: none;
+        border: 1px solid #ccc;
+        margin: 0;
+        max-width: none;
+        padding: 0;
+      }
+      .informe-btns {
+        display: none; /* Oculta los botones en la impresión */
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="solar-report">
+    <div class="report-title">
+      Informe de Viabilidad de Instalación Solar Fotovoltaica
+    </div>
+
+    <div class="report-section">
+      <div class="section-header">Resumen General</div>
+      <table class="report-table">
+        <tr>
+          <td>Consumo Anual Estimado</td>
+          <td><span id="consumo-anual"></span> kWh/año</td>
+        </tr>
+        <tr>
+          <td>Generación Anual Estimada del Sistema</td>
+          <td><span id="generacion-anual"></span> kWh/año</td>
+        </tr>
+        <tr>
+          <td>Porcentaje de Autoconsumo</td>
+          <td><span id="autoconsumo"></span> %</td>
+        </tr>
+        <tr>
+          <td>Energía Inyectada a la Red</td>
+          <td><span id="inyectada-red"></span> kWh/año</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="report-section">
+      <div class="section-header">Datos de la Instalación Propuesta</div>
+      <table class="report-table">
+        <tr>
+          <td>Potencia Total de los Paneles</td>
+          <td><span id="potencia-paneles"></span> kWp</td>
+        </tr>
+        <tr>
+          <td>Cantidad de Paneles</td>
+          <td><span id="cantidad-paneles"></span> unidades</td>
+        </tr>
+        <tr>
+          <td>Superficie de Instalación Requerida</td>
+          <td><span id="superficie"></span> m²</td>
+        </tr>
+        <tr>
+          <td>Vida Útil Estimada del Sistema</td>
+          <td><span id="vida-util"></span> años</td>
+        </tr>
+        <tr>
+            <td>Tipo de Panel</td>
+            <td id="tipo-panel-informe"></td>
+        </tr>
+        <tr>
+            <td>Tipo de Inversor</td>
+            <td id="tipo-inversor-informe"></td>
+        </tr>
+        <tr>
+            <td>Potencia Nominal del Inversor</td>
+            <td id="potencia-inversor-informe"></td>
+        </tr>
+        <tr>
+            <td>Eficiencia del Panel</td>
+            <td id="eficiencia-panel-informe"></td>
+        </tr>
+        <tr>
+            <td>Eficiencia del Inversor</td>
+            <td id="eficiencia-inversor-informe"></td>
+        </tr>
+        <tr>
+            <td>Factor de Pérdidas</td>
+            <td id="factor-perdidas-informe"></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="report-section">
+      <div class="section-header">Análisis Económico</div>
+      <table class="report-table">
+        <tr>
+          <td>Costo actual de energía eléctrica</td>
+          <td><span id="moneda-display-1"></span> <span id="costo-actual"></span></td>
+        </tr>
+        <tr>
+          <td>Inversión inicial estimada</td>
+          <td><span id="moneda-display-2"></span> <span id="inversion-inicial"></span></td>
+        </tr>
+        <tr>
+          <td>Costo de mantenimiento anual</td>
+          <td><span id="moneda-display-3"></span> <span id="mantenimiento"></span></td>
+        </tr>
+        <tr>
+          <td>Costo futuro de energía eléctrica consumida (ahorro)</td>
+          <td class="result-blue"><span id="moneda-display-4"></span> <span id="costo-futuro"></span></td>
+        </tr>
+        <tr>
+          <td>Ingreso anual por inyección de energía a la red</td>
+          <td class="result-green"><span id="moneda-display-5"></span> <span id="ingreso-red"></span></td>
+        </tr>
+      </table>
+      <div class="result-box" id="resumen-economico"></div>
+    </div>
+
+    <div class="report-section">
+      <div class="section-header">Contribución a la mitigación del cambio climático</div>
+      <table class="report-table">
+        <tr>
+          <td>Emisiones de gases de efecto invernadero evitadas anualmente</td>
+          <td><span id="emisiones"></span> tCO2</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="informe-btns">
+      <button class="informe-btn" onclick="window.print()">Imprimir</button>
+      <button class="informe-btn" id="descargarPDF">Descargar PDF</button>
+      <button class="informe-btn" onclick="window.location.href='calculador.html'">Volver al Calculador</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="informe.js"></script>
+</body>
+</html>
