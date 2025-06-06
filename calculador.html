@@ -419,18 +419,18 @@
     <div class="app-header">
         <div class="logo-row-1">
             <div class="left-logo">
-                <img src="logo-freba.png" alt="FREBA Logo" class="logo">
+                <img src="images/logo-freba.png" alt="FREBA Logo" class="logo">
             </div>
             <div class="middle-logo">
-                <img src="logo-buenosaires.png" alt="Buenos Aires Provincia Logo" class="logo">
+                <img src="images/logo-buenosaires.png" alt="Buenos Aires Provincia Logo" class="logo">
             </div>
             <div class="right-logo">
-                <img src="logo-proinged.png" alt="PROINGED Logo" class="logo">
+                <img src="images/logo-proinged.png" alt="PROINGED Logo" class="logo">
             </div>
         </div>
         <div class="logo-row-2">
-            <img src="logo-ctae.png" alt="CTAE Logo" class="logo-small">
-            <img src="logo-facultad.png" alt="Facultad de Ingeniería Logo" class="logo-small">
+            <img src="images/logo-ctae.png" alt="CTAE Logo" class="logo-small">
+            <img src="images/logo-facultad.png" alt="Facultad de Ingeniería Logo" class="logo-small">
         </div>
     </div>
 
@@ -466,7 +466,7 @@
                     <form id="expert-data-form">
                         <div class="form-group">
                             <label for="zonaInstalacion">Zona de la instalación</label>
-                            <select id="zonaInstalacion" name="zonaInstalacion" required>
+                            <select id="zona-instalacion-expert" name="zonaInstalacion" required>
                                 <option value="">Seleccionar</option>
                                 <option value="Urbana">Urbana</option>
                                 <option value="Suburbana">Suburbana</option>
@@ -543,7 +543,7 @@
                 <div id="energia-section" style="display:none;">
                     <h1>Paso 2: Consumo de Energía</h1>
                     <p>A continuación, ingrese la cantidad de cada electrodoméstico que posee.</p>
-                    <div id="electrodomesticos-categorias"></div>
+                    <div id="electrodomesticos-list"></div>
                     <div class="energy-summary">
                         <div>
                             <label for="totalConsumoMensual">Consumo Mensual Estimado (kWh/mes):</label>
@@ -555,13 +555,20 @@
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button type="button" id="back-to-datos" class="back-button">Atrás</button>
+                        <button type="button" id="back-to-data-meteorologicos" class="back-button">Atrás</button>
                         <button type="submit" id="next-to-paneles">Siguiente</button>
                     </div>
                 </div>
                 <div id="paneles-section" style="display:none;">
                     <h1>Paso 3: Paneles</h1>
-                    <p>Contenido para la sección de Paneles...</p>
+                    <div class="form-group">
+                        <label for="tipo-panel">Tipo de Panel:</label>
+                        <input type="text" id="tipo-panel" name="tipo-panel" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="cantidad-paneles-input">Cantidad de Paneles:</label>
+                        <input type="number" id="cantidad-paneles-input" name="cantidad-paneles-input" class="form-control">
+                    </div>
                     <div class="form-actions">
                         <button type="button" id="back-to-energia" class="back-button">Atrás</button>
                         <button type="submit" id="next-to-inversor">Siguiente</button>
@@ -569,7 +576,14 @@
                 </div>
                 <div id="inversor-section" style="display:none;">
                     <h1>Paso 4: Inversor</h1>
-                    <p>Contenido para la sección de Inversor...</p>
+                    <div class="form-group">
+                        <label for="tipo-inversor">Tipo de Inversor:</label>
+                        <input type="text" id="tipo-inversor" name="tipo-inversor" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="potencia-inversor-input">Potencia del Inversor (kW):</label>
+                        <input type="number" id="potencia-inversor-input" name="potencia-inversor-input" class="form-control" step="0.1">
+                    </div>
                     <div class="form-actions">
                         <button type="button" id="back-to-paneles" class="back-button">Atrás</button>
                         <button type="submit" id="next-to-perdidas">Siguiente</button>
@@ -577,7 +591,18 @@
                 </div>
                 <div id="perdidas-section" style="display:none;">
                     <h1>Paso 5: Registro Pérdidas</h1>
-                    <p>Contenido para la sección de Pérdidas...</p>
+                    <div class="form-group">
+                        <label for="eficiencia-panel-input">Eficiencia del Panel (%):</label>
+                        <input type="number" id="eficiencia-panel-input" name="eficiencia-panel-input" class="form-control" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="eficiencia-inversor-input">Eficiencia del Inversor (%):</label>
+                        <input type="number" id="eficiencia-inversor-input" name="eficiencia-inversor-input" class="form-control" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="factor-perdidas-input">Factor de Otras Pérdidas (%):</label>
+                        <input type="number" id="factor-perdidas-input" name="factor-perdidas-input" class="form-control" step="0.1">
+                    </div>
                     <div class="form-actions">
                         <button type="button" id="back-to-inversor" class="back-button">Atrás</button>
                         <button type="submit" id="next-to-analisis-economico">Siguiente</button>

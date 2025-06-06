@@ -75,30 +75,30 @@ function loadUserSelections() {
 // Función para actualizar la UI con las selecciones cargadas (para inputs no-electrodomésticos)
 function updateUIFromSelections() {
     // Asegúrate de que estos IDs existen en tu HTML
-    const userTypeSelect = document.getElementById('user-type');
-    if (userTypeSelect && userSelections.userType) {
-        userTypeSelect.value = userSelections.userType;
-    }
+    // const userTypeSelect = document.getElementById('user-type');
+    // if (userTypeSelect && userSelections.userType) {
+    //     userTypeSelect.value = userSelections.userType;
+    // }
 
-    const installationTypeSelect = document.getElementById('installation-type');
-    if (installationTypeSelect && userSelections.installationType) {
-        installationTypeSelect.value = userSelections.installationType;
-    }
+    // const installationTypeSelect = document.getElementById('installation-type');
+    // if (installationTypeSelect && userSelections.installationType) {
+    //     installationTypeSelect.value = userSelections.installationType;
+    // }
 
-    const incomeLevelSelect = document.getElementById('income-level');
-    if (incomeLevelSelect && userSelections.incomeLevel) {
-        incomeLevelSelect.value = userSelections.incomeLevel;
-    }
+    // const incomeLevelSelect = document.getElementById('income-level');
+    // if (incomeLevelSelect && userSelections.incomeLevel) {
+    //     incomeLevelSelect.value = userSelections.incomeLevel;
+    // }
 
     const zonaInstalacionExpertSelect = document.getElementById('zona-instalacion-expert');
     if (zonaInstalacionExpertSelect && userSelections.zonaInstalacionExpert) {
         zonaInstalacionExpertSelect.value = userSelections.zonaInstalacionExpert;
     }
 
-    const zonaInstalacionBasicSelect = document.getElementById('zona-instalacion-basic');
-    if (zonaInstalacionBasicSelect && userSelections.zonaInstalacionBasic) {
-        zonaInstalacionBasicSelect.value = userSelections.zonaInstalacionBasic;
-    }
+    // const zonaInstalacionBasicSelect = document.getElementById('zona-instalacion-basic');
+    // if (zonaInstalacionBasicSelect && userSelections.zonaInstalacionBasic) {
+    //     zonaInstalacionBasicSelect.value = userSelections.zonaInstalacionBasic;
+    // }
 
     const monedaSelect = document.getElementById('moneda');
     if (monedaSelect && userSelections.selectedCurrency) {
@@ -337,28 +337,44 @@ function updateStepIndicator(screenId) {
 // --- Configuración de Event Listeners para Botones y Selects (EXISTENTE, MODIFICADA) ---
 
 function setupNavigationButtons() {
+    const basicUserButton = document.getElementById('basic-user-button');
+    if (basicUserButton) {
+        basicUserButton.addEventListener('click', () => {
+            showScreen('data-form-screen');
+        });
+    }
+
+    const expertUserButton = document.getElementById('expert-user-button');
+    if (expertUserButton) {
+        expertUserButton.addEventListener('click', () => {
+            // For now, also directs to data-form-screen.
+            // This can be refined later based on desired expert user flow.
+            showScreen('data-form-screen');
+        });
+    }
+
     // Listeners para inputs de selección y otros que guardan userSelections
     // Asegúrate de que estos IDs existan en tu HTML
-    document.getElementById('user-type')?.addEventListener('change', (e) => {
-        userSelections.userType = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    });
-    document.getElementById('installation-type')?.addEventListener('change', (e) => {
-        userSelections.installationType = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    });
-    document.getElementById('income-level')?.addEventListener('change', (e) => {
-        userSelections.incomeLevel = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    });
+    // document.getElementById('user-type')?.addEventListener('change', (e) => {
+    //     userSelections.userType = e.target.value;
+    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
+    // });
+    // document.getElementById('installation-type')?.addEventListener('change', (e) => {
+    //     userSelections.installationType = e.target.value;
+    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
+    // });
+    // document.getElementById('income-level')?.addEventListener('change', (e) => {
+    //     userSelections.incomeLevel = e.target.value;
+    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
+    // });
     document.getElementById('zona-instalacion-expert')?.addEventListener('change', (e) => {
         userSelections.zonaInstalacionExpert = e.target.value;
         saveUserSelections(); // AÑADIDO: Guardar en localStorage
     });
-    document.getElementById('zona-instalacion-basic')?.addEventListener('change', (e) => {
-        userSelections.zonaInstalacionBasic = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    });
+    // document.getElementById('zona-instalacion-basic')?.addEventListener('change', (e) => {
+    //     userSelections.zonaInstalacionBasic = e.target.value;
+    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
+    // });
     document.getElementById('moneda')?.addEventListener('change', (e) => {
         userSelections.selectedCurrency = e.target.value;
         saveUserSelections(); // AÑADIDO: Guardar en localStorage
@@ -401,10 +417,10 @@ function setupNavigationButtons() {
 
 
     // Configurar los botones de navegación entre secciones (EXISTENTES)
-    document.getElementById('next-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
-    document.getElementById('back-to-map')?.addEventListener('click', () => showScreen('map-screen'));
-    document.getElementById('next-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
-    document.getElementById('back-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
+    // document.getElementById('next-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
+    // document.getElementById('back-to-map')?.addEventListener('click', () => showScreen('map-screen'));
+    // document.getElementById('next-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
+    // document.getElementById('back-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
     document.getElementById('next-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
     document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
     document.getElementById('next-to-paneles')?.addEventListener('click', () => showScreen('paneles-section'));
