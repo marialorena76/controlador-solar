@@ -47,8 +47,8 @@ const inversorSection = document.getElementById('inversor-section');
 const perdidasSection = document.getElementById('perdidas-section');
 const analisisEconomicoSection = document.getElementById('analisis-economico-section');
 const stepIndicatorText = document.getElementById('step-indicator-text');
-const totalConsumoMensualDisplay = document.getElementById('total-consumo-mensual');
-const totalConsumoAnualDisplay = document.getElementById('total-consumo-anual');
+const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');
+const totalConsumoAnualDisplay = document.getElementById('totalConsumoAnual');
 
 // Elementos de las secciones del formulario en map-screen
 const userTypeSection = document.getElementById('user-type-section');
@@ -421,10 +421,10 @@ function setupNavigationButtons() {
             saveUserSelections();
             showScreen('data-form-screen'); // Transitions to the detailed form
 
-            // Explicitly manage sub-sections for this flow
-            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'none';
-            if (energiaSection) energiaSection.style.display = 'block';
-            updateStepIndicator('energia-section');
+            // Update step indicator to 'data-meteorologicos-section'.
+            // The section itself should be visible by default HTML structure within data-form-screen's main-content
+            // after showScreen('data-form-screen') has hidden all specific sub-sections.
+            updateStepIndicator('data-meteorologicos-section');
         });
     }
 
@@ -434,10 +434,8 @@ function setupNavigationButtons() {
             saveUserSelections();
             showScreen('data-form-screen'); // Transitions to the detailed form
 
-            // Explicitly manage sub-sections for this flow
-            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'none';
-            if (energiaSection) energiaSection.style.display = 'block';
-            updateStepIndicator('energia-section');
+            // Update step indicator to 'data-meteorologicos-section'.
+            updateStepIndicator('data-meteorologicos-section');
         });
     }
 
@@ -521,7 +519,19 @@ function setupNavigationButtons() {
     // document.getElementById('back-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
     document.getElementById('next-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
     document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
-    document.getElementById('next-to-paneles')?.addEventListener('click', () => showScreen('paneles-section'));
+
+    const nextToPanelesButton = document.getElementById('next-to-paneles');
+    if (nextToPanelesButton) {
+        nextToPanelesButton.addEventListener('click', () => {
+            if (userSelections.userType === 'basico') {
+                showScreen('analisis-economico-section');
+                updateStepIndicator('analisis-economico-section');
+            } else { // Assumes 'experto' or any other type follows the expert path
+                showScreen('paneles-section');
+                updateStepIndicator('paneles-section');
+            }
+        });
+    }
     document.getElementById('back-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
     document.getElementById('next-to-inversor')?.addEventListener('click', () => showScreen('inversor-section'));
     document.getElementById('back-to-paneles')?.addEventListener('click', () => showScreen('paneles-section'));
