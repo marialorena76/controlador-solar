@@ -279,45 +279,93 @@ function initMap() {
 
     // Asegúrate de que el geocodificador esté importado correctamente en tu HTML
     // <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-    L.Control.geocoder().addTo(map).on('markgeocode', function(e) {
+    const geocoderControlInstance = L.Control.geocoder({
+        placeholder: 'Buscar o ingresar dirección...',
+        errorMessage: 'No se encontró la dirección.'
+        // defaultMarkGeocode: true, // Let control handle its own marker by default
+    }).on('markgeocode', function(e) {
         if (e.geocode && e.geocode.center) {
             userLocation.lat = e.geocode.center.lat;
             userLocation.lng = e.geocode.center.lng;
-            marker.setLatLng(userLocation);
-            map.setView(userLocation, 13);
+
+            // The control's default behavior will place/update its own marker.
+            // If a separate 'marker' variable is used for map clicks, ensure they coordinate
+            // or let the geocoder manage its marker exclusively.
+            // For simplicity, if 'marker' is primarily for map clicks,
+            // we might not need to call marker.setLatLng(userLocation) here if defaultMarkGeocode is true.
+            // However, to ensure OUR 'marker' (from map clicks) is also updated:
+            if (marker) { // Check if 'marker' (from map clicks) exists
+                marker.setLatLng(userLocation);
+            } else { // If no map-click marker exists yet, create one
+                marker = L.marker(userLocation).addTo(map);
+            }
+
+            map.setView(userLocation, 13); // Center map on geocoded location
+
             if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6);
             if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6);
-            userSelections.location = userLocation; // Guardar la ubicación en userSelections
-            saveUserSelections(); // Guardar las selecciones en localStorage
+            userSelections.location = userLocation;
+            saveUserSelections();
         }
-    });
+    }).addTo(map);
+
+    // Relocate the geocoder DOM element
+    const geocoderElement = geocoderControlInstance.getContainer();
+    const customGeocoderContainer = document.getElementById('geocoder-container');
+
+    if (customGeocoderContainer && geocoderElement) {
+        customGeocoderContainer.innerHTML = ''; // Clear the container first if it has placeholder content or old controls
+        customGeocoderContainer.appendChild(geocoderElement);
+    } else {
+        if (!customGeocoderContainer) console.error('Custom geocoder container (geocoder-container) not found.');
+        if (!geocoderElement) console.error('Geocoder control element (geocoderElement) not found.');
+    }
 }
 
 
 // --- Lógica de la Navegación de Pantallas (EXISTENTE, VERIFICADA) ---
 
 function showScreen(screenId) {
-    // Oculta todas las secciones
-    mapScreen.style.display = 'none';
-    dataFormScreen.style.display = 'none';
-    dataMeteorologicosSection.style.display = 'none';
-    energiaSection.style.display = 'none';
-    panelesSection.style.display = 'none';
-    inversorSection.style.display = 'none';
-    perdidasSection.style.display = 'none';
-    analisisEconomicoSection.style.display = 'none';
+    // Hide main screen containers first
+    if (mapScreen) mapScreen.style.display = 'none';
+    if (dataFormScreen) dataFormScreen.style.display = 'none';
 
-    // Muestra la sección deseada
-    const targetScreen = document.getElementById(screenId);
-    if (targetScreen) {
-        targetScreen.style.display = 'block';
+    // Hide all individual sub-sections within dataFormScreen explicitly
+    if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'none';
+    if (energiaSection) energiaSection.style.display = 'none';
+    if (panelesSection) panelesSection.style.display = 'none';
+    if (inversorSection) inversorSection.style.display = 'none';
+    if (perdidasSection) perdidasSection.style.display = 'none';
+    if (analisisEconomicoSection) analisisEconomicoSection.style.display = 'none';
+
+    const targetElement = document.getElementById(screenId);
+
+    if (targetElement) {
+        if (screenId === 'map-screen') {
+            // Ensure mapScreen variable is the correct DOM element
+            if (mapScreen) mapScreen.style.display = 'block';
+        } else if (screenId === 'data-form-screen') {
+            // Ensure dataFormScreen variable is the correct DOM element
+            if (dataFormScreen) dataFormScreen.style.display = 'block';
+            // Default to showing the first step of data-form-screen
+            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
+        } else {
+            // This case handles screenId being a sub-section like 'energia-section',
+            // 'paneles-section', 'data-meteorologicos-section', etc.
+            // These sub-sections are children of the main 'data-form-screen' container.
+
+            // First, ensure the main 'data-form-screen' container is visible.
+            if (dataFormScreen) {
+                dataFormScreen.style.display = 'block';
+            }
+            // Then, show the specific target sub-section.
+            targetElement.style.display = 'block';
+        }
     } else {
         console.error(`Error: La pantalla con ID '${screenId}' no fue encontrada.`);
-        return;
     }
-
-    // Actualiza el indicador de paso
-    updateStepIndicator(screenId);
+    // Note: updateStepIndicator is called by the individual button event listeners
+    // immediately after they call showScreen.
 }
 
 function updateStepIndicator(screenId) {
@@ -419,8 +467,9 @@ function setupNavigationButtons() {
         incomeHighButton.addEventListener('click', () => {
             userSelections.incomeLevel = 'ALTO';
             saveUserSelections();
-            showScreen('data-form-screen'); // Transitions to the detailed form
+            showScreen('data-form-screen');
 
+            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block'; // Explicitly show this section
             // Update step indicator to 'data-meteorologicos-section'.
             // The section itself should be visible by default HTML structure within data-form-screen's main-content
             // after showScreen('data-form-screen') has hidden all specific sub-sections.
@@ -432,8 +481,9 @@ function setupNavigationButtons() {
         incomeLowButton.addEventListener('click', () => {
             userSelections.incomeLevel = 'BAJO';
             saveUserSelections();
-            showScreen('data-form-screen'); // Transitions to the detailed form
+            showScreen('data-form-screen');
 
+            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block'; // Explicitly show this section
             // Update step indicator to 'data-meteorologicos-section'.
             updateStepIndicator('data-meteorologicos-section');
         });

@@ -64,6 +64,13 @@
         .logo-row-2 img { margin: 0 15px; }
         .logo { max-height: 70px; width: auto; }
         .logo-small { max-height: 50px; width: auto; }
+
+#map-screen {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
         .main-content-wrapper {
             display: flex;
             flex-grow: 1;
@@ -72,7 +79,7 @@
     margin: 2rem auto; /* As in calculador1.html */
             box-sizing: border-box;
             flex-direction: row;
-    align-items: stretch; /* Keep stretch for equal heights */
+    align-items: flex-start; /* Changed to flex-start */
     gap: 2rem; /* As in calculador1.html */
     padding: 0 2rem; /* As in calculador1.html */
         }
@@ -97,48 +104,11 @@
             position: relative;
             z-index: 1;
         }
-        .leaflet-control-geocoder {
-            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-            border-radius: 5px;
-            background-color: white;
-            padding: 5px;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 90%;
-            margin-top: 15px;
-        }
-        .leaflet-control-geocoder .leaflet-control-geocoder-form {
-            display: flex;
-            width: 100%;
-            align-items: center;
-        }
-        .leaflet-control-geocoder .leaflet-control-geocoder-form input {
-            border: 1px solid #d1d5db;
-            outline: none;
-            flex-grow: 1;
-            padding: 8px 10px;
-            font-size: 1rem;
-            color: #333;
-            box-sizing: border-box;
-            border-radius: 4px;
-            margin-right: 8px;
-        }
-        .leaflet-control-geocoder .leaflet-control-geocoder-form button {
-            background-color: var(--color-tertiary);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 8px 15px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.2s;
-            flex-shrink: 0;
-        }
-        .leaflet-control-geocoder .leaflet-control-geocoder-form button:hover {
-            background-color: #4665a9;
-        }
+#geocoder-container {
+    width: 90%; /* Or 100% if preferred */
+    margin: 15px auto 0 auto; /* Centers the container itself if width is not 100% */
+    /* This container will now hold the actual Leaflet geocoder control */
+}
         .location-info {
             margin-top: 1.2rem;
             padding: 1rem 1.5rem;
@@ -504,7 +474,7 @@
         <div class="main-content-wrapper">
             <div class="map-area">
                 <div id="map"></div>
-                <div id="geocoder-container" class="leaflet-control-geocoder"></div>
+                <div id="geocoder-container"></div>
                 <div class="location-info">
                     <b>Latitud:</b> <span id="latitud-display"></span> &nbsp;
                     <b>Longitud:</b> <span id="longitud-display"></span>
