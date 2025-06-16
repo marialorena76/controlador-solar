@@ -1,6 +1,10 @@
+// calculador.js
+
 console.log('🤖 calculador.js cargado - flujo de controlador ajustado y persistencia de datos');
 
-let map, marker;
+// Variables para el mapa (renombradas para evitar posibles conflictos)
+let mapInstance, markerInstance;
+
 let userLocation = { lat: -34.6037, lng: -58.3816 }; // Buenos Aires por defecto
 
 // Objeto para almacenar todas las selecciones del usuario
@@ -12,19 +16,19 @@ let userSelections = {
     zonaInstalacionExpert: null,
     zonaInstalacionBasic: null,
     electrodomesticos: {}, // Almacenará { "Nombre Electrodoméstico": cantidad }
-    totalMonthlyConsumption: 0,
-    totalAnnualConsumption: 0,
+    consumoFactura: {}, // Almacenará {enero: val, febrero: val, ...}
+    totalMonthlyConsumption: 0, // Consumo total mensual calculado de electrodomésticos (kWh)
+    totalAnnualConsumption: 0,  // Consumo total anual calculado de electrodomésticos (kWh)
     selectedCurrency: 'Pesos argentinos', // Valor por defecto
-    // Propiedades para los nuevos pasos (ajusta si ya tenías estas estructuras con otros nombres)
     panelesSolares: {
         tipo: null,
         cantidad: 0,
-        potenciaNominal: 0, // Potencia total de paneles en kWp
+        potenciaNominal: 0,
         superficie: 0
     },
     inversor: {
         tipo: null,
-        potenciaNominal: 0 // Potencia nominal del inversor en kW
+        potenciaNominal: 0
     },
     perdidas: {
         eficienciaPanel: 0,
@@ -33,706 +37,411 @@ let userSelections = {
     }
 };
 
-let electrodomesticosCategorias = {}; // JSON que se cargará desde el backend
+// Variable global para almacenar los datos de electrodomésticos leídos del backend (Excel)
+let electrodomesticosDatosBackend = {};
 
-// Elementos principales del DOM
-const latitudDisplay = document.getElementById('latitud-display');
-const longitudDisplay = document.getElementById('longitud-display');
-const mapScreen = document.getElementById('map-screen');
-const dataFormScreen = document.getElementById('data-form-screen');
-const dataMeteorologicosSection = document.getElementById('data-meteorologicos-section');
-const energiaSection = document.getElementById('energia-section');
-const panelesSection = document.getElementById('paneles-section');
-const inversorSection = document.getElementById('inversor-section');
-const perdidasSection = document.getElementById('perdidas-section');
-const analisisEconomicoSection = document.getElementById('analisis-economico-section');
-const stepIndicatorText = document.getElementById('step-indicator-text');
-const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');
-const totalConsumoAnualDisplay = document.getElementById('totalConsumoAnual');
-
-// Elementos de las secciones del formulario en map-screen
-const userTypeSection = document.getElementById('user-type-section');
-const supplySection = document.getElementById('supply-section');
-const incomeSection = document.getElementById('income-section');
-const expertSection = document.getElementById('expert-section');
-
-
-// --- Funciones de Persistencia (NUEVO BLOQUE INTEGRADO) ---
-
+// --- FUNCIONES DE PERSISTENCIA ---
 function saveUserSelections() {
     localStorage.setItem('userSelections', JSON.stringify(userSelections));
-    console.log('User selections guardadas:', userSelections);
+    console.log('User selections saved:', userSelections);
 }
 
 function loadUserSelections() {
     const savedSelections = localStorage.getItem('userSelections');
     if (savedSelections) {
-        userSelections = JSON.parse(savedSelections);
-        console.log('User selections cargadas:', userSelections);
-        // Asegurarse de que userLocation esté actualizado si se cargó de localStorage
-        if (userSelections.location) {
-            userLocation = userSelections.location;
+        try {
+            const parsedSelections = JSON.parse(savedSelections);
+            Object.assign(userSelections, parsedSelections);
+            // Asegurarse de que las propiedades clave existen después de la carga
+            if (!userSelections.electrodomesticos) userSelections.electrodomesticos = {};
+            if (!userSelections.consumoFactura) userSelections.consumoFactura = {};
+            if (typeof userSelections.totalMonthlyConsumption === 'undefined') userSelections.totalMonthlyConsumption = 0;
+            if (typeof userSelections.totalAnnualConsumption === 'undefined') userSelections.totalAnnualConsumption = 0;
+            if (typeof userSelections.selectedCurrency === 'undefined') userSelections.selectedCurrency = 'Pesos argentinos'; // Valor por defecto
+
+            console.log('User selections loaded:', userSelections);
+        } catch (e) {
+            console.error("Error al parsear userSelections desde localStorage:", e);
+            localStorage.removeItem('userSelections');
+            console.log("LocalStorage 'userSelections' limpiado debido a datos corruptos.");
         }
-        // También actualiza la UI para los campos no-electrodomésticos
-        updateUIFromSelections();
     }
 }
 
-// Función para actualizar la UI con las selecciones cargadas (para inputs no-electrodomésticos)
-function updateUIFromSelections() {
-    // Asegúrate de que estos IDs existen en tu HTML
-    // const userTypeSelect = document.getElementById('user-type');
-    // if (userTypeSelect && userSelections.userType) {
-    //     userTypeSelect.value = userSelections.userType;
-    // }
+// --- FUNCIONES DE MAPA (Asegúrate de que esta lógica es la que realmente usas para inicializar el mapa) ---
+function initMap() {
+    console.log("Intentando inicializar el mapa.");
+    const mapDiv = document.getElementById('map');
+    if (mapDiv && typeof L !== 'undefined') { // Verifica si el div existe y si Leaflet (L) está cargado
+        // Importante: Si el mapa ya existe, destrúyelo antes de recrearlo para evitar duplicados
+        // y problemas de renderizado si la sección se oculta y luego se muestra de nuevo.
+        if (mapInstance) {
+            mapInstance.remove();
+        }
+        mapInstance = L.map('map').setView([userLocation.lat, userLocation.lng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(mapInstance);
 
-    // const installationTypeSelect = document.getElementById('installation-type');
-    // if (installationTypeSelect && userSelections.installationType) {
-    //     installationTypeSelect.value = userSelections.installationType;
-    // }
+        markerInstance = L.marker([userLocation.lat, userLocation.lng], { draggable: true }).addTo(mapInstance)
+            .bindPopup("Arrastra para cambiar la ubicación").openPopup();
 
-    // const incomeLevelSelect = document.getElementById('income-level');
-    // if (incomeLevelSelect && userSelections.incomeLevel) {
-    //     incomeLevelSelect.value = userSelections.incomeLevel;
-    // }
+        markerInstance.on('dragend', function(event) {
+            const latlng = markerInstance.getLatLng();
+            userLocation.lat = latlng.lat;
+            userLocation.lng = latlng.lng;
+            userSelections.location = userLocation; // Actualiza userSelections
+            saveUserSelections();
+            console.log('Nueva ubicación por arrastre:', userLocation);
+        });
 
-    const zonaInstalacionExpertSelect = document.getElementById('zona-instalacion-expert');
-    if (zonaInstalacionExpertSelect && userSelections.zonaInstalacionExpert) {
-        zonaInstalacionExpertSelect.value = userSelections.zonaInstalacionExpert;
-    }
-
-    // const zonaInstalacionBasicSelect = document.getElementById('zona-instalacion-basic');
-    // if (zonaInstalacionBasicSelect && userSelections.zonaInstalacionBasic) {
-    //     zonaInstalacionBasicSelect.value = userSelections.zonaInstalacionBasic;
-    // }
-
-    const monedaSelect = document.getElementById('moneda');
-    if (monedaSelect && userSelections.selectedCurrency) {
-        monedaSelect.value = userSelections.selectedCurrency;
-    }
-
-    // Actualizar displays de consumo (se recalcularán con calcularConsumo después de cargar electrodomésticos)
-    if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = userSelections.totalMonthlyConsumption.toFixed(2);
-    if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = userSelections.totalAnnualConsumption.toFixed(2);
-
-    // Si tienes inputs para paneles, inversor o pérdidas que guardas en userSelections, actualízalos aquí también
-    const tipoPanelInput = document.getElementById('tipo-panel'); // Asegúrate que este ID exista en tu HTML
-    if (tipoPanelInput && userSelections.panelesSolares?.tipo) {
-        tipoPanelInput.value = userSelections.panelesSolares.tipo;
-    }
-    // ... y así para otros campos de paneles, inversor, pérdidas si los tienes en userSelections
-    const cantidadPanelesInput = document.getElementById('cantidad-paneles-input'); // Si tienes un input para cantidad
-    if (cantidadPanelesInput && userSelections.panelesSolares?.cantidad) {
-        cantidadPanelesInput.value = userSelections.panelesSolares.cantidad;
-    }
-
-    const potenciaInversorInput = document.getElementById('potencia-inversor-input'); // Si tienes un input para potencia de inversor
-    if (potenciaInversorInput && userSelections.inversor?.potenciaNominal) {
-        potenciaInversorInput.value = userSelections.inversor.potenciaNominal;
-    }
-    const eficienciaPanelInput = document.getElementById('eficiencia-panel-input');
-    if (eficienciaPanelInput && userSelections.perdidas?.eficienciaPanel) {
-        eficienciaPanelInput.value = userSelections.perdidas.eficienciaPanel;
-    }
-    const eficienciaInversorInput = document.getElementById('eficiencia-inversor-input');
-    if (eficienciaInversorInput && userSelections.perdidas?.eficienciaInversor) {
-        eficienciaInversorInput.value = userSelections.perdidas.eficienciaInversor;
-    }
-    const factorPerdidasInput = document.getElementById('factor-perdidas-input');
-    if (factorPerdidasInput && userSelections.perdidas?.factorPerdidas) {
-        factorPerdidasInput.value = userSelections.perdidas.factorPerdidas;
+        // Opcional: Geocodificador para buscar lugares
+        if (typeof L.Control.Geocoder !== 'undefined') {
+            L.Control.geocoder({
+                defaultMarkGeocode: false
+            })
+            .on('markgeocode', function(e) {
+                const latlng = e.geocode.center;
+                markerInstance.setLatLng(latlng).setPopupContent(e.geocode.name || "Ubicación seleccionada").openPopup();
+                mapInstance.setView(latlng, mapInstance.getZoom()); // Centrar el mapa en la nueva ubicación
+                userLocation.lat = latlng.lat;
+                userLocation.lng = latlng.lng;
+                userSelections.location = userLocation; // Actualiza userSelections
+                saveUserSelections();
+                console.log('Ubicación por geocodificador:', userLocation);
+            })
+            .addTo(mapInstance);
+        } else {
+            console.warn("Leaflet Control Geocoder no está cargado. La funcionalidad de búsqueda de ubicación no estará disponible.");
+        }
+        // Invalida el tamaño del mapa para que se ajuste correctamente al contenedor visible
+        mapInstance.invalidateSize();
+    } else {
+        console.warn("No se pudo inicializar el mapa. Asegúrate de que el div con id='map' existe y Leaflet está cargado.");
     }
 }
 
 
-// --- Funciones para Consumo y Electrodomésticos (NUEVO BLOQUE INTEGRADO) ---
+// --- FUNCIONES DE NAVEGACIÓN Y CONTROL DE PANTALLAS ---
+function showScreen(screenId) {
+    document.querySelectorAll('.form-section').forEach(section => {
+        section.style.display = 'none'; // Oculta todas las secciones del formulario
+    });
+    const targetScreen = document.getElementById(screenId);
+    if (targetScreen) {
+        targetScreen.style.display = 'block'; // Muestra la sección deseada
+        targetScreen.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        console.log(`Mostrando pantalla: ${screenId}`); // Debugging
+    } else {
+        console.error(`Error: La sección con ID '${screenId}' no fue encontrada.`);
+    }
+}
 
+function setupNavigation() {
+    // Event listeners para los selects de tipo de usuario e instalación
+    document.getElementById('user-type')?.addEventListener('change', (event) => {
+        userSelections.userType = event.target.value;
+        saveUserSelections();
+        console.log("User Type selected:", userSelections.userType); // Debugging
+    });
+
+    document.getElementById('installation-type')?.addEventListener('change', (event) => {
+        userSelections.installationType = event.target.value;
+        saveUserSelections();
+        console.log("Installation Type selected:", userSelections.installationType); // Debugging
+    });
+
+    // --- Botones "Siguiente" ---
+    // Botón 'Siguiente' en user-type-section (Paso 1)
+    document.getElementById('next-to-installation-type')?.addEventListener('click', () => {
+        console.log("Clic en 'Siguiente' desde Tipo de Usuario.");
+        if (userSelections.userType) { // Asegurarse de que algo fue seleccionado
+            showScreen('installation-type-section');
+        } else {
+            alert('Por favor, selecciona un tipo de usuario para continuar.');
+        }
+    });
+
+    // Botón 'Siguiente' en installation-type-section (Paso 2)
+    document.getElementById('next-to-location')?.addEventListener('click', () => {
+        console.log("Clic en 'Siguiente' desde Tipo de Instalación.");
+        if (!userSelections.installationType) { // Asegurarse de que algo fue seleccionado
+            alert('Por favor, selecciona un tipo de instalación para continuar.');
+            return;
+        }
+
+        if (userSelections.userType === 'basic' && userSelections.installationType === 'residential') {
+            showScreen('electrodomesticos-section');
+        } else {
+            showScreen('location-section');
+            initMap(); // Inicializa el mapa solo cuando la sección de ubicación es visible
+        }
+    });
+
+    // Botón 'Siguiente' en electrodomesticos-section (Paso 3 para Básico/Residencial)
+    document.getElementById('next-to-consumo-factura')?.addEventListener('click', () => {
+        calcularConsumoTotal(); // Asegurarse de que el cálculo se haya hecho antes de avanzar
+        showScreen('consumo-factura-section');
+    });
+
+    // Botón 'Siguiente' en consumo-factura-section (Paso 4)
+    document.getElementById('next-to-location-or-zona-instalacion')?.addEventListener('click', () => {
+        console.log("Clic en 'Siguiente' desde Consumo por Factura.");
+        // Si el usuario es experto/comercial/industrial, podría ir a zona de instalación experto, si no, a income level (o lo que siga)
+        if (userSelections.userType === 'expert' || userSelections.installationType === 'commercial' || userSelections.installationType === 'industrial' || userSelections.installationType === 'rural') {
+            showScreen('zona-instalacion-expert-section'); // Asumiendo que esta es la siguiente para expertos
+        } else {
+            showScreen('income-level-section'); // Para básico no residencial, o lo que siga después de factura
+        }
+    });
+
+    // ... (el resto de tus navegaciones 'next' y 'back' existentes) ...
+    // Asegúrate de que todos los IDs de botones estén conectados a una función showScreen
+    document.getElementById('next-to-income-level')?.addEventListener('click', () => showScreen('income-level-section'));
+    document.getElementById('next-to-zona-instalacion-expert')?.addEventListener('click', () => showScreen('zona-instalacion-expert-section'));
+    document.getElementById('next-to-paneles-solares')?.addEventListener('click', () => showScreen('paneles-solares-section'));
+    document.getElementById('next-to-inversor')?.addEventListener('click', () => showScreen('inversor-section'));
+    document.getElementById('next-to-perdidas')?.addEventListener('click', () => showScreen('perdidas-section'));
+    document.getElementById('next-to-analisis-economico')?.addEventListener('click', () => showScreen('analisis-economico-section'));
+
+
+    // --- Botones "Atrás" ---
+    document.getElementById('back-to-initial')?.addEventListener('click', () => showScreen('user-type-section')); // Desde installation-type-section
+    document.getElementById('back-to-user-type-from-installation')?.addEventListener('click', () => showScreen('user-type-section'));
+
+    document.getElementById('back-to-installation-type-from-electrod')?.addEventListener('click', () => {
+        // Desde electrodomésticos, siempre a instalación
+        showScreen('installation-type-section');
+    });
+
+    document.getElementById('back-to-consumo-tipo-usuario')?.addEventListener('click', () => {
+        // Desde consumo factura, retrocede según el flujo anterior
+        if (userSelections.userType === 'basic' && userSelections.installationType === 'residential') {
+            showScreen('electrodomesticos-section');
+        } else {
+            showScreen('location-section'); // O la pantalla anterior para expertos/comerciales
+        }
+    });
+
+    document.getElementById('back-to-location')?.addEventListener('click', () => showScreen('location-section'));
+    document.getElementById('back-to-user-type-from-expert')?.addEventListener('click', () => showScreen('user-type-section')); // Si hay una sección expert-options-section
+
+    document.getElementById('back-to-location-from-expert-zona')?.addEventListener('click', () => {
+        // Si tienes múltiples rutas a zona-instalacion-expert-section, aquí decides a dónde volver.
+        // Por simplicidad, volvamos a la última pantalla "común" antes de esta sección.
+        // Podría ser 'consumo-factura-section' si ese es el paso anterior para expertos, o 'location-section'.
+        showScreen('location-section'); // Asumo que se vuelve a la ubicación
+    });
+
+    document.getElementById('back-to-zona-instalacion-expert')?.addEventListener('click', () => showScreen('zona-instalacion-expert-section'));
+    document.getElementById('back-to-paneles-solares')?.addEventListener('click', () => showScreen('paneles-solares-section'));
+    document.getElementById('back-to-inversor')?.addEventListener('click', () => showScreen('inversor-section'));
+    document.getElementById('back-to-perdidas')?.addEventListener('click', () => showScreen('perdidas-section'));
+
+
+    // Finalizar Cálculo y enviar al backend
+    document.getElementById('finalizar-calculo')?.addEventListener('click', async (event) => {
+        event.preventDefault();
+        saveUserSelections(); // Asegurarse de que los últimos datos estén guardados
+        try {
+            console.log("Enviando datos al backend para generar informe:", userSelections);
+            const response = await fetch('http://127.0.0.1:5000/api/generar_informe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userSelections)
+            });
+            if (!response.ok) {
+                const errorText = await response.text(); // Intenta leer el cuerpo del error
+                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+            }
+            const informeFinal = await response.json();
+            localStorage.setItem('informeSolar', JSON.stringify(informeFinal));
+            window.location.href = 'informe.html';
+        } catch (error) {
+            console.error('Error al generar el informe:', error);
+            alert('Hubo un error al generar el informe: ' + error.message + '. Por favor, revisa la consola para más detalles.');
+        }
+    });
+}
+
+
+// --- FUNCIÓN PARA CARGAR ELECTRODOMÉSTICOS DESDE EL BACKEND (EXCEL) ---
 async function cargarElectrodomesticosDesdeBackend() {
+    console.log("Cargando electrodomésticos desde el backend (Excel)...");
     try {
         const response = await fetch('http://127.0.0.1:5000/api/electrodomesticos');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
-        // Asumiendo que el backend devuelve un objeto con la clave 'categorias'
-        electrodomesticosCategorias = data.categorias;
-        console.log('Electrodomésticos cargados desde el backend:', electrodomesticosCategorias);
-        initElectrodomesticosSection(); // Inicializa la interfaz de electrodomésticos
-        calcularConsumo(); // Recalcula el consumo con los datos cargados y cantidades del usuario
+        electrodomesticosDatosBackend = await response.json();
+        console.log("Electrodomésticos cargados del backend:", electrodomesticosDatosBackend);
+        initElectrodomesticosSection(); // Inicializa la sección con los datos recién cargados
     } catch (error) {
-        console.error('No se pudieron cargar los electrodomésticos desde el backend:', error);
-        alert('No se pudieron cargar los electrodomésticos. Usando datos de respaldo. Asegúrate de que tu backend esté corriendo y sea accesible en http://127.0.0.1:5000');
-        // Datos de respaldo en caso de falla para desarrollo/prueba
-        electrodomesticosCategorias = {
-            "Cocina": [
-                { name: "Heladera", consumo_diario_kwh: 1.5 },
-                { name: "Microondas", consumo_diario_kwh: 0.6 },
-                { name: "Lavarropas", consumo_diario_kwh: 0.7 }
-            ],
-            "Entretenimiento": [
-                { name: "Televisor", consumo_diario_kwh: 0.4 },
-                { name: "Computadora", consumo_diario_kwh: 1.2 }
-            ]
-        };
-        initElectrodomesticosSection();
-        calcularConsumo();
+        console.error("Error al cargar electrodomésticos desde el backend:", error);
+        alert("No se pudieron cargar los electrodomésticos desde el servidor. Por favor, asegúrese de que el servidor está funcionando y el archivo Excel es accesible. Error: " + error.message);
     }
 }
 
-// Función que genera dinámicamente los campos de entrada para electrodomésticos
+// --- FUNCIÓN PARA INICIALIZAR LA SECCIÓN DE ELECTRODOMÉSTICOS ---
 function initElectrodomesticosSection() {
-    const contenedor = document.getElementById('electrodomesticos-list');
-    if (!contenedor) {
-        console.error("El contenedor 'electrodomesticos-list' no se encontró en el HTML.");
+    const electrodomesticosContainer = document.getElementById('electrodomesticos-container');
+    if (!electrodomesticosContainer) {
+        console.warn("Contenedor #electrodomesticos-container no encontrado.");
         return;
     }
-    contenedor.innerHTML = ''; // Limpiar el contenido anterior
 
-    Object.keys(electrodomesticosCategorias).forEach(categoria => {
-        const h2 = document.createElement('h2');
-        h2.textContent = categoria;
-        contenedor.appendChild(h2);
+    electrodomesticosContainer.innerHTML = ''; // Limpiar el contenedor
 
-        const itemsDiv = document.createElement('div');
-        itemsDiv.className = 'electrodomesticos-categoria';
+    for (const categoria in electrodomesticosDatosBackend) {
+        if (Object.prototype.hasOwnProperty.call(electrodomesticosDatosBackend, categoria)) {
+            const categoryHeader = document.createElement('h3');
+            categoryHeader.textContent = categoria;
+            electrodomesticosContainer.appendChild(categoryHeader);
 
-        electrodomesticosCategorias[categoria].forEach(item => {
-            const row = document.createElement('div');
-            row.className = 'electrodomestico-row';
+            const categoryGridDiv = document.createElement('div');
+            categoryGridDiv.className = 'category-grid'; // Permite estilos de grid por categoría
+            electrodomesticosContainer.appendChild(categoryGridDiv);
 
-            const name = document.createElement('span');
-            name.textContent = item.name;
+            electrodomesticosDatosBackend[categoria].forEach(electrodomestico => {
+                const nombreElectrodomestico = electrodomestico.nombre;
+                const consumoKWhDiario = electrodomestico.consumo_kwh_diario;
 
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.min = '0';
-            // Carga la cantidad guardada para este electrodoméstico, o 0 si no existe
-            input.value = userSelections.electrodomesticos[item.name] || 0;
-            input.id = `cant-${item.name.replace(/\s+/g, '-')}`;
-            input.className = 'electrodomestico-input';
-            input.addEventListener('change', (e) => { // Usar 'change' para mejor manejo de blur/enter
-                userSelections.electrodomesticos[item.name] = parseInt(e.target.value) || 0;
-                calcularConsumo(); // Recalcula el consumo total al cambiar una cantidad
-                saveUserSelections(); // Guarda las selecciones
-            });
+                const div = document.createElement('div');
+                div.className = 'electrodomestico-item';
 
-            // Calcula el consumo diario individual y lo muestra
-            // Asumiendo que tu backend proporciona 'watts' y 'hoursPerDay'
-            // Si tu backend solo da 'consumo_diario', puedes usar item.consumo_diario directamente.
-            const consumoDiario = item.consumo_diario_kwh || 0;
-            const consumoLabel = document.createElement('span');
-            consumoLabel.textContent = `${consumoDiario.toFixed(3)} kWh/día`;
+                const inputId = `electro-${nombreElectrodomestico.replace(/[^a-zA-Z0-9-]/g, '_')}-cantidad`;
 
-            row.appendChild(name);
-            row.appendChild(consumoLabel);
-            row.appendChild(input);
-            itemsDiv.appendChild(row);
-        });
-        contenedor.appendChild(itemsDiv); // NO debe haber un 'btn' aquí si no quieres un botón por categoría
-    });
-}
+                div.innerHTML = `
+                    <label for="${inputId}">${nombreElectrodomestico}</label>
+                    <input type="number" id="${inputId}"
+                           name="${nombreElectrodomestico}"
+                           value="${userSelections.electrodomesticos[nombreElectrodomestico] || 0}"
+                           min="0" step="1">
+                    <span class="consumo-info">(${consumoKWhDiario} kWh/día)</span>
+                `;
+                categoryGridDiv.appendChild(div);
 
-function calcularConsumo() {
-    let totalDiario = 0;
-    for (const categoria in electrodomesticosCategorias) {
-        if (electrodomesticosCategorias.hasOwnProperty(categoria)) {
-            electrodomesticosCategorias[categoria].forEach(item => {
-                const cant = userSelections.electrodomesticos[item.name] || 0;
-                // Ajusta esta lógica si tu backend solo da 'consumo_diario'
-                const consumoDiarioItem = item.consumo_diario_kwh || 0;
-                totalDiario += consumoDiarioItem * cant;
-            });
-        }
-    }
-    userSelections.totalMonthlyConsumption = totalDiario * 30;
-    userSelections.totalAnnualConsumption = totalDiario * 365;
-    if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = userSelections.totalMonthlyConsumption.toFixed(2);
-    if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = userSelections.totalAnnualConsumption.toFixed(2);
-}
-
-
-// --- Lógica del Mapa (EXISTENTE, CON PEQUEÑAS MEJORAS) ---
-
-function initMap() {
-    // CORRECCIÓN: Si el mapa ya está inicializado, lo destruimos para evitar errores de doble inicialización
-    if (map) {
-        map.remove();
-    }
-    map = L.map('map').setView(userLocation, 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-
-    marker = L.marker(userLocation).addTo(map);
-    if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6);
-    if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6);
-
-    map.on('click', function(e) {
-        userLocation.lat = e.latlng.lat;
-        userLocation.lng = e.latlng.lng;
-        marker.setLatLng(userLocation);
-        if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6);
-        if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6);
-        userSelections.location = userLocation; // Guardar la ubicación en userSelections
-        saveUserSelections(); // Guardar las selecciones en localStorage
-    });
-
-    // Asegúrate de que el geocodificador esté importado correctamente en tu HTML
-    // <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-    const geocoderControlInstance = L.Control.geocoder({
-        placeholder: 'Buscar o ingresar dirección...',
-        errorMessage: 'No se encontró la dirección.'
-        // defaultMarkGeocode: true, // Let control handle its own marker by default
-    }).on('markgeocode', function(e) {
-        if (e.geocode && e.geocode.center) {
-            userLocation.lat = e.geocode.center.lat;
-            userLocation.lng = e.geocode.center.lng;
-            
-            // The control's default behavior will place/update its own marker.
-            // If a separate 'marker' variable is used for map clicks, ensure they coordinate
-            // or let the geocoder manage its marker exclusively.
-            // For simplicity, if 'marker' is primarily for map clicks,
-            // we might not need to call marker.setLatLng(userLocation) here if defaultMarkGeocode is true.
-            // However, to ensure OUR 'marker' (from map clicks) is also updated:
-            if (marker) { // Check if 'marker' (from map clicks) exists
-                marker.setLatLng(userLocation);
-            } else { // If no map-click marker exists yet, create one
-                marker = L.marker(userLocation).addTo(map);
-            }
-            
-            map.setView(userLocation, 13); // Center map on geocoded location
-
-            if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6);
-            if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6);
-            userSelections.location = userLocation;
-            saveUserSelections();
-        }
-    }).addTo(map);
-
-    // Relocate the geocoder DOM element
-    const geocoderElement = geocoderControlInstance.getContainer();
-    const customGeocoderContainer = document.getElementById('geocoder-container');
-    
-    if (customGeocoderContainer && geocoderElement) {
-        customGeocoderContainer.innerHTML = ''; // Clear the container first if it has placeholder content or old controls
-        customGeocoderContainer.appendChild(geocoderElement);
-    } else {
-        if (!customGeocoderContainer) console.error('Custom geocoder container (geocoder-container) not found.');
-        if (!geocoderElement) console.error('Geocoder control element (geocoderElement) not found.');
-    }
-}
-
-
-// --- Lógica de la Navegación de Pantallas (EXISTENTE, VERIFICADA) ---
-
-function showScreen(screenId) {
-    // Hide main screen containers first
-    if (mapScreen) mapScreen.style.display = 'none';
-    if (dataFormScreen) dataFormScreen.style.display = 'none';
-
-    // Hide all individual sub-sections within dataFormScreen explicitly
-    if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'none';
-    if (energiaSection) energiaSection.style.display = 'none';
-    if (panelesSection) panelesSection.style.display = 'none';
-    if (inversorSection) inversorSection.style.display = 'none';
-    if (perdidasSection) perdidasSection.style.display = 'none';
-    if (analisisEconomicoSection) analisisEconomicoSection.style.display = 'none';
-
-    const targetElement = document.getElementById(screenId);
-
-    if (targetElement) {
-        if (screenId === 'map-screen') {
-            // Ensure mapScreen variable is the correct DOM element
-            if (mapScreen) mapScreen.style.display = 'block'; 
-        } else if (screenId === 'data-form-screen') {
-            // Ensure dataFormScreen variable is the correct DOM element
-            if (dataFormScreen) dataFormScreen.style.display = 'block'; 
-            // Default to showing the first step of data-form-screen
-            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
-        } else { 
-            // This case handles screenId being a sub-section like 'energia-section', 
-            // 'paneles-section', 'data-meteorologicos-section', etc.
-            // These sub-sections are children of the main 'data-form-screen' container.
-            
-            // First, ensure the main 'data-form-screen' container is visible.
-            if (dataFormScreen) {
-                dataFormScreen.style.display = 'block';
-            }
-            // Then, show the specific target sub-section.
-            targetElement.style.display = 'block'; 
-        }
-    } else {
-        console.error(`Error: La pantalla con ID '${screenId}' no fue encontrada.`);
-    }
-    // Note: updateStepIndicator is called by the individual button event listeners 
-    // immediately after they call showScreen.
-}
-
-function updateStepIndicator(screenId) {
-    let stepNumber = 0;
-    switch (screenId) {
-        case 'map-screen': stepNumber = 1; break;
-        case 'data-form-screen': stepNumber = 2; break;
-        case 'data-meteorologicos-section': stepNumber = 3; break;
-        case 'energia-section': stepNumber = 4; break;
-        case 'paneles-section': stepNumber = 5; break;
-        case 'inversor-section': stepNumber = 6; break;
-        case 'perdidas-section': stepNumber = 7; break;
-        case 'analisis-economico-section': stepNumber = 8; break; // Asumiendo que esta es la última
-    }
-    if (stepIndicatorText) { // Asegurarse de que el elemento exista
-        stepIndicatorText.textContent = `Paso ${stepNumber} de 8`;
-    }
-}
-
-// Helper function to manage visibility of form sections within map-screen
-function showMapScreenFormSection(sectionIdToShow) {
-    if (userTypeSection) userTypeSection.style.display = 'none';
-    if (supplySection) supplySection.style.display = 'none';
-    if (incomeSection) incomeSection.style.display = 'none';
-    if (expertSection) expertSection.style.display = 'none';
-
-    const sectionToShow = document.getElementById(sectionIdToShow);
-    if (sectionToShow) {
-        sectionToShow.style.display = 'block';
-    } else {
-        console.error('Section with ID ' + sectionIdToShow + ' not found for showMapScreenFormSection.');
-    }
-}
-
-
-// --- Configuración de Event Listeners para Botones y Selects (EXISTENTE, MODIFICADA) ---
-
-function setupNavigationButtons() {
-    // Get buttons - ensure these IDs exist in calculador.html
-    const basicUserButton = document.getElementById('basic-user-button');
-    const expertUserButton = document.getElementById('expert-user-button');
-    
-    const residentialButton = document.getElementById('residential-button');
-    const commercialButton = document.getElementById('commercial-button');
-    const pymeButton = document.getElementById('pyme-button');
-
-    const incomeHighButton = document.getElementById('income-high-button');
-    const incomeLowButton = document.getElementById('income-low-button');
-    
-    const expertDataForm = document.getElementById('expert-data-form'); // Form itself
-
-    // Initial state on map-screen: show only user-type-section
-    // This should ideally be handled by default HTML (display:block for user-type, none for others)
-    // or called once in DOMContentLoaded after defining showMapScreenFormSection
-    // For safety, can call it here if not sure about initial HTML state:
-    // showMapScreenFormSection('user-type-section');
-
-    if (basicUserButton) {
-        basicUserButton.addEventListener('click', () => {
-            userSelections.userType = 'basico';
-            saveUserSelections();
-            showMapScreenFormSection('supply-section');
-        });
-    }
-
-    if (expertUserButton) {
-        expertUserButton.addEventListener('click', () => {
-            userSelections.userType = 'experto';
-            saveUserSelections();
-            showMapScreenFormSection('expert-section');
-        });
-    }
-
-    if (residentialButton) {
-        residentialButton.addEventListener('click', () => {
-            userSelections.installationType = 'Residencial';
-            saveUserSelections();
-            showMapScreenFormSection('income-section');
-        });
-    }
-
-    if (commercialButton) {
-        commercialButton.addEventListener('click', () => {
-            userSelections.installationType = 'Comercial';
-            saveUserSelections();
-            showScreen('data-form-screen'); // Transitions to the detailed form
-        });
-    }
-
-    if (pymeButton) {
-        pymeButton.addEventListener('click', () => {
-            userSelections.installationType = 'PYME';
-            saveUserSelections();
-            showScreen('data-form-screen'); // Transitions to the detailed form
-        });
-    }
-
-    if (incomeHighButton) {
-        incomeHighButton.addEventListener('click', () => {
-            userSelections.incomeLevel = 'ALTO';
-            saveUserSelections();
-            showScreen('data-form-screen'); 
-
-            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block'; // Explicitly show this section
-            // Update step indicator to 'data-meteorologicos-section'.
-            // The section itself should be visible by default HTML structure within data-form-screen's main-content
-            // after showScreen('data-form-screen') has hidden all specific sub-sections.
-            updateStepIndicator('data-meteorologicos-section');
-        });
-    }
-
-    if (incomeLowButton) {
-        incomeLowButton.addEventListener('click', () => {
-            userSelections.incomeLevel = 'BAJO';
-            saveUserSelections();
-            showScreen('data-form-screen');
-
-            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block'; // Explicitly show this section
-            // Update step indicator to 'data-meteorologicos-section'.
-            updateStepIndicator('data-meteorologicos-section');
-        });
-    }
-    
-    if (expertDataForm) {
-        expertDataForm.addEventListener('submit', (event) => {
-            event.preventDefault(); // Prevent actual form submission
-            // Assuming data from expert-data-form is already handled by its 'zona-instalacion-expert' select listener
-            // The main purpose here is to navigate
-            console.log('Formulario experto guardado (simulado), procediendo a data-form-screen.');
-            showScreen('data-form-screen');
-        });
-    }
-
-    // Listeners para inputs de selección y otros que guardan userSelections
-    // Asegúrate de que estos IDs existan en tu HTML
-    // document.getElementById('user-type')?.addEventListener('change', (e) => {
-    //     userSelections.userType = e.target.value;
-    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    // });
-    // document.getElementById('installation-type')?.addEventListener('change', (e) => {
-    //     userSelections.installationType = e.target.value;
-    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    // });
-    // document.getElementById('income-level')?.addEventListener('change', (e) => {
-    //     userSelections.incomeLevel = e.target.value;
-    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    // });
-    document.getElementById('zona-instalacion-expert')?.addEventListener('change', (e) => {
-        userSelections.zonaInstalacionExpert = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    });
-    // document.getElementById('zona-instalacion-basic')?.addEventListener('change', (e) => {
-    //     userSelections.zonaInstalacionBasic = e.target.value;
-    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    // });
-    document.getElementById('moneda')?.addEventListener('change', (e) => {
-        userSelections.selectedCurrency = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    });
-
-    // Añade listeners para Paneles Solares si los campos existen y guardan en userSelections.panelesSolares
-    document.getElementById('tipo-panel')?.addEventListener('change', (e) => {
-        userSelections.panelesSolares.tipo = e.target.value;
-        saveUserSelections();
-    });
-    document.getElementById('cantidad-paneles-input')?.addEventListener('input', (e) => { // Usar input o change
-        userSelections.panelesSolares.cantidad = parseInt(e.target.value) || 0;
-        saveUserSelections();
-    });
-    // ... y para potenciaNominal, superficie de paneles
-
-    // Añade listeners para Inversor
-    document.getElementById('tipo-inversor')?.addEventListener('change', (e) => {
-        userSelections.inversor.tipo = e.target.value;
-        saveUserSelections();
-    });
-    document.getElementById('potencia-inversor-input')?.addEventListener('input', (e) => {
-        userSelections.inversor.potenciaNominal = parseFloat(e.target.value) || 0;
-        saveUserSelections();
-    });
-
-    // Añade listeners para Pérdidas
-    document.getElementById('eficiencia-panel-input')?.addEventListener('input', (e) => {
-        userSelections.perdidas.eficienciaPanel = parseFloat(e.target.value) || 0;
-        saveUserSelections();
-    });
-    document.getElementById('eficiencia-inversor-input')?.addEventListener('input', (e) => {
-        userSelections.perdidas.eficienciaInversor = parseFloat(e.target.value) || 0;
-        saveUserSelections();
-    });
-    document.getElementById('factor-perdidas-input')?.addEventListener('input', (e) => {
-        userSelections.perdidas.factorPerdidas = parseFloat(e.target.value) || 0;
-        saveUserSelections();
-    });
-
-
-    // Configurar los botones de navegación entre secciones (EXISTENTES)
-    // document.getElementById('next-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
-    // document.getElementById('back-to-map')?.addEventListener('click', () => showScreen('map-screen'));
-    // document.getElementById('next-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
-    // document.getElementById('back-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
-    document.getElementById('next-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
-    document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
-
-    const nextToPanelesButton = document.getElementById('next-to-paneles');
-    if (nextToPanelesButton) {
-        nextToPanelesButton.addEventListener('click', () => {
-            if (userSelections.userType === 'basico') {
-                showScreen('analisis-economico-section');
-                updateStepIndicator('analisis-economico-section');
-            } else { // Assumes 'experto' or any other type follows the expert path
-                showScreen('paneles-section');
-                updateStepIndicator('paneles-section');
-            }
-        });
-    }
-    document.getElementById('back-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
-    document.getElementById('next-to-inversor')?.addEventListener('click', () => showScreen('inversor-section'));
-    document.getElementById('back-to-paneles')?.addEventListener('click', () => showScreen('paneles-section'));
-    document.getElementById('next-to-perdidas')?.addEventListener('click', () => showScreen('perdidas-section'));
-    document.getElementById('back-to-inversor')?.addEventListener('click', () => showScreen('inversor-section'));
-    document.getElementById('next-to-analisis-economico')?.addEventListener('click', () => showScreen('analisis-economico-section'));
-    document.getElementById('back-to-perdidas')?.addEventListener('click', () => showScreen('perdidas-section'));
-
-    // --- Lógica del botón "Finalizar Cálculo" (NUEVO BLOQUE INTEGRADO) ---
-    const finalizarCalculoBtn = document.getElementById('finalizar-calculo');
-    if (finalizarCalculoBtn) {
-        finalizarCalculoBtn.addEventListener('click', async (event) => {
-            event.preventDefault(); // Evita el envío del formulario si está dentro de uno
-            console.log('Finalizar Cálculo clickeado. Enviando datos al backend para generar informe...');
-
-            saveUserSelections(); // Guardar las últimas selecciones antes de enviar
-
-            try {
-                // Envía TODOS los userSelections al backend
-                const response = await fetch('http://127.0.0.1:5000/api/generar_informe', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(userSelections)
+                document.getElementById(inputId).addEventListener('change', (event) => {
+                    userSelections.electrodomesticos[nombreElectrodomestico] = parseInt(event.target.value) || 0;
+                    saveUserSelections();
+                    calcularConsumoTotal();
                 });
+            });
+        }
+    }
+    calcularConsumoTotal();
+}
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorData.error || response.statusText}`);
+// --- FUNCIÓN PARA CALCULAR EL CONSUMO TOTAL ---
+function calcularConsumoTotal() {
+    let totalConsumoMensualKWh = 0;
+    for (const nombre in userSelections.electrodomesticos) {
+        if (Object.prototype.hasOwnProperty.call(userSelections.electrodomesticos, nombre)) {
+            const cantidad = userSelections.electrodomesticos[nombre];
+            if (cantidad > 0) {
+                let consumoEncontrado = null;
+                for (const categoria in electrodomesticosDatosBackend) {
+                    if (Object.prototype.hasOwnProperty.call(electrodomesticosDatosBackend, categoria)) {
+                        const found = electrodomesticosDatosBackend[categoria].find(item => item.nombre === nombre);
+                        if (found) {
+                            consumoEncontrado = found.consumo_kwh_diario;
+                            break;
+                        }
+                    }
                 }
 
-                const informeFinal = await response.json();
-                console.log('Informe recibido del backend:', informeFinal);
-
-                localStorage.setItem('informeSolar', JSON.stringify(informeFinal)); // Guardar el informe para informe.html
-
-                window.location.href = 'informe.html'; // Redirigir a la página de informe
-
-            } catch (error) {
-                console.error('Error al generar el informe:', error);
-                alert('Hubo un error al generar el informe. Por favor, intente de nuevo. Detalle: ' + error.message);
+                if (consumoEncontrado !== null) {
+                    totalConsumoMensualKWh += consumoEncontrado * cantidad * 30; // Consumo mensual = kWh/día * cantidad * 30 días
+                } else {
+                    console.warn(`Consumo no encontrado en datos del backend para: ${nombre}. No se incluirá en el total.`);
+                }
             }
+        }
+    }
+    userSelections.totalMonthlyConsumption = totalConsumoMensualKWh;
+    userSelections.totalAnnualConsumption = totalConsumoMensualKWh * 12;
+
+    console.log(`Consumo mensual estimado: ${userSelections.totalMonthlyConsumption.toFixed(2)} kWh`);
+    console.log(`Consumo anual estimado: ${userSelections.totalAnnualConsumption.toFixed(2)} kWh`);
+
+    const consumoEstimadoDisplay = document.getElementById('consumo-estimado-electrodomesticos');
+    if (consumoEstimadoDisplay) {
+        consumoEstimadoDisplay.textContent = `${userSelections.totalMonthlyConsumption.toFixed(2)} kWh`;
+    }
+}
+
+// Implementa esta función si no la tienes, para la sección de Consumo por Factura
+function initConsumoFacturaSection() {
+    const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const consumoFacturaContainer = document.getElementById('consumo-factura-container');
+    if (consumoFacturaContainer) {
+        consumoFacturaContainer.innerHTML = '';
+        months.forEach(month => {
+            const monthKey = month.toLowerCase();
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <label for="consumo-${monthKey}">Consumo ${month} (kWh/mes):</label>
+                <input type="number" id="consumo-${monthKey}"
+                       name="consumo-${monthKey}"
+                       value="${userSelections.consumoFactura[monthKey] || ''}"
+                       min="0" step="any">
+            `;
+            consumoFacturaContainer.appendChild(div);
+
+            document.getElementById(`consumo-${monthKey}`).addEventListener('change', (event) => {
+                userSelections.consumoFactura[monthKey] = parseFloat(event.target.value) || 0;
+                saveUserSelections();
+            });
         });
-    } else {
-        console.error("Botón 'finalizar-calculo' no encontrado.");
     }
 }
 
 
-// --- INIT principal (Se ejecuta al cargar el DOM) (EXISTENTE, MODIFICADO) ---
+// --- INIT principal: Se ejecuta cuando el DOM está completamente cargado ---
 document.addEventListener('DOMContentLoaded', async () => {
-    loadUserSelections(); // 1. Carga las selecciones guardadas primero
-    initMap(); // 2. Inicializa el mapa (usará userLocation de userSelections)
-    // 3. updateUIFromSelections() ya se llama dentro de loadUserSelections()
+    console.log("DOM Content Loaded. Initializing app.");
+    loadUserSelections(); // Carga las selecciones guardadas primero
 
-    await cargarElectrodomesticosDesdeBackend(); // 4. Carga electrodomésticos y los renderiza, luego recalcula consumo.
-                                                // Usamos 'await' para asegurar que los electrodomésticos estén cargados
-                                                // antes de que se muestre la pantalla, si es la de energía.
-    setupNavigationButtons(); // 5. Configura todos los botones de navegación y otros listeners.
+    initConsumoFacturaSection(); // Inicializa la sección de factura
 
-    // 6. Muestra la pantalla guardada o la inicial después de que todo esté cargado y listo
-    const currentScreenId = 'map-screen';
-    showScreen(currentScreenId);
+    // Carga los datos de electrodomésticos del backend
+    await cargarElectrodomesticosDesdeBackend(); // Espera a que los electrodomésticos carguen
 
-    // Si la pantalla inicial es la de energía, nos aseguramos de que el consumo se muestre correctamente
-    if (currentScreenId === 'energia-section') {
-        calcularConsumo();
+    setupNavigation(); // Configura todos los event listeners de navegación
+
+    // Lógica para determinar qué pantalla mostrar al inicio
+    // Prioridad: 1. Estado guardado. 2. user-type-section si no hay estado.
+    const userTypeSection = document.getElementById('user-type-section');
+    if (userTypeSection) {
+        // Asegurarse de que el input 'user-type' refleje la selección guardada
+        const userTypeSelect = document.getElementById('user-type');
+        if (userTypeSelect && userSelections.userType) {
+            userTypeSelect.value = userSelections.userType;
+        }
+        // Asegurarse de que el input 'installation-type' refleje la selección guardada
+        const installationTypeSelect = document.getElementById('installation-type');
+        if (installationTypeSelect && userSelections.installationType) {
+            installationTypeSelect.value = userSelections.installationType;
+        }
+
+        // Determinar qué pantalla mostrar al inicio
+        if (userSelections.userType && userSelections.installationType) {
+            console.log("Found saved user selections. Attempting to restore screen.");
+            if (userSelections.userType === 'basic' && userSelections.installationType === 'residential') {
+                showScreen('electrodomesticos-section');
+            } else if (userSelections.userType === 'expert' || userSelections.installationType === 'commercial' || userSelections.installationType === 'industrial' || userSelections.installationType === 'rural') {
+                showScreen('location-section');
+                initMap(); // Inicializa el mapa si vamos a location-section directamente al cargar
+            } else {
+                console.log("Saved selections don't match a direct flow, starting from user type.");
+                showScreen('user-type-section'); // Fallback si el estado es inconsistente o el flujo no es directo
+            }
+        } else {
+            console.log("No saved user selections found, starting from user type section.");
+            showScreen('user-type-section'); // Mostrar la primera pantalla si no hay selecciones previas
+        }
+    } else {
+        console.error("La sección inicial 'user-type-section' no se encontró en el HTML. Esto es crítico para el inicio de la aplicación.");
     }
-
-    // ********************************************************************************
-    // MANTENIENDO TU CÓDIGO ORIGINAL DESPUÉS DEL DOMContentLoaded:
-    // Asegúrate de que las funciones de tu validador, gráficos,
-    // y cualquier otra inicialización que ya tenías en tu script original
-    // se mantengan aquí o sean llamadas desde aquí si aún no lo están.
-    // Por ejemplo:
-    // validarFormularioInicial();
-    // initCharts();
-    // initOtherFeature();
-    // ********************************************************************************
-
-    // EJEMPLO DE CÓDIGO EXISTENTE QUE PODRÍA ESTAR AQUÍ O SER LLAMADO:
-    // Algunas de tus funciones que ya tenías podrían ser llamadas aquí si no están
-    // atadas a botones o eventos específicos.
-    // validateForm(); // Si tenías una función de validación global
-    // loadCharts(); // Si tenías una función para cargar gráficos
-    // initTooltips(); // Si tenías tooltips
-
-    // El código de "handleFormSubmission" (si existía) debería estar atado al evento submit del formulario
-    // principal o al botón "finalizar-calculo", como lo hemos hecho.
 });
-
-
-// ********************************************************************************
-// MÁS ABAJO, EL RESTO DE TU CÓDIGO ORIGINAL DE calculateCharts, validateForm, etc.
-// DEBE PERMANECER INTACTO.
-// ********************************************************************************
-
-// --------------------------------------------------------------------------------
-// A PARTIR DE AQUÍ, DEBE CONTINUAR EL CÓDIGO ORIGINAL DE TU ARCHIVO CALCULADOR.JS
-// (Ej: Funciones como calculateCharts, validateForm, updateChart, etc.)
-// No se ha modificado nada de lo que ya tenías aparte de las integraciones
-// marcadas arriba.
-// --------------------------------------------------------------------------------
-
-
-// --- Funciones para gráficos (ejemplo, si ya las tenías) ---
-// function updateChart(chartId, newData) { ... }
-
-// --- Funciones de validación (ejemplo, si ya las tenías) ---
-// function validateStep1() { ... }
-// function validateForm() { ... }
-
-// --------------------------------------------------------------------------------
-// INICIO DEL CÓDIGO QUE ORIGINALMENTE DEBERÍA ESTAR EN TU CALCULADOR.JS
-// Y QUE NO DEBE SER MODIFICADO, SINO MANTENIDO.
-// Si tu archivo original tenía 732 líneas, la mayoría de ellas irían aquí.
-// Ejemplo de funciones que pueden estar en tu archivo:
-// --------------------------------------------------------------------------------
-
-// function calculateCharts() {
-//     // Lógica para calcular y actualizar gráficos
-//     // Esto podría usar los datos de userSelections
-//     // y llamar a updateChart()
-// }
-
-// function validateFormStep(step) {
-//     // Lógica de validación específica por paso
-//     return true; // o false
-// }
-
-// // Ejemplo de cómo podrías actualizar userSelections en otras secciones
-// document.getElementById('tipo-panel').addEventListener('change', (e) => {
-//     userSelections.panelesSolares.tipo = e.target.value;
-//     saveUserSelections();
-// });
-// document.getElementById('potencia-panel').addEventListener('input', (e) => {
-//     userSelections.panelesSolares.potenciaNominal = parseFloat(e.target.value);
-//     saveUserSelections();
-// });
-
-// // Si tienes funciones que se llamaban en cada "next" button, deberían seguir haciéndolo.
-// // Por ejemplo, si al pasar de "Energía" a "Paneles" querías validar algo o calcular
-// // ciertos valores, esa lógica debería seguir en los listeners de los botones "next".
-// document.getElementById('next-to-paneles').addEventListener('click', () => {
-//     // if (validateFormStep('energia')) { // Ejemplo de validación
-//         // calculateEnergyNeeds(); // Ejemplo de cálculo específico de energía
-//         showScreen('paneles-section');
-//     // }
-// });
-
-// --------------------------------------------------------------------------------
-// FIN DEL CÓDIGO ORIGINAL DE TU ARCHIVO CALCULADOR.JS QUE DEBE PERMANECER
-// --------------------------------------------------------------------------------
