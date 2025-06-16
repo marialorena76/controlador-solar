@@ -12,161 +12,99 @@ CORS(app) # Habilita CORS para permitir solicitudes desde el frontend
 EXCEL_FILE_PATH = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx'
 
 # --- Ruta para obtener los datos de electrodomésticos para el frontend ---
-@app.route('/api/electrodomesticos', methods=['GET'])
-def get_electrodomesticos_consumos():
-    try:
-        df = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Datos de Entrada', engine='openpyxl')
-
-        # Asumo que los nombres de los electrodomésticos están en la columna H (índice 7)
-        # y los consumos diarios (kWh/día) están en la columna Q (índice 16)
-        # en el rango de filas 46 a 64 del Excel (índices 45 a 63 en pandas)
-        col_nombre_electrodomestico_idx = 7  # Columna H
-        col_consumo_diario_kwh_idx = 16 # Columna Q
-
-        electrodomesticos_data = []
-        for r_idx in range(45, 64): # Filas 46 a 64
-            nombre = df.iloc[r_idx, col_nombre_electrodomestico_idx]
-            consumo_diario = df.iloc[r_idx, col_consumo_diario_kwh_idx]
-
-            if pd.isna(nombre) or pd.isna(consumo_diario):
-                continue # Saltar filas con datos faltantes
-
-            electrodomesticos_data.append({
-                "name": str(nombre),
-                # Asegúrate de que el consumo diario esté en el formato esperado (kWh/día)
-                # Si tu Excel tiene watts y horas/día, deberías calcularlo aquí.
-                "consumo_diario_kwh": float(consumo_diario)
-            })
-
-        # Agrupar por categoría si es necesario. Por ahora, envío una lista plana.
-        # Si tu Excel tiene una columna de categoría, puedes adaptarlo.
-        # Por simplicidad, si no hay columna de categoría, los agrupo en una categoría 'General'.
-        categorias = {"General": electrodomesticos_data}
-        # Si tienes una columna de categoría, podrías hacer algo como:
-        # col_categoria_idx = 8 # Columna I, por ejemplo
-        # for r_idx in range(45, 64):
-        #     categoria = df.iloc[r_idx, col_categoria_idx] if not pd.isna(df.iloc[r_idx, col_categoria_idx]) else "General"
-        #     # ... y luego organizar `electrodomesticos_data` por esa categoría.
-
-        return jsonify({"categorias": categorias})
-
-    except FileNotFoundError:
-        return jsonify({"error": "Archivo Excel de electrodomésticos no encontrado en el servidor."}), 404
-    except Exception as e:
-        print(f"Error al cargar electrodomésticos: {e}")
-        return jsonify({"error": f"Error interno del servidor al cargar electrodomésticos: {e}"}), 500
-
-# --- Ruta para generar el informe ---
 @app.route('/api/generar_informe', methods=['POST'])
 def generar_informe():
     user_data = request.json
-    print("Datos recibidos del frontend:", user_data)
+    print("DEBUG: Datos recibidos del frontend:", user_data)
 
     if not user_data:
         return jsonify({"error": "No se recibieron datos"}), 400
 
     try:
-        df = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Resultados', engine='openpyxl')
+        print(f"DEBUG: Leyendo Excel: {EXCEL_FILE_PATH}")
+        df_resultados = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Resultados', engine='openpyxl', decimal=',') 
+        print("DEBUG: Hoja 'Resultados' leída.")
+        df_area_trabajo = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Area de trabajo', engine='openpyxl', decimal=',')
+        print("DEBUG: Hoja 'Area de trabajo' leída.")
 
-        # --- Extracción de datos del Excel ---
-        # AQUI ES DONDE DEBERIAS LEER LAS CELDAS ESPECÍFICAS DE TU EXCEL
-        # Reemplaza 'A1', 'B2', etc. con las referencias de celda reales de tu hoja 'Resultados'
-        # o las celdas donde se encuentren los valores calculados.
+        valor_b490 = df_area_trabajo.iloc[489, 1] if not pd.isna(df_area_trabajo.iloc[489, 1]) else 0 
+        valor_p490 = df_area_trabajo.iloc[489, 15] if not pd.isna(df_area_trabajo.iloc[489, 15]) else 0 
+        generacion_anual_calculada_backend = float(valor_b490) + float(valor_p490)
+        print(f"DEBUG: Generacion anual (calculada B490+P490): {generacion_anual_calculada_backend}")
 
-        # Ejemplo de lectura de una celda específica (fila, columna)
-        # Nota: pandas.read_excel usa índices base 0 para filas y columnas
-        # Si en Excel es A1, en pandas es df.iloc[0,0]
-        # Si en Excel es C5, en pandas es df.iloc[4,2]
-
-        # Consumo Anual (Ejemplo: de user_data o de una celda específica)
-        consumo_anual_calculado = user_data.get('totalAnnualConsumption', 0)
-
-        # Generación Anual Estimada (debería venir del Excel o cálculo)
-        # SUPONER que la generación anual está en la celda B2 (índice 1,1) de la hoja 'Resultados'
-        generacion_anual = df.iloc[1,1] if not pd.isna(df.iloc[1,1]) else 0
-
-        # Porcentaje de Autoconsumo (debería venir del Excel o cálculo)
-        # SUPONER que el autoconsumo está en la celda B3 (índice 2,1)
-        autoconsumo = df.iloc[2,1] if not pd.isna(df.iloc[2,1]) else 0
-
-        # Energía Inyectada a la Red (debería venir del Excel o cálculo)
-        # SUPONER que la energía inyectada está en la celda B4 (índice 3,1)
-        inyectada_red = df.iloc[3,1] if not pd.isna(df.iloc[3,1]) else 0
-
-        # Potencia Total de los Paneles (debería venir del Excel o cálculo)
-        # SUPONER que la potencia paneles está en la celda B5 (índice 4,1)
-        potencia_paneles = df.iloc[4,1] if not pd.isna(df.iloc[4,1]) else 0
-
-        # Cantidad de Paneles (de user_data o de una celda específica)
-        cantidad_paneles = user_data['panelesSolares']['cantidad'] if 'panelesSolares' in user_data else 0
-
-        # Superficie de Instalación (debería venir del Excel o cálculo)
-        # SUPONER que la superficie está en la celda B6 (índice 5,1)
-        superficie = df.iloc[5,1] if not pd.isna(df.iloc[5,1]) else 0
-
-        # Vida Útil Estimada del Sistema (debería venir del Excel o ser un valor fijo)
-        vida_util = 25 # Suponemos 25 años, o lee de una celda del Excel
-
-        # Análisis Económico
-        # SUPONER que el costo actual está en la celda B7 (índice 6,1)
-        costo_actual = df.iloc[6,1] if not pd.isna(df.iloc[6,1]) else 0
-        # SUPONER que la inversión inicial está en la celda B8 (índice 7,1)
-        inversion_inicial = df.iloc[7,1] if not pd.isna(df.iloc[7,1]) else 0
-        # SUPONER que el mantenimiento anual está en la celda B9 (índice 8,1)
-        mantenimiento = df.iloc[8,1] if not pd.isna(df.iloc[8,1]) else 0
-        # SUPONER que el costo futuro de energía (ahorro) está en la celda B10 (índice 9,1)
-        costo_futuro = df.iloc[9,1] if not pd.isna(df.iloc[9,1]) else 0
-        # SUPONER que el ingreso por inyección a red está en la celda B11 (índice 10,1)
-        ingreso_red = df.iloc[10,1] if not pd.isna(df.iloc[10,1]) else 0
-
-        # Resumen económico (puede ser una celda de texto en Excel o generado aquí)
-        # SUPONER que el resumen económico está en la celda B12 (índice 11,1)
-        resumen_economico_texto = df.iloc[11,1] if not pd.isna(df.iloc[11,1]) else "Análisis económico no disponible."
-
-        # Contribución al Cambio Climático
-        # SUPONER que las emisiones evitadas están en la celda B13 (índice 12,1)
-        emisiones_evitadas = df.iloc[12,1] if not pd.isna(df.iloc[12,1]) else 0
-
-        # Moneda
+        consumo_anual_frontend = user_data.get('totalAnnualConsumption', 0)
+        cantidad_paneles_frontend = user_data.get('panelesSolares', {}).get('cantidad', 0)
+        potencia_paneles_frontend = user_data.get('panelesSolares', {}).get('potenciaNominal', 0)
+        superficie_instalacion_frontend = user_data.get('panelesSolares', {}).get('superficie', 0)
         moneda = user_data.get('selectedCurrency', 'Pesos argentinos')
+        paneles_data_from_frontend = user_data.get("panelesSolares", {})
+        inversor_data_from_frontend = user_data.get("inversor", {})
+        perdidas_data_from_frontend = user_data.get("perdidas", {})
 
-        # Construir el informe final con los datos extraídos o calculados
+        # --- ¡AQUÍ TU TRABAJO PRINCIPAL! ---
+        # Revisa y corrige las siguientes lecturas de df_resultados.
+        # Asegúrate que los .iloc[fila, columna] sean correctos para TU EXCEL.
+        # Celdas mencionadas por ti: C7, C9, C10. Otras son de tu código anterior.
+        
+        # consumo_anual_a_usar = consumo_anual_frontend # Opción actual
+        # Si quieres leer de Resultados C7 (fila 6, col 2):
+        # consumo_anual_excel_c7 = df_resultados.iloc[6, 2] if not pd.isna(df_resultados.iloc[6, 2]) else 0
+        # consumo_anual_a_usar = consumo_anual_excel_c7 
+        consumo_anual_a_usar = consumo_anual_frontend # Decide cuál usar
+
+        autoconsumo_kwh_excel = df_resultados.iloc[8, 2] if not pd.isna(df_resultados.iloc[8, 2]) else 0 # Para C9
+        inyectada_red_kwh_excel = df_resultados.iloc[9, 2] if not pd.isna(df_resultados.iloc[9, 2]) else 0 # Para C10
+        potencia_paneles_excel = df_resultados.iloc[4, 1] if not pd.isna(df_resultados.iloc[4, 1]) else 0 # Para B5
+        superficie_excel = df_resultados.iloc[5, 1] if not pd.isna(df_resultados.iloc[5, 1]) else 0 # Para B6
+        vida_util = 25
+        costo_actual_excel = df_resultados.iloc[6, 1] if not pd.isna(df_resultados.iloc[6, 1]) else 0    # B7
+        inversion_inicial_excel = df_resultados.iloc[7, 1] if not pd.isna(df_resultados.iloc[7, 1]) else 0 # B8
+        mantenimiento_excel = df_resultados.iloc[8, 1] if not pd.isna(df_resultados.iloc[8, 1]) else 0 # B9
+        costo_futuro_excel = df_resultados.iloc[9, 1] if not pd.isna(df_resultados.iloc[9, 1]) else 0   # B10
+        ingreso_red_excel = df_resultados.iloc[10, 1] if not pd.isna(df_resultados.iloc[10, 1]) else 0 # B11
+        resumen_economico_texto_excel = df_resultados.iloc[11, 1] if not pd.isna(df_resultados.iloc[11, 1]) else "N/A" # B12
+        emisiones_evitadas_excel = df_resultados.iloc[12, 1] if not pd.isna(df_resultados.iloc[12, 1]) else 0 # B13
+
         informe_final = {
-            "consumo_anual": consumo_anual_calculado,
-            "generacion_anual": generacion_anual,
-            "autoconsumo": autoconsumo,
-            "inyectada_red": inyectada_red,
-
-            "potencia_paneles": potencia_paneles,
-            "cantidad_paneles": cantidad_paneles,
-            "superficie": superficie,
+            "consumo_anual": consumo_anual_a_usar,
+            "generacion_anual": generacion_anual_calculada_backend,
+            "autoconsumo": autoconsumo_kwh_excel,
+            "inyectada_red": inyectada_red_kwh_excel,
+            "potencia_paneles": potencia_paneles_frontend if potencia_paneles_frontend != 0 else potencia_paneles_excel,
+            "cantidad_paneles": cantidad_paneles_frontend,
+            "superficie": superficie_instalacion_frontend if superficie_instalacion_frontend != 0 else superficie_excel,
             "vida_util": vida_util,
-
-            # Datos de paneles, inversor y pérdidas que pasaste directamente
-            "panelesSolares": user_data.get("panelesSolares", {}),
-            "inversor": user_data.get("inversor", {}),
-            "perdidas": user_data.get("perdidas", {}),
-
-            "costo_actual": costo_actual,
-            "inversion_inicial": inversion_inicial,
-            "mantenimiento": mantenimiento,
-            "costo_futuro": costo_futuro,
-            "ingreso_red": ingreso_red,
-            "resumen_economico": resumen_economico_texto,
-            "emisiones": emisiones_evitadas,
+            "panelesSolares": paneles_data_from_frontend,
+            "inversor": inversor_data_from_frontend,
+            "perdidas": perdidas_data_from_frontend,
+            "costo_actual": costo_actual_excel,
+            "inversion_inicial": inversion_inicial_excel,
+            "mantenimiento": mantenimiento_excel,
+            "costo_futuro": costo_futuro_excel,
+            "ingreso_red": ingreso_red_excel,
+            "resumen_economico": resumen_economico_texto_excel,
+            "emisiones": emisiones_evitadas_excel,
             "moneda": moneda
         }
-
+        
+        print(f"DEBUG: informe_final a punto de ser enviado: {informe_final}")
         return jsonify(informe_final)
 
     except FileNotFoundError:
-        return jsonify({"error": "Archivo Excel de cálculos no encontrado en el servidor."}), 404
+        print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel no encontrado."}), 500
     except KeyError as e:
-        return jsonify({"error": f"Error al leer hoja o columna en Excel: {e}. Revise los nombres de hoja y las referencias a columnas."}), 500
+        print(f"Error de KeyError en backend: {e}")
+        return jsonify({"error": f"Error al leer hoja/columna: {e}."}), 500
+    except IndexError as e: 
+        print(f"Error de IndexError en backend: {e}")
+        return jsonify({"error": f"Error al acceder a celda: {e}."}), 500
     except Exception as e:
-        print(f"Error en el backend al generar informe: {e}")
-        return jsonify({"error": f"Error interno del servidor al generar informe: {e}"}), 500
-
+        import traceback
+        print(f"ERROR GENERAL en backend: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
+    
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
 # Si 'calculador.html', 'calculador.js', etc. están en la misma carpeta que 'backend.py'
 @app.route('/')

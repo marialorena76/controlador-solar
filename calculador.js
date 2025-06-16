@@ -47,8 +47,14 @@ const inversorSection = document.getElementById('inversor-section');
 const perdidasSection = document.getElementById('perdidas-section');
 const analisisEconomicoSection = document.getElementById('analisis-economico-section');
 const stepIndicatorText = document.getElementById('step-indicator-text');
-const totalConsumoMensualDisplay = document.getElementById('total-consumo-mensual');
-const totalConsumoAnualDisplay = document.getElementById('total-consumo-anual');
+const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');
+const totalConsumoAnualDisplay = document.getElementById('totalConsumoAnual');
+
+// Elementos de las secciones del formulario en map-screen
+const userTypeSection = document.getElementById('user-type-section');
+const supplySection = document.getElementById('supply-section');
+const incomeSection = document.getElementById('income-section');
+const expertSection = document.getElementById('expert-section');
 
 
 // --- Funciones de Persistencia (NUEVO BLOQUE INTEGRADO) ---
@@ -75,30 +81,30 @@ function loadUserSelections() {
 // Función para actualizar la UI con las selecciones cargadas (para inputs no-electrodomésticos)
 function updateUIFromSelections() {
     // Asegúrate de que estos IDs existen en tu HTML
-    const userTypeSelect = document.getElementById('user-type');
-    if (userTypeSelect && userSelections.userType) {
-        userTypeSelect.value = userSelections.userType;
-    }
+    // const userTypeSelect = document.getElementById('user-type');
+    // if (userTypeSelect && userSelections.userType) {
+    //     userTypeSelect.value = userSelections.userType;
+    // }
 
-    const installationTypeSelect = document.getElementById('installation-type');
-    if (installationTypeSelect && userSelections.installationType) {
-        installationTypeSelect.value = userSelections.installationType;
-    }
+    // const installationTypeSelect = document.getElementById('installation-type');
+    // if (installationTypeSelect && userSelections.installationType) {
+    //     installationTypeSelect.value = userSelections.installationType;
+    // }
 
-    const incomeLevelSelect = document.getElementById('income-level');
-    if (incomeLevelSelect && userSelections.incomeLevel) {
-        incomeLevelSelect.value = userSelections.incomeLevel;
-    }
+    // const incomeLevelSelect = document.getElementById('income-level');
+    // if (incomeLevelSelect && userSelections.incomeLevel) {
+    //     incomeLevelSelect.value = userSelections.incomeLevel;
+    // }
 
     const zonaInstalacionExpertSelect = document.getElementById('zona-instalacion-expert');
     if (zonaInstalacionExpertSelect && userSelections.zonaInstalacionExpert) {
         zonaInstalacionExpertSelect.value = userSelections.zonaInstalacionExpert;
     }
 
-    const zonaInstalacionBasicSelect = document.getElementById('zona-instalacion-basic');
-    if (zonaInstalacionBasicSelect && userSelections.zonaInstalacionBasic) {
-        zonaInstalacionBasicSelect.value = userSelections.zonaInstalacionBasic;
-    }
+    // const zonaInstalacionBasicSelect = document.getElementById('zona-instalacion-basic');
+    // if (zonaInstalacionBasicSelect && userSelections.zonaInstalacionBasic) {
+    //     zonaInstalacionBasicSelect.value = userSelections.zonaInstalacionBasic;
+    // }
 
     const monedaSelect = document.getElementById('moneda');
     if (monedaSelect && userSelections.selectedCurrency) {
@@ -159,13 +165,13 @@ async function cargarElectrodomesticosDesdeBackend() {
         // Datos de respaldo en caso de falla para desarrollo/prueba
         electrodomesticosCategorias = {
             "Cocina": [
-                { name: "Heladera", watts: 150, hoursPerDay: 24 },
-                { name: "Microondas", watts: 1200, hoursPerDay: 0.5 },
-                { name: "Lavarropas", watts: 2000, hoursPerDay: 1 }
+                { name: "Heladera", consumo_diario_kwh: 1.5 },
+                { name: "Microondas", consumo_diario_kwh: 0.6 },
+                { name: "Lavarropas", consumo_diario_kwh: 0.7 }
             ],
             "Entretenimiento": [
-                { name: "Televisor", watts: 100, hoursPerDay: 4 },
-                { name: "Computadora", watts: 200, hoursPerDay: 6 }
+                { name: "Televisor", consumo_diario_kwh: 0.4 },
+                { name: "Computadora", consumo_diario_kwh: 1.2 }
             ]
         };
         initElectrodomesticosSection();
@@ -200,7 +206,6 @@ function initElectrodomesticosSection() {
             const input = document.createElement('input');
             input.type = 'number';
             input.min = '0';
-            input.style = 'width: 60px; text-align: center; margin-left: 15px; text-align: right;';
             // Carga la cantidad guardada para este electrodoméstico, o 0 si no existe
             input.value = userSelections.electrodomesticos[item.name] || 0;
             input.id = `cant-${item.name.replace(/\s+/g, '-')}`;
@@ -214,7 +219,7 @@ function initElectrodomesticosSection() {
             // Calcula el consumo diario individual y lo muestra
             // Asumiendo que tu backend proporciona 'watts' y 'hoursPerDay'
             // Si tu backend solo da 'consumo_diario', puedes usar item.consumo_diario directamente.
-            const consumoDiario = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
+            const consumoDiario = item.consumo_diario_kwh || 0;
             const consumoLabel = document.createElement('span');
             consumoLabel.textContent = `${consumoDiario.toFixed(3)} kWh/día`;
 
@@ -234,7 +239,7 @@ function calcularConsumo() {
             electrodomesticosCategorias[categoria].forEach(item => {
                 const cant = userSelections.electrodomesticos[item.name] || 0;
                 // Ajusta esta lógica si tu backend solo da 'consumo_diario'
-                const consumoDiarioItem = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
+                const consumoDiarioItem = item.consumo_diario_kwh || 0;
                 totalDiario += consumoDiarioItem * cant;
             });
         }
@@ -274,46 +279,93 @@ function initMap() {
 
     // Asegúrate de que el geocodificador esté importado correctamente en tu HTML
     // <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-    L.Control.geocoder().addTo(map).on('markgeocode', function(e) {
+    const geocoderControlInstance = L.Control.geocoder({
+        placeholder: 'Buscar o ingresar dirección...',
+        errorMessage: 'No se encontró la dirección.'
+        // defaultMarkGeocode: true, // Let control handle its own marker by default
+    }).on('markgeocode', function(e) {
         if (e.geocode && e.geocode.center) {
             userLocation.lat = e.geocode.center.lat;
             userLocation.lng = e.geocode.center.lng;
-            marker.setLatLng(userLocation);
-            map.setView(userLocation, 13);
+            
+            // The control's default behavior will place/update its own marker.
+            // If a separate 'marker' variable is used for map clicks, ensure they coordinate
+            // or let the geocoder manage its marker exclusively.
+            // For simplicity, if 'marker' is primarily for map clicks,
+            // we might not need to call marker.setLatLng(userLocation) here if defaultMarkGeocode is true.
+            // However, to ensure OUR 'marker' (from map clicks) is also updated:
+            if (marker) { // Check if 'marker' (from map clicks) exists
+                marker.setLatLng(userLocation);
+            } else { // If no map-click marker exists yet, create one
+                marker = L.marker(userLocation).addTo(map);
+            }
+            
+            map.setView(userLocation, 13); // Center map on geocoded location
+
             if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6);
             if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6);
-            userSelections.location = userLocation; // Guardar la ubicación en userSelections
-            saveUserSelections(); // Guardar las selecciones en localStorage
+            userSelections.location = userLocation;
+            saveUserSelections();
         }
-    });
+    }).addTo(map);
+
+    // Relocate the geocoder DOM element
+    const geocoderElement = geocoderControlInstance.getContainer();
+    const customGeocoderContainer = document.getElementById('geocoder-container');
+    
+    if (customGeocoderContainer && geocoderElement) {
+        customGeocoderContainer.innerHTML = ''; // Clear the container first if it has placeholder content or old controls
+        customGeocoderContainer.appendChild(geocoderElement);
+    } else {
+        if (!customGeocoderContainer) console.error('Custom geocoder container (geocoder-container) not found.');
+        if (!geocoderElement) console.error('Geocoder control element (geocoderElement) not found.');
+    }
 }
 
 
 // --- Lógica de la Navegación de Pantallas (EXISTENTE, VERIFICADA) ---
 
 function showScreen(screenId) {
-    // Oculta todas las secciones
-    mapScreen.style.display = 'none';
-    dataFormScreen.style.display = 'none';
-    dataMeteorologicosSection.style.display = 'none';
-    energiaSection.style.display = 'none';
-    panelesSection.style.display = 'none';
-    inversorSection.style.display = 'none';
-    perdidasSection.style.display = 'none';
-    analisisEconomicoSection.style.display = 'none';
+    // Hide main screen containers first
+    if (mapScreen) mapScreen.style.display = 'none';
+    if (dataFormScreen) dataFormScreen.style.display = 'none';
 
-    // Muestra la sección deseada
-    const targetScreen = document.getElementById(screenId);
-    if (targetScreen) {
-        targetScreen.style.display = 'block';
+    // Hide all individual sub-sections within dataFormScreen explicitly
+    if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'none';
+    if (energiaSection) energiaSection.style.display = 'none';
+    if (panelesSection) panelesSection.style.display = 'none';
+    if (inversorSection) inversorSection.style.display = 'none';
+    if (perdidasSection) perdidasSection.style.display = 'none';
+    if (analisisEconomicoSection) analisisEconomicoSection.style.display = 'none';
+
+    const targetElement = document.getElementById(screenId);
+
+    if (targetElement) {
+        if (screenId === 'map-screen') {
+            // Ensure mapScreen variable is the correct DOM element
+            if (mapScreen) mapScreen.style.display = 'block'; 
+        } else if (screenId === 'data-form-screen') {
+            // Ensure dataFormScreen variable is the correct DOM element
+            if (dataFormScreen) dataFormScreen.style.display = 'block'; 
+            // Default to showing the first step of data-form-screen
+            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
+        } else { 
+            // This case handles screenId being a sub-section like 'energia-section', 
+            // 'paneles-section', 'data-meteorologicos-section', etc.
+            // These sub-sections are children of the main 'data-form-screen' container.
+            
+            // First, ensure the main 'data-form-screen' container is visible.
+            if (dataFormScreen) {
+                dataFormScreen.style.display = 'block';
+            }
+            // Then, show the specific target sub-section.
+            targetElement.style.display = 'block'; 
+        }
     } else {
         console.error(`Error: La pantalla con ID '${screenId}' no fue encontrada.`);
-        return;
     }
-
-    // Actualiza el indicador de paso
-    updateStepIndicator(screenId);
-    localStorage.setItem('currentScreenId', screenId); // Guarda la pantalla actual
+    // Note: updateStepIndicator is called by the individual button event listeners 
+    // immediately after they call showScreen.
 }
 
 function updateStepIndicator(screenId) {
@@ -333,32 +385,142 @@ function updateStepIndicator(screenId) {
     }
 }
 
+// Helper function to manage visibility of form sections within map-screen
+function showMapScreenFormSection(sectionIdToShow) {
+    if (userTypeSection) userTypeSection.style.display = 'none';
+    if (supplySection) supplySection.style.display = 'none';
+    if (incomeSection) incomeSection.style.display = 'none';
+    if (expertSection) expertSection.style.display = 'none';
+
+    const sectionToShow = document.getElementById(sectionIdToShow);
+    if (sectionToShow) {
+        sectionToShow.style.display = 'block';
+    } else {
+        console.error('Section with ID ' + sectionIdToShow + ' not found for showMapScreenFormSection.');
+    }
+}
+
 
 // --- Configuración de Event Listeners para Botones y Selects (EXISTENTE, MODIFICADA) ---
 
 function setupNavigationButtons() {
+    // Get buttons - ensure these IDs exist in calculador.html
+    const basicUserButton = document.getElementById('basic-user-button');
+    const expertUserButton = document.getElementById('expert-user-button');
+    
+    const residentialButton = document.getElementById('residential-button');
+    const commercialButton = document.getElementById('commercial-button');
+    const pymeButton = document.getElementById('pyme-button');
+
+    const incomeHighButton = document.getElementById('income-high-button');
+    const incomeLowButton = document.getElementById('income-low-button');
+    
+    const expertDataForm = document.getElementById('expert-data-form'); // Form itself
+
+    // Initial state on map-screen: show only user-type-section
+    // This should ideally be handled by default HTML (display:block for user-type, none for others)
+    // or called once in DOMContentLoaded after defining showMapScreenFormSection
+    // For safety, can call it here if not sure about initial HTML state:
+    // showMapScreenFormSection('user-type-section');
+
+    if (basicUserButton) {
+        basicUserButton.addEventListener('click', () => {
+            userSelections.userType = 'basico';
+            saveUserSelections();
+            showMapScreenFormSection('supply-section');
+        });
+    }
+
+    if (expertUserButton) {
+        expertUserButton.addEventListener('click', () => {
+            userSelections.userType = 'experto';
+            saveUserSelections();
+            showMapScreenFormSection('expert-section');
+        });
+    }
+
+    if (residentialButton) {
+        residentialButton.addEventListener('click', () => {
+            userSelections.installationType = 'Residencial';
+            saveUserSelections();
+            showMapScreenFormSection('income-section');
+        });
+    }
+
+    if (commercialButton) {
+        commercialButton.addEventListener('click', () => {
+            userSelections.installationType = 'Comercial';
+            saveUserSelections();
+            showScreen('data-form-screen'); // Transitions to the detailed form
+        });
+    }
+
+    if (pymeButton) {
+        pymeButton.addEventListener('click', () => {
+            userSelections.installationType = 'PYME';
+            saveUserSelections();
+            showScreen('data-form-screen'); // Transitions to the detailed form
+        });
+    }
+
+    if (incomeHighButton) {
+        incomeHighButton.addEventListener('click', () => {
+            userSelections.incomeLevel = 'ALTO';
+            saveUserSelections();
+            showScreen('data-form-screen'); 
+
+            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block'; // Explicitly show this section
+            // Update step indicator to 'data-meteorologicos-section'.
+            // The section itself should be visible by default HTML structure within data-form-screen's main-content
+            // after showScreen('data-form-screen') has hidden all specific sub-sections.
+            updateStepIndicator('data-meteorologicos-section');
+        });
+    }
+
+    if (incomeLowButton) {
+        incomeLowButton.addEventListener('click', () => {
+            userSelections.incomeLevel = 'BAJO';
+            saveUserSelections();
+            showScreen('data-form-screen');
+
+            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block'; // Explicitly show this section
+            // Update step indicator to 'data-meteorologicos-section'.
+            updateStepIndicator('data-meteorologicos-section');
+        });
+    }
+    
+    if (expertDataForm) {
+        expertDataForm.addEventListener('submit', (event) => {
+            event.preventDefault(); // Prevent actual form submission
+            // Assuming data from expert-data-form is already handled by its 'zona-instalacion-expert' select listener
+            // The main purpose here is to navigate
+            console.log('Formulario experto guardado (simulado), procediendo a data-form-screen.');
+            showScreen('data-form-screen');
+        });
+    }
+
     // Listeners para inputs de selección y otros que guardan userSelections
     // Asegúrate de que estos IDs existan en tu HTML
-    document.getElementById('user-type')?.addEventListener('change', (e) => {
-        userSelections.userType = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    });
-    document.getElementById('installation-type')?.addEventListener('change', (e) => {
-        userSelections.installationType = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    });
-    document.getElementById('income-level')?.addEventListener('change', (e) => {
-        userSelections.incomeLevel = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    });
+    // document.getElementById('user-type')?.addEventListener('change', (e) => {
+    //     userSelections.userType = e.target.value;
+    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
+    // });
+    // document.getElementById('installation-type')?.addEventListener('change', (e) => {
+    //     userSelections.installationType = e.target.value;
+    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
+    // });
+    // document.getElementById('income-level')?.addEventListener('change', (e) => {
+    //     userSelections.incomeLevel = e.target.value;
+    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
+    // });
     document.getElementById('zona-instalacion-expert')?.addEventListener('change', (e) => {
         userSelections.zonaInstalacionExpert = e.target.value;
         saveUserSelections(); // AÑADIDO: Guardar en localStorage
     });
-    document.getElementById('zona-instalacion-basic')?.addEventListener('change', (e) => {
-        userSelections.zonaInstalacionBasic = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    });
+    // document.getElementById('zona-instalacion-basic')?.addEventListener('change', (e) => {
+    //     userSelections.zonaInstalacionBasic = e.target.value;
+    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
+    // });
     document.getElementById('moneda')?.addEventListener('change', (e) => {
         userSelections.selectedCurrency = e.target.value;
         saveUserSelections(); // AÑADIDO: Guardar en localStorage
@@ -401,13 +563,25 @@ function setupNavigationButtons() {
 
 
     // Configurar los botones de navegación entre secciones (EXISTENTES)
-    document.getElementById('next-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
-    document.getElementById('back-to-map')?.addEventListener('click', () => showScreen('map-screen'));
-    document.getElementById('next-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
-    document.getElementById('back-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
+    // document.getElementById('next-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
+    // document.getElementById('back-to-map')?.addEventListener('click', () => showScreen('map-screen'));
+    // document.getElementById('next-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
+    // document.getElementById('back-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
     document.getElementById('next-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
     document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
-    document.getElementById('next-to-paneles')?.addEventListener('click', () => showScreen('paneles-section'));
+
+    const nextToPanelesButton = document.getElementById('next-to-paneles');
+    if (nextToPanelesButton) {
+        nextToPanelesButton.addEventListener('click', () => {
+            if (userSelections.userType === 'basico') {
+                showScreen('analisis-economico-section');
+                updateStepIndicator('analisis-economico-section');
+            } else { // Assumes 'experto' or any other type follows the expert path
+                showScreen('paneles-section');
+                updateStepIndicator('paneles-section');
+            }
+        });
+    }
     document.getElementById('back-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
     document.getElementById('next-to-inversor')?.addEventListener('click', () => showScreen('inversor-section'));
     document.getElementById('back-to-paneles')?.addEventListener('click', () => showScreen('paneles-section'));
@@ -470,7 +644,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupNavigationButtons(); // 5. Configura todos los botones de navegación y otros listeners.
 
     // 6. Muestra la pantalla guardada o la inicial después de que todo esté cargado y listo
-    const currentScreenId = localStorage.getItem('currentScreenId') || 'map-screen';
+    const currentScreenId = 'map-screen';
     showScreen(currentScreenId);
 
     // Si la pantalla inicial es la de energía, nos aseguramos de que el consumo se muestre correctamente
