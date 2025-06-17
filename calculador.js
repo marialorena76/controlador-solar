@@ -302,6 +302,71 @@ async function initRugosidadSection() {
     }
 }
 
+// --- Nueva función para inicializar la sección de Rotación ---
+async function initRotacionSection() {
+    const container = document.getElementById('rotacion-options-container');
+    if (!container) {
+        console.error("Contenedor 'rotacion-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = ''; // Limpiar opciones anteriores
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/rotacion_options');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+            console.error('Respuesta de /api/rotacion_options no es un array:', data);
+            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para rotación.</p>';
+            return;
+        }
+
+        if (data.length === 0) {
+            container.innerHTML = '<p style="text-align: center;">No hay opciones de rotación disponibles.</p>';
+            return;
+        }
+
+        data.forEach(item => {
+            const label = document.createElement('label');
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = 'rotacionOption';
+            input.value = item.valor;
+            input.dataset.descripcion = item.descripcion;
+
+            if (userSelections.rotacionInstalacion && userSelections.rotacionInstalacion.valor === item.valor) {
+                input.checked = true;
+            }
+
+            input.addEventListener('change', () => {
+                if (input.checked) {
+                    userSelections.rotacionInstalacion.descripcion = item.descripcion;
+                    userSelections.rotacionInstalacion.valor = parseFloat(item.valor);
+                    saveUserSelections();
+                    console.log('Rotación de instalación seleccionada:', userSelections.rotacionInstalacion);
+                }
+            });
+
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(" " + item.descripcion));
+            container.appendChild(label);
+        });
+
+    } catch (error) {
+        console.error('[ROTACIÓN OPTIONS LOAD ERROR] Error fetching or processing rotación options:', error);
+        if (error.message) {
+            console.error('[ROTACIÓN OPTIONS LOAD ERROR] Message:', error.message);
+        }
+        alert('Error al cargar las opciones de rotación. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
+        if (container) {
+            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de rotación. Intente recargar o contacte a soporte.</p>';
+        }
+    }
+}
+
 
 // --- Funciones para Consumo y Electrodomésticos (NUEVO BLOQUE INTEGRADO) ---
 
@@ -490,9 +555,11 @@ function showScreen(screenId) {
 
     // Hide all individual sub-sections within dataFormScreen explicitly
     if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'none';
-    if (superficieSection) superficieSection.style.display = 'none'; // Added for new section
+    if (superficieSection) superficieSection.style.display = 'none';
+    if (rugosidadSection) rugosidadSection.style.display = 'none';   // Add/ensure this
+    if (rotacionSection) rotacionSection.style.display = 'none';   // Add/ensure this
     if (energiaSection) energiaSection.style.display = 'none';
-    if (consumoFacturaSection) consumoFacturaSection.style.display = 'none'; // Added
+    if (consumoFacturaSection) consumoFacturaSection.style.display = 'none';
     if (panelesSection) panelesSection.style.display = 'none';
     if (inversorSection) inversorSection.style.display = 'none';
     if (perdidasSection) perdidasSection.style.display = 'none';
@@ -529,46 +596,80 @@ function showScreen(screenId) {
 }
 
 function updateStepIndicator(screenId) {
-    let stepNumber = 0;
+    // let stepNumber = 0; // Original step numbering logic commented out for more descriptive text
     switch (screenId) {
-        case 'map-screen': stepNumber = 1; break; // Or 'Paso 1: Ubicación y Tipo de Usuario'
-        case 'data-form-screen': // This is a container, usually a specific sub-section is shown.
-                                 // Defaulting to data-meteorologicos if shown directly.
-            stepNumber = 2; break;
+        case 'map-screen':
+            if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 1: Ubicación y Tipo de Usuario';
+            return;
+        // data-form-screen is a container, specific section will dictate the text
         case 'data-meteorologicos-section':
-            if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 2 > Datos Meteorológicos';
+            if (userSelections.userType === 'experto') {
+                if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 1 > Zona de Instalación';
+            } else { // Basic user or default
+                if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 1 > Datos Meteorológicos';
+            }
             return;
-        case 'superficie-section': // New step for "Superficie Rodea"
-            if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 3 > Superficie Circundante';
+        case 'superficie-section': // For expert path
+            if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 2 > Superficie Circundante';
             return;
-        case 'energia-section':
-            // Adjust step number if superficie-section is considered a main step
-            // For now, this text will be shown after superficie-section for experts
-            if (stepIndicatorText) stepIndicatorText.textContent = `Paso ${userSelections.userType === 'experto' ? 4 : 3} > Consumo de Energía`;
+        case 'rugosidad-section': // For expert path
+            if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 3 > Rugosidad Superficie';
             return;
-        case 'consumo-factura-section':
+        case 'rotacion-section': // For expert path
+            if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 4 > Rotación Instalación';
+            return;
+        case 'energia-section': // For basic path primarily now
+            // If an expert somehow lands here, it would be after rotacion (step 4 for expert)
+            // but basic path is simpler.
+            if (userSelections.userType === 'experto') {
+                 if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 5 > Consumo de Energía';
+            } else {
+                 if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 2 > Consumo de Energía';
+            }
+            return;
+        case 'consumo-factura-section': // Alternative path for Comercial/PYME
             if (stepIndicatorText) stepIndicatorText.textContent = 'Paso Alternativo > Consumo por Factura';
             return;
         case 'paneles-section':
-            if (stepIndicatorText) stepIndicatorText.textContent = `Paso ${userSelections.userType === 'experto' ? 5 : 4} > Paneles`;
+            if (userSelections.userType === 'experto') {
+                if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 5 > Paneles';
+                                                                    // This was step 5 if energia was not shown.
+                                                                    // If energia is shown after rotacion, then this is step 6.
+                                                                    // For now, keeping it simple as per previous structure.
+                                                                    // The Rotacion Next button directly goes here.
+            } else { // Basic user
+                if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 3 > Paneles';
+            }
             return;
         case 'inversor-section':
-            if (stepIndicatorText) stepIndicatorText.textContent = `Paso ${userSelections.userType === 'experto' ? 6 : 5} > Inversor`;
+             if (userSelections.userType === 'experto') {
+                if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 6 > Inversor';
+            } else { // Basic user
+                if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 4 > Inversor';
+            }
             return;
         case 'perdidas-section':
-            if (stepIndicatorText) stepIndicatorText.textContent = `Paso ${userSelections.userType === 'experto' ? 7 : 6} > Registro Pérdidas`;
+            if (userSelections.userType === 'experto') {
+                if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 7 > Registro Pérdidas';
+            } else { // Basic user (doesn't have this step in current flow)
+                 if (stepIndicatorText) stepIndicatorText.textContent = 'Paso Avanzado > Registro Pérdidas';
+            }
             return;
         case 'analisis-economico-section':
-            if (stepIndicatorText) stepIndicatorText.textContent = `Paso ${userSelections.userType === 'experto' ? 8 : (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME' ? 'Final' : 5) } > Análisis Económico`;
+            let pasoFinalTexto = "Análisis Económico";
+            if (userSelections.userType === 'experto') {
+                pasoFinalTexto = `Experto: Paso 8 > ${pasoFinalTexto}`;
+            } else if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
+                 pasoFinalTexto = `Paso Final > ${pasoFinalTexto}`; // After Consumo Factura
+            } else { // Basic Residencial
+                 pasoFinalTexto = `Paso 5 > ${pasoFinalTexto}`; // After Inversor for basic
+            }
+            if (stepIndicatorText) stepIndicatorText.textContent = pasoFinalTexto;
             return;
         default:
             if (stepIndicatorText) stepIndicatorText.textContent = 'Calculador Solar'; // Default or error text
             return;
     }
-    // Fallback for original step numbering if direct stepNumber is set (e.g., map-screen)
-    // if (stepIndicatorText) {
-    //     stepIndicatorText.textContent = `Paso ${stepNumber} de X`; // X needs to be dynamic
-    // }
 }
 
 // Helper function to manage visibility of form sections within map-screen
@@ -796,18 +897,50 @@ function setupNavigationButtons() {
         updateStepIndicator('data-meteorologicos-section');
     });
 
-    // Listener for next button from superficie-section to energia-section
-    document.getElementById('next-to-energia-from-superficie')?.addEventListener('click', () => {
-        // Optional: check if a superficieRodea option is selected
-        if (!userSelections.superficieRodea || userSelections.superficieRodea.valor === null) {
-            // console.warn('Advertencia: No se ha seleccionado una opción de superficie.');
-            // alert('Por favor, seleccione una opción de superficie antes de continuar.');
-            // return; // Uncomment to prevent navigation if nothing selected
-        }
-        showScreen('energia-section');
-        updateStepIndicator('energia-section');
+    // Listener for next button from superficie-section to RUGOSIDAD section
+    const nextFromSuperficieButton = document.getElementById('next-to-energia-from-superficie');
+    if (nextFromSuperficieButton) {
+        nextFromSuperficieButton.addEventListener('click', () => {
+            // Optional: Add validation here if needed for superficie selection
+            showScreen('rugosidad-section');
+            updateStepIndicator('rugosidad-section');
+            initRugosidadSection();
+        });
+    }
+
+    // Listener for "Back" from rugosidad-section to superficie-section
+    document.getElementById('back-to-superficie-from-rugosidad')?.addEventListener('click', () => {
+        showScreen('superficie-section');
+        updateStepIndicator('superficie-section');
     });
 
+    // Listener for "Next" from rugosidad-section to ROTACION section
+    document.getElementById('next-to-rotacion-from-rugosidad')?.addEventListener('click', () => {
+        // Optional: Add validation here if needed for rugosidad selection
+        showScreen('rotacion-section');
+        updateStepIndicator('rotacion-section');
+        initRotacionSection();
+    });
+
+    // Listener for "Back" from rotacion-section to rugosidad-section
+    document.getElementById('back-to-rugosidad-from-rotacion')?.addEventListener('click', () => {
+        showScreen('rugosidad-section');
+        updateStepIndicator('rugosidad-section');
+    });
+
+    // Listener for "Next" from rotacion-section to PANELES section
+    document.getElementById('next-to-paneles-from-rotacion')?.addEventListener('click', () => {
+        // Optional: Add validation here if needed for rotacion selection
+        showScreen('paneles-section');
+        updateStepIndicator('paneles-section');
+    });
+
+    // Listener for back button from energia-section to data-meteorologicos-section (for basic user)
+    // OR back to rotacion-section (for expert user, though this path is now more direct to paneles)
+    // This button ID 'back-to-data-meteorologicos' is on the energia-section.
+    // For an expert, they would not typically see this button if they came from rotacion.
+    // This specific listener might need review if expert path can land on energia from somewhere else than rotacion.
+    // For now, it correctly points back from energia to data-meteorologicos, which is fine for basic users.
     document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => {
         showScreen('data-meteorologicos-section');
         updateStepIndicator('data-meteorologicos-section');
