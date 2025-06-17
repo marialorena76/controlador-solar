@@ -55,6 +55,7 @@ const userTypeSection = document.getElementById('user-type-section');
 const supplySection = document.getElementById('supply-section');
 const incomeSection = document.getElementById('income-section');
 const expertSection = document.getElementById('expert-section');
+const consumoFacturaSection = document.getElementById('consumo-factura-section');
 
 
 // --- Funciones de Persistencia (NUEVO BLOQUE INTEGRADO) ---
@@ -333,6 +334,7 @@ function showScreen(screenId) {
     // Hide all individual sub-sections within dataFormScreen explicitly
     if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'none';
     if (energiaSection) energiaSection.style.display = 'none';
+    if (consumoFacturaSection) consumoFacturaSection.style.display = 'none'; // Added
     if (panelesSection) panelesSection.style.display = 'none';
     if (inversorSection) inversorSection.style.display = 'none';
     if (perdidasSection) perdidasSection.style.display = 'none';
@@ -375,13 +377,17 @@ function updateStepIndicator(screenId) {
         case 'data-form-screen': stepNumber = 2; break;
         case 'data-meteorologicos-section': stepNumber = 3; break;
         case 'energia-section': stepNumber = 4; break;
+        // consumo-factura-section is a branch, step numbering might need review for this path
+        case 'consumo-factura-section':
+            if (stepIndicatorText) stepIndicatorText.textContent = 'Paso: Ingreso Consumo por Factura';
+            return; // Return early as stepNumber is not set for this branch
         case 'paneles-section': stepNumber = 5; break;
         case 'inversor-section': stepNumber = 6; break;
         case 'perdidas-section': stepNumber = 7; break;
         case 'analisis-economico-section': stepNumber = 8; break; // Asumiendo que esta es la última
     }
     if (stepIndicatorText) { // Asegurarse de que el elemento exista
-        stepIndicatorText.textContent = `Paso ${stepNumber} de 8`;
+        stepIndicatorText.textContent = `Paso ${stepNumber} de 8`; // Adjust total steps if this path changes it
     }
 }
 
@@ -451,7 +457,8 @@ function setupNavigationButtons() {
         commercialButton.addEventListener('click', () => {
             userSelections.installationType = 'Comercial';
             saveUserSelections();
-            showScreen('data-form-screen'); // Transitions to the detailed form
+            showScreen('consumo-factura-section');
+            updateStepIndicator('consumo-factura-section');
         });
     }
 
@@ -459,7 +466,8 @@ function setupNavigationButtons() {
         pymeButton.addEventListener('click', () => {
             userSelections.installationType = 'PYME';
             saveUserSelections();
-            showScreen('data-form-screen'); // Transitions to the detailed form
+            showScreen('consumo-factura-section');
+            updateStepIndicator('consumo-factura-section');
         });
     }
 
@@ -569,6 +577,56 @@ function setupNavigationButtons() {
     // document.getElementById('back-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
     document.getElementById('next-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
     document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
+
+    const backFromConsumoFacturaButton = document.getElementById('back-from-consumo-factura');
+    if (backFromConsumoFacturaButton) {
+        backFromConsumoFacturaButton.addEventListener('click', () => {
+            showScreen('map-screen');
+            showMapScreenFormSection('supply-section'); // Go back to supply type selection
+            // updateStepIndicator('map-screen'); // Or a more specific step if map-screen has conceptual steps
+        });
+    }
+
+    const nextFromConsumoFacturaButton = document.getElementById('next-from-consumo-factura');
+    if (nextFromConsumoFacturaButton) {
+        nextFromConsumoFacturaButton.addEventListener('click', () => {
+            const monthIds = [
+                'consumo-enero', 'consumo-febrero', 'consumo-marzo', 'consumo-abril',
+                'consumo-mayo', 'consumo-junio', 'consumo-julio', 'consumo-agosto',
+                'consumo-septiembre', 'consumo-octubre', 'consumo-noviembre', 'consumo-diciembre'
+            ];
+            let totalAnnualConsumptionFromBill = 0;
+            const monthlyConsumptions = [];
+            let allInputsValid = true;
+
+            monthIds.forEach(id => {
+                const inputElement = document.getElementById(id);
+                if (inputElement) {
+                    const value = parseFloat(inputElement.value);
+                    if (isNaN(value) || value < 0) {
+                        console.warn(`Valor inválido o vacío para ${id}, usando 0.`);
+                        monthlyConsumptions.push(0);
+                    } else {
+                        monthlyConsumptions.push(value);
+                        totalAnnualConsumptionFromBill += value;
+                    }
+                } else {
+                    console.error(`Input con ID ${id} no encontrado.`);
+                    allInputsValid = false;
+                }
+            });
+
+            userSelections.consumosMensualesFactura = monthlyConsumptions;
+            userSelections.totalAnnualConsumption = totalAnnualConsumptionFromBill;
+
+            console.log('Consumos mensuales (factura):', userSelections.consumosMensualesFactura);
+            console.log('Consumo anual total (factura):', userSelections.totalAnnualConsumption);
+            saveUserSelections();
+
+            showScreen('analisis-economico-section');
+            updateStepIndicator('analisis-economico-section');
+        });
+    }
 
     const nextToPanelesButton = document.getElementById('next-to-paneles');
     if (nextToPanelesButton) {
