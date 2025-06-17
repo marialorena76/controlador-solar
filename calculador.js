@@ -16,6 +16,14 @@ let userSelections = {
         descripcion: null,
         valor: null
     },
+    rugosidadSuperficie: { // New property
+        descripcion: null,
+        valor: null
+    },
+    rotacionInstalacion: { // New property
+        descripcion: null,
+        valor: null
+    },
     electrodomesticos: {}, // Almacenará { "Nombre Electrodoméstico": cantidad }
     totalMonthlyConsumption: 0,
     totalAnnualConsumption: 0,
@@ -62,6 +70,8 @@ const incomeSection = document.getElementById('income-section');
 const expertSection = document.getElementById('expert-section');
 const consumoFacturaSection = document.getElementById('consumo-factura-section');
 const superficieSection = document.getElementById('superficie-section');
+const rugosidadSection = document.getElementById('rugosidad-section');
+const rotacionSection = document.getElementById('rotacion-section');
 
 
 // --- Funciones de Persistencia (NUEVO BLOQUE INTEGRADO) ---
@@ -162,14 +172,17 @@ async function initSuperficieSection() {
     container.innerHTML = ''; // Limpiar opciones anteriores
 
     try {
-        const response = await fetch('/api/superficie_options'); // Asegúrate que esta ruta sea correcta
+        const response = await fetch('http://127.0.0.1:5000/api/superficie_options'); // Ensure this URL is correct
         if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
+            // Throw an error that includes response status to be caught by the catch block
+            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
-        const options = await response.json();
+        const options = await response.json(); // Changed from 'data' to 'options' to match previous version
 
         if (!Array.isArray(options)) {
             console.error('Respuesta de /api/superficie_options no es un array:', options);
+            // Display error in container as well
+            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto.</p>';
             return;
         }
 
@@ -201,9 +214,91 @@ async function initSuperficieSection() {
         });
 
     } catch (error) {
-        console.error('Error al cargar opciones de superficie:', error);
-        // Opcional: Mostrar un mensaje al usuario en el contenedor
-        container.innerHTML = '<p style="color:red;">Error al cargar las opciones. Intente más tarde.</p>';
+        console.error('[SUPERFICIE OPTIONS LOAD ERROR] Error fetching or processing superficie options:', error);
+        if (error.message) {
+            console.error('[SUPERFICIE OPTIONS LOAD ERROR] Message:', error.message);
+        }
+        // Attempt to get more details if it's a custom error from !response.ok
+        // Note: 'error.response' is not standard for fetch API errors.
+        // The 'Error(`Error HTTP: ${response.status} ${response.statusText}`);' line
+        // makes error.message contain the status, so this check might be redundant if that's the only source.
+        // However, if other types of errors could have a 'response' property, it could be useful.
+        if (error.response && error.response.status) {
+             console.error('[SUPERFICIE OPTIONS LOAD ERROR] Response Status:', error.response.status);
+             console.error('[SUPERFICIE OPTIONS LOAD ERROR] Response Status Text:', error.response.statusText);
+        }
+
+        alert('Error al cargar las opciones de superficie. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
+
+        // Ensure the options container is referenced correctly (it's 'container' in this scope)
+        if (container) {
+            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones. Intente recargar o contacte a soporte si el problema persiste.</p>';
+        }
+    }
+}
+
+// --- Nueva función para inicializar la sección de Rugosidad ---
+async function initRugosidadSection() {
+    const container = document.getElementById('rugosidad-options-container');
+    if (!container) {
+        console.error("Contenedor 'rugosidad-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = ''; // Limpiar opciones anteriores
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/rugosidad_options');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+            console.error('Respuesta de /api/rugosidad_options no es un array:', data);
+            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para rugosidad.</p>';
+            return;
+        }
+
+        if (data.length === 0) {
+            container.innerHTML = '<p style="text-align: center;">No hay opciones de rugosidad disponibles.</p>';
+            return;
+        }
+
+        data.forEach(item => {
+            const label = document.createElement('label');
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = 'rugosidadOption';
+            input.value = item.valor;
+            input.dataset.descripcion = item.descripcion;
+
+            if (userSelections.rugosidadSuperficie && userSelections.rugosidadSuperficie.valor === item.valor) {
+                input.checked = true;
+            }
+
+            input.addEventListener('change', () => {
+                if (input.checked) {
+                    userSelections.rugosidadSuperficie.descripcion = item.descripcion;
+                    userSelections.rugosidadSuperficie.valor = parseFloat(item.valor);
+                    saveUserSelections();
+                    console.log('Rugosidad de superficie seleccionada:', userSelections.rugosidadSuperficie);
+                }
+            });
+
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(" " + item.descripcion));
+            container.appendChild(label);
+        });
+
+    } catch (error) {
+        console.error('[RUGOSIDAD OPTIONS LOAD ERROR] Error fetching or processing rugosidad options:', error);
+        if (error.message) {
+            console.error('[RUGOSIDAD OPTIONS LOAD ERROR] Message:', error.message);
+        }
+        alert('Error al cargar las opciones de rugosidad. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
+        if (container) {
+            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de rugosidad. Intente recargar o contacte a soporte.</p>';
+        }
     }
 }
 

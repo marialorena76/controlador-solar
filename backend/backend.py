@@ -270,5 +270,141 @@ def get_superficie_options():
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor al obtener opciones de superficie: {str(e)}"}), 500
 
+
+# --- NUEVA RUTA: Para obtener opciones de rugosidad ---
+@app.route('/api/rugosidad_options', methods=['GET'])
+def get_rugosidad_options():
+    try:
+        print(f"DEBUG: Solicitud a /api/rugosidad_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
+        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl', decimal=',')
+        print("DEBUG: Hoja 'Tablas' leída para opciones de rugosidad.")
+
+        col_desc_idx = 12  # Columna M
+        col_valor_idx = 13 # Columna N
+        # Filas Excel 82 a 86 -> iloc 81 a 85
+        fila_inicio_idx = 81 # Fila 82 en Excel
+        fila_fin_idx = 85    # Fila 86 en Excel
+
+        rugosidad_options_lista = []
+        max_filas_df = df_tablas.shape[0]
+        max_cols_df = df_tablas.shape[1]
+
+        # Validar que las columnas existan en el DataFrame
+        if col_desc_idx >= max_cols_df or col_valor_idx >= max_cols_df:
+            print(f"WARN: Columnas M ({col_desc_idx}) o N ({col_valor_idx}) fuera de límites (hoja 'Tablas' tiene {max_cols_df} columnas).")
+            return jsonify({"error": "Definición de columnas para rugosidad fuera de los límites de la hoja."}), 500
+
+        for r_idx in range(fila_inicio_idx, fila_fin_idx + 1): # +1 para incluir fila_fin_idx
+            # Validar que la fila exista
+            if r_idx >= max_filas_df:
+                print(f"WARN: Fila {r_idx+1} para rugosidad fuera de límites (hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida.")
+                break
+
+            descripcion = df_tablas.iloc[r_idx, col_desc_idx]
+            valor = df_tablas.iloc[r_idx, col_valor_idx]
+
+            if pd.isna(descripcion) or str(descripcion).strip() == "":
+                print(f"DEBUG: Fila {r_idx+1} omitida por descripción NaN o vacía para opciones de rugosidad.")
+                continue
+
+            valor_float = 0.0
+            if pd.isna(valor):
+                print(f"DEBUG: Valor NaN para rugosidad '{descripcion}' en fila {r_idx+1}, usando 0.0.")
+            else:
+                try:
+                    valor_float = float(valor)
+                except ValueError:
+                    print(f"WARN: No se pudo convertir valor de rugosidad '{valor}' a float para '{descripcion}'. Usando 0.0.")
+
+            rugosidad_options_lista.append({
+                "descripcion": str(descripcion),
+                "valor": valor_float
+            })
+
+        print(f"DEBUG: Total opciones de rugosidad leídas de 'Tablas' M{fila_inicio_idx+1}:N{fila_fin_idx+1}: {len(rugosidad_options_lista)}")
+        return jsonify(rugosidad_options_lista)
+
+    except FileNotFoundError:
+        print(f"ERROR en /api/rugosidad_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
+    except KeyError as e:
+        print(f"ERROR en /api/rugosidad_options: Hoja 'Tablas' o columnas M/N no encontradas? Error: {e}")
+        return jsonify({"error": f"Error de clave al leer la hoja de cálculo para rugosidad (¿nombre de hoja o columna incorrecto?): {e}"}), 500
+    except IndexError as e:
+        print(f"ERROR en /api/rugosidad_options: Rango de celdas fuera de límites para rugosidad: {e}")
+        return jsonify({"error": f"Error de índice, rango de celdas fuera de límites para rugosidad: {e}"}), 500
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/rugosidad_options: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno del servidor al obtener opciones de rugosidad: {str(e)}"}), 500
+
+
+# --- NUEVA RUTA: Para obtener opciones de rotación ---
+@app.route('/api/rotacion_options', methods=['GET'])
+def get_rotacion_options():
+    try:
+        print(f"DEBUG: Solicitud a /api/rotacion_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
+        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl', decimal=',')
+        print("DEBUG: Hoja 'Tablas' leída para opciones de rotación.")
+
+        col_desc_idx = 15  # Columna P
+        col_valor_idx = 16 # Columna Q
+        # Filas Excel 96 a 103 -> iloc 95 a 102
+        fila_inicio_idx = 95 # Fila 96 en Excel
+        fila_fin_idx = 102   # Fila 103 en Excel
+
+        rotacion_options_lista = []
+        max_filas_df = df_tablas.shape[0]
+        max_cols_df = df_tablas.shape[1]
+
+        if col_desc_idx >= max_cols_df or col_valor_idx >= max_cols_df:
+            print(f"WARN: Columnas P ({col_desc_idx}) o Q ({col_valor_idx}) fuera de límites (hoja 'Tablas' tiene {max_cols_df} columnas).")
+            return jsonify({"error": "Definición de columnas para rotación fuera de los límites de la hoja."}), 500
+
+        for r_idx in range(fila_inicio_idx, fila_fin_idx + 1): # +1 para incluir fila_fin_idx
+            if r_idx >= max_filas_df:
+                print(f"WARN: Fila {r_idx+1} para rotación fuera de límites (hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida.")
+                break
+
+            descripcion = df_tablas.iloc[r_idx, col_desc_idx]
+            valor = df_tablas.iloc[r_idx, col_valor_idx]
+
+            if pd.isna(descripcion) or str(descripcion).strip() == "":
+                print(f"DEBUG: Fila {r_idx+1} omitida por descripción NaN o vacía para opciones de rotación.")
+                continue
+
+            valor_float = 0.0
+            if pd.isna(valor):
+                print(f"DEBUG: Valor NaN para rotación '{descripcion}' en fila {r_idx+1}, usando 0.0.")
+            else:
+                try:
+                    valor_float = float(valor)
+                except ValueError:
+                    print(f"WARN: No se pudo convertir valor de rotación '{valor}' a float para '{descripcion}'. Usando 0.0.")
+
+            rotacion_options_lista.append({
+                "descripcion": str(descripcion),
+                "valor": valor_float
+            })
+
+        print(f"DEBUG: Total opciones de rotación leídas de 'Tablas' P{fila_inicio_idx+1}:Q{fila_fin_idx+1}: {len(rotacion_options_lista)}")
+        return jsonify(rotacion_options_lista)
+
+    except FileNotFoundError:
+        print(f"ERROR en /api/rotacion_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
+    except KeyError as e:
+        print(f"ERROR en /api/rotacion_options: Hoja 'Tablas' o columnas P/Q no encontradas? Error: {e}")
+        return jsonify({"error": f"Error de clave al leer la hoja de cálculo para rotación (¿nombre de hoja o columna incorrecto?): {e}"}), 500
+    except IndexError as e:
+        print(f"ERROR en /api/rotacion_options: Rango de celdas fuera de límites para rotación: {e}")
+        return jsonify({"error": f"Error de índice, rango de celdas fuera de límites para rotación: {e}"}), 500
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/rotacion_options: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno del servidor al obtener opciones de rotación: {str(e)}"}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
