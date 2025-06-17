@@ -12,99 +12,69 @@ EXCEL_FILE_PATH = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_
 
 # --- NUEVA RUTA: Para obtener la lista de electrodomésticos y sus consumos ---
 @app.route('/api/electrodomesticos', methods=['GET'])
-def get_electrodomesticos():
+def get_electrodomesticos_consumos():
     try:
-        print("DEBUG: Leyendo hoja 'Tablas' del Excel para electrodomésticos.")
-        # Leer la hoja 'Tablas'
-        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
+        print(f"DEBUG: Solicitud a /api/electrodomesticos. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
+        # ¡¡¡IMPORTANTE!!! Reemplaza 'Tablas' con el nombre exacto de tu hoja si es diferente.
+        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl', decimal=',')
+        print("DEBUG: Hoja 'Tablas' leída para electrodomésticos.")
 
-        # Extraer los datos del rango A111:B174 (considerando que pandas es 0-indexado)
-        # Columna A (índice 0) para el nombre del electrodoméstico
-        # Columna B (índice 1) para el consumo en kWh/día
-        # Filas 110 a 173 (porque el rango es 111 a 174 en Excel, que es 110 a 173 en 0-indexado)
-        electrodomesticos_df = df_tablas.iloc[110:174, 0:2]
-        electrodomesticos_df.columns = ['nombre', 'consumo_kwh_diario'] # Renombrar columnas para claridad
+        col_nombre_idx = 0  # Columna A
+        col_consumo_idx = 1 # Columna B
+        fila_inicio_idx = 110 # Fila 111 en Excel (111 - 1)
+        fila_fin_idx = 173  # Fila 174 en Excel (174 - 1)
 
-        # Opcional: Si tienes una columna para la categoría en el Excel (ej. columna C), la agregarías aquí
-        # Por ahora, si no hay una columna de categoría explícita, los agruparemos de forma simple.
-        # Si la columna A contiene el nombre del electrodoméstico Y la categoría (ej. "Iluminación - LED"),
-        # podríamos intentar parsear la categoría desde el nombre.
-        # Para este ejemplo, asumiremos que todos son de una misma "categoría general" a menos que haya una columna explícita.
-        # Si la primera columna contiene algo como "CATEGORIA: Electrodomésticos", podrías usar esa fila como separador.
+        electrodomesticos_lista = []
+        max_filas_df = df_tablas.shape[0]
 
-        # Vamos a crear una estructura simple por ahora, asumiendo que los nombres son únicos
-        # y no hay una columna de categoría específica en A:B
-        # Si las categorías están en una columna separada (ej. columna C), ajustaríamos:
-        # electrodomesticos_df = df_tablas.iloc[110:174, 0:3]
-        # electrodomesticos_df.columns = ['nombre', 'consumo_kwh_diario', 'categoria']
+        for r_idx in range(fila_inicio_idx, fila_fin_idx + 1):
+            if r_idx >= max_filas_df:
+                print(f"WARN: Fila {r_idx+1} fuera de límites (hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida.")
+                break
+            if col_nombre_idx >= df_tablas.shape[1] or col_consumo_idx >= df_tablas.shape[1]:
+                print(f"WARN: Columna para nombre/consumo fuera de límites (hoja 'Tablas' tiene {df_tablas.shape[1]} columnas).")
+                break
 
+            nombre = df_tablas.iloc[r_idx, col_nombre_idx]
+            consumo_kwh = df_tablas.iloc[r_idx, col_consumo_idx]
 
-        # Convertir a una lista de diccionarios para enviar como JSON
-        electrodomesticos_list = []
-        current_category = "Otros Electrodomésticos" # Categoría por defecto si no hay en Excel
+            if pd.isna(nombre) or str(nombre).strip() == "":
+                print(f"DEBUG: Fila {r_idx+1} omitida por nombre NaN o vacío.")
+                continue
 
-        for index, row in electrodomesticos_df.iterrows():
-            nombre = row['nombre']
-            consumo_kwh_diario = row['consumo_kwh_diario']
+            consumo_kwh_float = 0.0
+            if pd.isna(consumo_kwh):
+                print(f"DEBUG: Consumo NaN para '{nombre}' en fila {r_idx+1}, usando 0.")
+            else:
+                try:
+                    consumo_kwh_float = float(consumo_kwh)
+                except ValueError:
+                    print(f"WARN: No se pudo convertir consumo '{consumo_kwh}' a float para '{nombre}'. Usando 0.")
 
-            # Intentar determinar la categoría si el nombre del electrodoméstico incluye una (ej. "Electrodomésticos - Heladera")
-            # O si hay filas específicas que marcan una categoría (ej. "ILUMINACION")
-            # Aquí, asumo que cada electrodoméstico está en una fila.
-            # Si tu Excel tiene títulos de categoría en las filas, necesitamos una lógica más sofisticada.
-            # Por ahora, si el "nombre" parece una categoría (ej. todo mayúsculas o termina en ':'), lo usamos.
-
-            if isinstance(nombre, str) and nombre.isupper() and "CONSUMO" not in nombre: # Heurística para categorías
-                 current_category = nombre.strip()
-            elif pd.notna(nombre) and pd.notna(consumo_kwh_diario):
-                # Calcular potencia en Watts (asumiendo que 1 kWh_diario es un promedio)
-                # La imagen tenía potencia en Watts y horas de uso diario. El Excel tiene consumo en kWh/día.
-                # Para la interfaz, necesitamos potencia (W) y horas/día.
-                # Podemos hacer una estimación inversa:
-                # Potencia (W) * Horas/día / 1000 = Consumo_kWh/día
-                # Si tenemos solo Consumo_kWh/día, podemos asumir una hora de uso estándar (ej. 1 hora) para derivar una "potencia efectiva"
-                # o, si es más preciso, el consumo en kWh/día ya es suficiente para el cálculo final.
-                # Para la visualización como en la imagen, necesitamos Potencia y Horas.
-                # Sugerencia: el Excel debería tener Potencia y Horas, o podemos asumir horas y calcular potencia.
-                # Por ahora, si el Excel da kWh/día, usaremos ese valor directamente para los cálculos,
-                # y para la visualización, podríamos mostrar "Consumo: X kWh/día" o asumir un uso de 1 hora para derivar una potencia.
-
-                # Si el consumo es en kWh/día, lo pasamos directamente. No tiene sentido derivar potencia y horas sin más datos.
-                # Simplemente lo enviaremos como consumo_kwh_diario y el frontend lo usará.
-                # Para que se parezca a la imagen (W y h/día), necesitaríamos esos datos en el Excel.
-                # Por ahora, lo enviaré como "consumo_kwh_diario".
-                # Si el excel tiene POTENCIA y HORAS, ajusta las columnas de lectura y este diccionario.
-
-                electrodomesticos_list.append({
-                    'nombre': nombre.strip(),
-                    'consumo_kwh_diario': float(consumo_kwh_diario),
-                    'categoria': current_category
-                })
-
-        # Agrupar por categoría para facilitar el manejo en el frontend
-        grouped_electrodomesticos = {}
-        for item in electrodomesticos_list:
-            categoria = item['categoria']
-            if categoria not in grouped_electrodomesticos:
-                grouped_electrodomesticos[categoria] = []
-            grouped_electrodomesticos[categoria].append({
-                'nombre': item['nombre'],
-                'consumo_kwh_diario': item['consumo_kwh_diario']
+            electrodomesticos_lista.append({
+                "name": str(nombre),
+                "consumo_diario_kwh": consumo_kwh_float
             })
 
-        print(f"DEBUG: Electrodomésticos leídos y agrupados: {grouped_electrodomesticos}")
-        return jsonify(grouped_electrodomesticos)
+        print(f"DEBUG: Total electrodomésticos leídos de 'Tablas' A{fila_inicio_idx+1}:B{fila_fin_idx+1}: {len(electrodomesticos_lista)}")
+        categorias_respuesta = {"Electrodomésticos Disponibles": electrodomesticos_lista}
+
+        return jsonify({"categorias": categorias_respuesta})
 
     except FileNotFoundError:
-        print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO: {EXCEL_FILE_PATH}")
-        return jsonify({"error": "Archivo Excel no encontrado."}), 500
+        print(f"ERROR en /api/electrodomesticos: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel no encontrado."}), 404
     except KeyError as e:
-        print(f"Error de KeyError en backend (hoja o columnas no encontradas): {e}")
-        return jsonify({"error": f"Error al leer hoja Excel o columnas: {e}."}), 500
+        print(f"ERROR en /api/electrodomesticos: Hoja 'Tablas' no encontrada?: {e}")
+        return jsonify({"error": f"Error de clave (¿nombre de hoja?): {e}"}), 500
+    except IndexError as e:
+        print(f"ERROR en /api/electrodomesticos: Rango celdas fuera de límites: {e}")
+        return jsonify({"error": f"Rango celdas fuera de límites: {e}"}), 500
     except Exception as e:
         import traceback
-        print(f"ERROR GENERAL en backend al obtener electrodomésticos: {e}")
+        print(f"ERROR GENERAL en /api/electrodomesticos: {e}")
         print(traceback.format_exc())
-        return jsonify({"error": f"Error interno del servidor al obtener electrodomésticos: {str(e)}"}), 500
+        return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
 # --- Ruta para generar informe (EXISTENTE) ---
 @app.route('/api/generar_informe', methods=['POST'])
