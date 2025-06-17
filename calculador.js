@@ -9,8 +9,13 @@ let userSelections = {
     location: userLocation,
     installationType: null,
     incomeLevel: null,
-    zonaInstalacionExpert: null,
+    zonaInstalacionExpert: null, // Remains for now, though the element is gone
     zonaInstalacionBasic: null,
+    selectedZonaInstalacion: null, // New property
+    superficieRodea: { // New property for "Superficie Rodea"
+        descripcion: null,
+        valor: null
+    },
     electrodomesticos: {}, // Almacenará { "Nombre Electrodoméstico": cantidad }
     totalMonthlyConsumption: 0,
     totalAnnualConsumption: 0,
@@ -56,6 +61,7 @@ const supplySection = document.getElementById('supply-section');
 const incomeSection = document.getElementById('income-section');
 const expertSection = document.getElementById('expert-section');
 const consumoFacturaSection = document.getElementById('consumo-factura-section');
+const superficieSection = document.getElementById('superficie-section');
 
 
 // --- Funciones de Persistencia (NUEVO BLOQUE INTEGRADO) ---
@@ -142,6 +148,62 @@ function updateUIFromSelections() {
     const factorPerdidasInput = document.getElementById('factor-perdidas-input');
     if (factorPerdidasInput && userSelections.perdidas?.factorPerdidas) {
         factorPerdidasInput.value = userSelections.perdidas.factorPerdidas;
+    }
+}
+
+
+// --- Nueva función para inicializar la sección de Superficie Rodea ---
+async function initSuperficieSection() {
+    const container = document.getElementById('superficie-options-container');
+    if (!container) {
+        console.error("Contenedor 'superficie-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = ''; // Limpiar opciones anteriores
+
+    try {
+        const response = await fetch('/api/superficie_options'); // Asegúrate que esta ruta sea correcta
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        const options = await response.json();
+
+        if (!Array.isArray(options)) {
+            console.error('Respuesta de /api/superficie_options no es un array:', options);
+            return;
+        }
+
+        options.forEach(item => {
+            const label = document.createElement('label');
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = 'superficieRodeaOption'; // Nombre común para el grupo de radios
+            input.value = item.valor;
+            input.dataset.descripcion = item.descripcion; // Guardar descripción en dataset
+
+            // Comprobar si esta opción debe estar seleccionada (persistiendo selección)
+            if (userSelections.superficieRodea && userSelections.superficieRodea.valor === item.valor) {
+                input.checked = true;
+            }
+
+            input.addEventListener('change', () => {
+                if (input.checked) {
+                    userSelections.superficieRodea.descripcion = item.descripcion;
+                    userSelections.superficieRodea.valor = parseFloat(item.valor);
+                    saveUserSelections();
+                    console.log('Superficie rodea seleccionada:', userSelections.superficieRodea);
+                }
+            });
+
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(" " + item.descripcion));
+            container.appendChild(label);
+        });
+
+    } catch (error) {
+        console.error('Error al cargar opciones de superficie:', error);
+        // Opcional: Mostrar un mensaje al usuario en el contenedor
+        container.innerHTML = '<p style="color:red;">Error al cargar las opciones. Intente más tarde.</p>';
     }
 }
 
@@ -333,6 +395,7 @@ function showScreen(screenId) {
 
     // Hide all individual sub-sections within dataFormScreen explicitly
     if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'none';
+    if (superficieSection) superficieSection.style.display = 'none'; // Added for new section
     if (energiaSection) energiaSection.style.display = 'none';
     if (consumoFacturaSection) consumoFacturaSection.style.display = 'none'; // Added
     if (panelesSection) panelesSection.style.display = 'none';
@@ -373,22 +436,44 @@ function showScreen(screenId) {
 function updateStepIndicator(screenId) {
     let stepNumber = 0;
     switch (screenId) {
-        case 'map-screen': stepNumber = 1; break;
-        case 'data-form-screen': stepNumber = 2; break;
-        case 'data-meteorologicos-section': stepNumber = 3; break;
-        case 'energia-section': stepNumber = 4; break;
-        // consumo-factura-section is a branch, step numbering might need review for this path
+        case 'map-screen': stepNumber = 1; break; // Or 'Paso 1: Ubicación y Tipo de Usuario'
+        case 'data-form-screen': // This is a container, usually a specific sub-section is shown.
+                                 // Defaulting to data-meteorologicos if shown directly.
+            stepNumber = 2; break;
+        case 'data-meteorologicos-section':
+            if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 2 > Datos Meteorológicos';
+            return;
+        case 'superficie-section': // New step for "Superficie Rodea"
+            if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 3 > Superficie Circundante';
+            return;
+        case 'energia-section':
+            // Adjust step number if superficie-section is considered a main step
+            // For now, this text will be shown after superficie-section for experts
+            if (stepIndicatorText) stepIndicatorText.textContent = `Paso ${userSelections.userType === 'experto' ? 4 : 3} > Consumo de Energía`;
+            return;
         case 'consumo-factura-section':
-            if (stepIndicatorText) stepIndicatorText.textContent = 'Paso: Ingreso Consumo por Factura';
-            return; // Return early as stepNumber is not set for this branch
-        case 'paneles-section': stepNumber = 5; break;
-        case 'inversor-section': stepNumber = 6; break;
-        case 'perdidas-section': stepNumber = 7; break;
-        case 'analisis-economico-section': stepNumber = 8; break; // Asumiendo que esta es la última
+            if (stepIndicatorText) stepIndicatorText.textContent = 'Paso Alternativo > Consumo por Factura';
+            return;
+        case 'paneles-section':
+            if (stepIndicatorText) stepIndicatorText.textContent = `Paso ${userSelections.userType === 'experto' ? 5 : 4} > Paneles`;
+            return;
+        case 'inversor-section':
+            if (stepIndicatorText) stepIndicatorText.textContent = `Paso ${userSelections.userType === 'experto' ? 6 : 5} > Inversor`;
+            return;
+        case 'perdidas-section':
+            if (stepIndicatorText) stepIndicatorText.textContent = `Paso ${userSelections.userType === 'experto' ? 7 : 6} > Registro Pérdidas`;
+            return;
+        case 'analisis-economico-section':
+            if (stepIndicatorText) stepIndicatorText.textContent = `Paso ${userSelections.userType === 'experto' ? 8 : (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME' ? 'Final' : 5) } > Análisis Económico`;
+            return;
+        default:
+            if (stepIndicatorText) stepIndicatorText.textContent = 'Calculador Solar'; // Default or error text
+            return;
     }
-    if (stepIndicatorText) { // Asegurarse de que el elemento exista
-        stepIndicatorText.textContent = `Paso ${stepNumber} de 8`; // Adjust total steps if this path changes it
-    }
+    // Fallback for original step numbering if direct stepNumber is set (e.g., map-screen)
+    // if (stepIndicatorText) {
+    //     stepIndicatorText.textContent = `Paso ${stepNumber} de X`; // X needs to be dynamic
+    // }
 }
 
 // Helper function to manage visibility of form sections within map-screen
@@ -441,7 +526,16 @@ function setupNavigationButtons() {
         expertUserButton.addEventListener('click', () => {
             userSelections.userType = 'experto';
             saveUserSelections();
-            showMapScreenFormSection('expert-section');
+
+            // Explicitly hide map-screen if it's the current one.
+            // The showScreen function should handle this, but being explicit can be safer.
+            const mapScreenElement = document.getElementById('map-screen');
+            if (mapScreenElement) mapScreenElement.style.display = 'none';
+
+            // Show data-form-screen and ensure data-meteorologicos-section is visible
+            // and hide other sections within data-form-screen.
+            showScreen('data-meteorologicos-section');
+            updateStepIndicator('data-meteorologicos-section');
         });
     }
 
@@ -575,8 +669,54 @@ function setupNavigationButtons() {
     // document.getElementById('back-to-map')?.addEventListener('click', () => showScreen('map-screen'));
     // document.getElementById('next-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
     // document.getElementById('back-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
-    document.getElementById('next-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
-    document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
+    document.getElementById('next-to-energia')?.addEventListener('click', () => {
+        // Get the selected value from the 'zonaInstalacionNewScreen' radio buttons
+        const selectedZona = document.querySelector('input[name="zonaInstalacionNewScreen"]:checked');
+        if (selectedZona) {
+            userSelections.selectedZonaInstalacion = selectedZona.value;
+            saveUserSelections(); // Save the updated selections
+            console.log('Zona de instalación seleccionada:', userSelections.selectedZonaInstalacion);
+        } else {
+            // Optional: Handle case where no option is selected, though 'required' attribute on radio should prevent this.
+            console.warn('No se seleccionó zona de instalación.');
+            // Consider if you want to prevent navigation if nothing is selected,
+            // though HTML 'required' attribute should ideally handle form validation.
+        }
+
+        // Proceed with navigation
+        if (userSelections.userType === 'experto') {
+            showScreen('superficie-section');
+            updateStepIndicator('superficie-section');
+            initSuperficieSection(); // Load options for the new section
+        } else {
+            // Basic users skip superficie-section and go directly to energia
+            showScreen('energia-section');
+            updateStepIndicator('energia-section');
+        }
+    });
+
+    // Listener for back button from superficie-section to data-meteorologicos-section
+    document.getElementById('back-to-data-meteorologicos-from-superficie')?.addEventListener('click', () => {
+        showScreen('data-meteorologicos-section');
+        updateStepIndicator('data-meteorologicos-section');
+    });
+
+    // Listener for next button from superficie-section to energia-section
+    document.getElementById('next-to-energia-from-superficie')?.addEventListener('click', () => {
+        // Optional: check if a superficieRodea option is selected
+        if (!userSelections.superficieRodea || userSelections.superficieRodea.valor === null) {
+            // console.warn('Advertencia: No se ha seleccionado una opción de superficie.');
+            // alert('Por favor, seleccione una opción de superficie antes de continuar.');
+            // return; // Uncomment to prevent navigation if nothing selected
+        }
+        showScreen('energia-section');
+        updateStepIndicator('energia-section');
+    });
+
+    document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => {
+        showScreen('data-meteorologicos-section');
+        updateStepIndicator('data-meteorologicos-section');
+    });
     
     const backFromConsumoFacturaButton = document.getElementById('back-from-consumo-factura');
     if (backFromConsumoFacturaButton) {
