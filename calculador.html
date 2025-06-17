@@ -497,21 +497,6 @@
                     <button class="selection-button" id="income-high-button">ALTO</button>
                     <button class="selection-button" id="income-low-button">BAJO</button>
                 </div>
-                <div class="form-section" id="expert-section" style="display:none;">
-                    <h2>Datos adicionales</h2>
-                    <form id="expert-data-form">
-                        <div class="form-group">
-                            <label for="zonaInstalacion">Zona de la instalación</label>
-                            <select id="zona-instalacion-expert" name="zonaInstalacion" required>
-                                <option value="">Seleccionar</option>
-                                <option value="Urbana">Urbana</option>
-                                <option value="Suburbana">Suburbana</option>
-                                <option value="Rural">Rural</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="selection-button" style="background: var(--color-secondary);">Guardar</button>
-                    </form>
-                </div>
             </div>
         </div>
     </div>
@@ -576,6 +561,56 @@
                         <button type="submit" id="next-to-energia">Siguiente</button>
                     </div>
                 </div>
+                <!-- Nueva sección para Superficie Rodea -->
+                <div id="superficie-section" style="display:none;">
+                    <h1>¿Qué superficie rodea el lugar donde llevar a cabo la instalación?</h1>
+                    <div class="form-group">
+                        <!-- Options will be dynamically inserted here by JavaScript -->
+                        <div id="superficie-options-container" class="radio-group">
+                            <!-- Example of how an option might look (for structure reference only, will be JS generated):
+                            <label>
+                                <input type="radio" name="superficieRodea" value="descripcion_valor_concatenado_o_solo_valor">
+                                Descripcion de la superficie
+                            </label>
+                            -->
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-data-meteorologicos-from-superficie" class="back-button">Atrás</button>
+                        <button type="button" id="next-to-energia-from-superficie">Siguiente</button>
+                    </div>
+                </div>
+                <!-- Fin de Nueva sección para Superficie Rodea -->
+                <!-- Nueva sección para Rugosidad -->
+                <div id="rugosidad-section" style="display:none;">
+                    <h1>¿Cuál es la rugosidad de la superficie que rodea la instalación?</h1>
+                    <div class="form-group">
+                        <!-- Options will be dynamically inserted here by JavaScript -->
+                        <div id="rugosidad-options-container" class="radio-group">
+                            <!-- Example structure for radio options (will be JS generated) -->
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-superficie-from-rugosidad" class="back-button">Atrás</button>
+                        <button type="button" id="next-to-rotacion-from-rugosidad">Siguiente</button>
+                    </div>
+                </div>
+                <!-- Fin de Nueva sección para Rugosidad -->
+                <!-- Nueva sección para Rotación -->
+                <div id="rotacion-section" style="display:none;">
+                    <h1>¿Con qué rotación contaría la instalación?</h1>
+                    <div class="form-group">
+                        <!-- Options will be dynamically inserted here by JavaScript -->
+                        <div id="rotacion-options-container" class="radio-group">
+                            <!-- Example structure for radio options (will be JS generated) -->
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-rugosidad-from-rotacion" class="back-button">Atrás</button>
+                        <button type="button" id="next-to-paneles-from-rotacion">Siguiente</button>
+                    </div>
+                </div>
+                <!-- Fin de Nueva sección para Rotación -->
                 <div id="energia-section" style="display:none;">
                     <h1>Paso 2: Consumo de Energía</h1>
                     <p>A continuación, ingrese la cantidad de cada electrodoméstico que posee.</p>
