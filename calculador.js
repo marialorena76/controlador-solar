@@ -47,8 +47,16 @@ const inversorSection = document.getElementById('inversor-section');
 const perdidasSection = document.getElementById('perdidas-section');
 const analisisEconomicoSection = document.getElementById('analisis-economico-section');
 const stepIndicatorText = document.getElementById('step-indicator-text');
-const totalConsumoMensualDisplay = document.getElementById('total-consumo-mensual');
-const totalConsumoAnualDisplay = document.getElementById('total-consumo-anual');
+const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');
+const totalConsumoAnualDisplay = document.getElementById('totalConsumoAnual');
+
+// Elementos de las secciones del formulario en map-screen
+const userTypeSection = document.getElementById('user-type-section');
+const supplySection = document.getElementById('supply-section');
+const incomeSection = document.getElementById('income-section');
+const expertSection = document.getElementById('expert-section');
+const consumoFacturaSection = document.getElementById('consumo-factura-section');
+const superficieRodeaSection = document.getElementById('superficie-rodea-section');
 
 
 // --- Funciones de Persistencia (NUEVO BLOQUE INTEGRADO) ---
@@ -159,13 +167,13 @@ async function cargarElectrodomesticosDesdeBackend() {
         // Datos de respaldo en caso de falla para desarrollo/prueba
         electrodomesticosCategorias = {
             "Cocina": [
-                { name: "Heladera", watts: 150, hoursPerDay: 24 },
-                { name: "Microondas", watts: 1200, hoursPerDay: 0.5 },
-                { name: "Lavarropas", watts: 2000, hoursPerDay: 1 }
+                { name: "Heladera", consumo_diario_kwh: 1.5 },
+                { name: "Microondas", consumo_diario_kwh: 0.6 },
+                { name: "Lavarropas", consumo_diario_kwh: 0.7 }
             ],
             "Entretenimiento": [
-                { name: "Televisor", watts: 100, hoursPerDay: 4 },
-                { name: "Computadora", watts: 200, hoursPerDay: 6 }
+                { name: "Televisor", consumo_diario_kwh: 0.4 },
+                { name: "Computadora", consumo_diario_kwh: 1.2 }
             ]
         };
         initElectrodomesticosSection();
@@ -214,7 +222,7 @@ function initElectrodomesticosSection() {
             // Calcula el consumo diario individual y lo muestra
             // Asumiendo que tu backend proporciona 'watts' y 'hoursPerDay'
             // Si tu backend solo da 'consumo_diario', puedes usar item.consumo_diario directamente.
-            const consumoDiario = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
+            const consumoDiario = item.consumo_diario_kwh || 0;
             const consumoLabel = document.createElement('span');
             consumoLabel.textContent = `${consumoDiario.toFixed(3)} kWh/día`;
 
@@ -234,7 +242,7 @@ function calcularConsumo() {
             electrodomesticosCategorias[categoria].forEach(item => {
                 const cant = userSelections.electrodomesticos[item.name] || 0;
                 // Ajusta esta lógica si tu backend solo da 'consumo_diario'
-                const consumoDiarioItem = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
+                const consumoDiarioItem = item.consumo_diario_kwh || 0;
                 totalDiario += consumoDiarioItem * cant;
             });
         }
@@ -292,44 +300,76 @@ function initMap() {
 // --- Lógica de la Navegación de Pantallas (EXISTENTE, VERIFICADA) ---
 
 function showScreen(screenId) {
-    // Oculta todas las secciones
-    mapScreen.style.display = 'none';
-    dataFormScreen.style.display = 'none';
-    dataMeteorologicosSection.style.display = 'none';
-    energiaSection.style.display = 'none';
-    panelesSection.style.display = 'none';
-    inversorSection.style.display = 'none';
-    perdidasSection.style.display = 'none';
-    analisisEconomicoSection.style.display = 'none';
+    // Hide main screen containers first
+    if (mapScreen) mapScreen.style.display = 'none';
+    if (dataFormScreen) dataFormScreen.style.display = 'none';
 
-    // Muestra la sección deseada
-    const targetScreen = document.getElementById(screenId);
-    if (targetScreen) {
-        targetScreen.style.display = 'block';
+    // Hide all individual sub-sections within dataFormScreen explicitly
+    if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'none';
+    if (energiaSection) energiaSection.style.display = 'none';
+    // consumoFacturaSection will be added later in this recovery process
+    if (panelesSection) panelesSection.style.display = 'none';
+    if (inversorSection) inversorSection.style.display = 'none';
+    if (perdidasSection) perdidasSection.style.display = 'none';
+    if (analisisEconomicoSection) analisisEconomicoSection.style.display = 'none';
+
+    const targetElement = document.getElementById(screenId);
+
+    if (targetElement) {
+        if (screenId === 'map-screen') {
+            if (mapScreen) mapScreen.style.display = 'block';
+        } else if (screenId === 'data-form-screen') {
+            if (dataFormScreen) dataFormScreen.style.display = 'block';
+            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block'; // Default to first step
+        } else {
+            if (dataFormScreen) {
+                dataFormScreen.style.display = 'block';
+            }
+            targetElement.style.display = 'block';
+        }
     } else {
         console.error(`Error: La pantalla con ID '${screenId}' no fue encontrada.`);
-        return;
     }
-
-    // Actualiza el indicador de paso
-    updateStepIndicator(screenId);
-    localStorage.setItem('currentScreenId', screenId); // Guarda la pantalla actual
+    // updateStepIndicator is called by event listeners
 }
 
 function updateStepIndicator(screenId) {
     let stepNumber = 0;
+    let currentStepText = '';
     switch (screenId) {
-        case 'map-screen': stepNumber = 1; break;
-        case 'data-form-screen': stepNumber = 2; break;
-        case 'data-meteorologicos-section': stepNumber = 3; break;
-        case 'energia-section': stepNumber = 4; break;
-        case 'paneles-section': stepNumber = 5; break;
-        case 'inversor-section': stepNumber = 6; break;
-        case 'perdidas-section': stepNumber = 7; break;
-        case 'analisis-economico-section': stepNumber = 8; break; // Asumiendo que esta es la última
+        case 'map-screen':
+            currentStepText = 'Paso 1: Ubicación y Tipo de Usuario';
+            break;
+        // data-form-screen is a container, specific steps below set their own text.
+        // If data-form-screen is called directly, dataMeteorologicosSection is shown by default.
+        case 'data-form-screen':
+        case 'data-meteorologicos-section':
+            currentStepText = 'Paso 2: Datos Meteorológicos';
+            break;
+        case 'energia-section':
+            currentStepText = 'Paso 3: Consumo de Energía (Electrodomésticos)';
+            break;
+        case 'consumo-factura-section': // Will be added later
+            currentStepText = 'Paso 3: Consumo de Energía (Factura)';
+            break;
+        case 'paneles-section':
+            currentStepText = 'Paso 4: Selección de Paneles';
+            break;
+        case 'inversor-section':
+            currentStepText = 'Paso 5: Selección de Inversor';
+            break;
+        case 'perdidas-section':
+            currentStepText = 'Paso 6: Registro de Pérdidas';
+            break;
+        case 'analisis-economico-section':
+            currentStepText = 'Paso 7: Análisis Económico';
+            break;
+        default:
+            currentStepText = 'Calculador Solar'; // Default or unknown step
+            break;
     }
-    if (stepIndicatorText) { // Asegurarse de que el elemento exista
-        stepIndicatorText.textContent = `Paso ${stepNumber} de 8`;
+    if (stepIndicatorText) {
+        stepIndicatorText.textContent = currentStepText;
     }
 }
 
@@ -337,27 +377,195 @@ function updateStepIndicator(screenId) {
 // --- Configuración de Event Listeners para Botones y Selects (EXISTENTE, MODIFICADA) ---
 
 function setupNavigationButtons() {
-    // Listeners para inputs de selección y otros que guardan userSelections
-    // Asegúrate de que estos IDs existan en tu HTML
-    document.getElementById('user-type')?.addEventListener('change', (e) => {
-        userSelections.userType = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    });
-    document.getElementById('installation-type')?.addEventListener('change', (e) => {
-        userSelections.installationType = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    });
-    document.getElementById('income-level')?.addEventListener('change', (e) => {
-        userSelections.incomeLevel = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    });
+    // Get buttons - ensure these IDs exist in calculador.html
+    const basicUserButton = document.getElementById('basic-user-button');
+    const expertUserButton = document.getElementById('expert-user-button');
+    const residentialButton = document.getElementById('residential-button');
+    const commercialButton = document.getElementById('commercial-button');
+    const pymeButton = document.getElementById('pyme-button');
+    const incomeHighButton = document.getElementById('income-high-button');
+    const incomeLowButton = document.getElementById('income-low-button');
+    const expertDataForm = document.getElementById('expert-data-form');
+
+    // New buttons for superficie-rodea-section
+    const nextFromSuperficieRodeaButton = document.getElementById('next-from-superficie-rodea');
+    const backFromSuperficieRodeaButton = document.getElementById('back-from-superficie-rodea');
+
+    // New buttons for consumo-factura-section
+    const nextFromConsumoFacturaButton = document.getElementById('next-from-consumo-factura');
+    const backFromConsumoFacturaButton = document.getElementById('back-from-consumo-factura');
+
+    // Initial state on map-screen (handled by HTML default or showMapScreenFormSection if needed)
+    // showMapScreenFormSection('user-type-section'); // Call if explicit control needed here
+
+    if (basicUserButton) {
+        basicUserButton.addEventListener('click', () => {
+            userSelections.userType = 'basico';
+            saveUserSelections();
+            showMapScreenFormSection('supply-section');
+        });
+    }
+
+    if (expertUserButton) {
+        expertUserButton.addEventListener('click', () => {
+            userSelections.userType = 'experto';
+            // Save zonaInstalacionExpert if it's part of this initial expert form.
+            // const zonaExpertSelect = document.getElementById('zona-instalacion-expert');
+            // if (zonaExpertSelect) userSelections.zonaInstalacionExpert = zonaExpertSelect.value;
+            saveUserSelections();
+            // For experts, after selecting 'experto', they might go to a different first step
+            // like 'superficie-rodea-section' or directly to 'expert-section' if that's the primary expert input area on map-screen.
+            // The provided HTML shows 'expert-section' with 'zonaInstalacion' on map screen.
+            // Let's assume clicking "Usuario Experto" reveals "expert-section" first.
+            showMapScreenFormSection('expert-section');
+        });
+    }
+
+    if (expertDataForm) { // This form is within 'expert-section' on map-screen
+        expertDataForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const zonaExpertSelect = document.getElementById('zona-instalacion-expert');
+            if (zonaExpertSelect) userSelections.zonaInstalacionExpert = zonaExpertSelect.value;
+            saveUserSelections();
+
+            showScreen('superficie-rodea-section');
+            updateStepIndicator('superficie-rodea-section');
+            cargarOpcionesSuperficieRodea();
+        });
+    }
+
+    if (residentialButton) {
+        residentialButton.addEventListener('click', () => {
+            userSelections.installationType = 'Residencial';
+            saveUserSelections();
+            showMapScreenFormSection('income-section');
+        });
+    }
+
+    if (commercialButton) {
+        commercialButton.addEventListener('click', () => {
+            userSelections.installationType = 'Comercial';
+            saveUserSelections();
+            showScreen('consumo-factura-section');
+            updateStepIndicator('consumo-factura-section');
+        });
+    }
+
+    if (pymeButton) {
+        pymeButton.addEventListener('click', () => {
+            userSelections.installationType = 'PYME';
+            saveUserSelections();
+            showScreen('consumo-factura-section');
+            updateStepIndicator('consumo-factura-section');
+        });
+    }
+
+    if (incomeHighButton) {
+        incomeHighButton.addEventListener('click', () => {
+            userSelections.incomeLevel = 'ALTO';
+            saveUserSelections();
+            showScreen('data-form-screen');
+            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
+            updateStepIndicator('data-meteorologicos-section');
+        });
+    }
+
+    if (incomeLowButton) {
+        incomeLowButton.addEventListener('click', () => {
+            userSelections.incomeLevel = 'BAJO';
+            saveUserSelections();
+            showScreen('data-form-screen');
+            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
+            updateStepIndicator('data-meteorologicos-section');
+        });
+    }
+
+    // Listeners for superficie-rodea-section
+    if (nextFromSuperficieRodeaButton) {
+        nextFromSuperficieRodeaButton.addEventListener('click', () => {
+            const selectSuperficie = document.getElementById('superficieRodea');
+            if (selectSuperficie && selectSuperficie.value) {
+                userSelections.superficieRodea = selectSuperficie.value;
+                saveUserSelections();
+                showScreen('data-meteorologicos-section');
+                updateStepIndicator('data-meteorologicos-section');
+            } else {
+                alert('Por favor, seleccione una superficie circundante.');
+            }
+        });
+    }
+
+    if (backFromSuperficieRodeaButton) {
+        backFromSuperficieRodeaButton.addEventListener('click', () => {
+            showScreen('map-screen'); // Go back to map screen
+            showMapScreenFormSection('expert-section'); // Show the previous section on map screen
+        });
+    }
+
+    // Listeners for consumo-factura-section
+    if (nextFromConsumoFacturaButton) {
+        nextFromConsumoFacturaButton.addEventListener('click', () => {
+            const monthIds = [
+                'consumo-enero', 'consumo-febrero', 'consumo-marzo', 'consumo-abril',
+                'consumo-mayo', 'consumo-junio', 'consumo-julio', 'consumo-agosto',
+                'consumo-septiembre', 'consumo-octubre', 'consumo-noviembre', 'consumo-diciembre'
+            ];
+            let totalAnnualConsumptionFromBill = 0;
+            const monthlyConsumptions = [];
+            // let allInputsValid = true; // Optional: for stricter validation
+
+            monthIds.forEach(id => {
+                const inputElement = document.getElementById(id);
+                if (inputElement) {
+                    const value = parseFloat(inputElement.value);
+                    if (isNaN(value) || value < 0) {
+                        console.warn(`Valor inválido o vacío para ${id}, usando 0.`);
+                        monthlyConsumptions.push(0);
+                        // allInputsValid = false;
+                    } else {
+                        monthlyConsumptions.push(value);
+                        totalAnnualConsumptionFromBill += value;
+                    }
+                } else {
+                    console.error(`Input con ID ${id} no encontrado.`);
+                    // allInputsValid = false;
+                }
+            });
+
+            // if (!allInputsValid) {
+            //    alert("Por favor, ingrese valores numéricos válidos para todos los meses.");
+            //    return;
+            // }
+
+            userSelections.consumosMensualesFactura = monthlyConsumptions;
+            userSelections.totalAnnualConsumption = totalAnnualConsumptionFromBill;
+
+            console.log('Consumos mensuales (factura):', userSelections.consumosMensualesFactura);
+            console.log('Consumo anual total (factura):', userSelections.totalAnnualConsumption);
+            saveUserSelections();
+
+            showScreen('analisis-economico-section');
+            updateStepIndicator('analisis-economico-section');
+        });
+    }
+
+    if (backFromConsumoFacturaButton) {
+        backFromConsumoFacturaButton.addEventListener('click', () => {
+            showScreen('map-screen');
+            showMapScreenFormSection('supply-section');
+        });
+    }
+
+    // Standard navigation for other select elements (if any were missed or need specific handling)
     document.getElementById('zona-instalacion-expert')?.addEventListener('change', (e) => {
         userSelections.zonaInstalacionExpert = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
+        saveUserSelections();
     });
-    document.getElementById('zona-instalacion-basic')?.addEventListener('change', (e) => {
-        userSelections.zonaInstalacionBasic = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
+    // document.getElementById('user-type')?.addEventListener('change', ...); // Already handled by buttons
+    // document.getElementById('installation-type')?.addEventListener('change', ...); // Handled by buttons
+    // document.getElementById('income-level')?.addEventListener('change', ...); // Handled by buttons
+    // document.getElementById('zona-instalacion-basic')?.addEventListener('change', ...); // This element might not be used if basic flow is simplified
+
     });
     document.getElementById('moneda')?.addEventListener('change', (e) => {
         userSelections.selectedCurrency = e.target.value;
@@ -400,21 +608,61 @@ function setupNavigationButtons() {
     });
 
 
-    // Configurar los botones de navegación entre secciones (EXISTENTES)
-    document.getElementById('next-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
-    document.getElementById('back-to-map')?.addEventListener('click', () => showScreen('map-screen'));
-    document.getElementById('next-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
-    document.getElementById('back-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
-    document.getElementById('next-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
-    document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
-    document.getElementById('next-to-paneles')?.addEventListener('click', () => showScreen('paneles-section'));
-    document.getElementById('back-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
-    document.getElementById('next-to-inversor')?.addEventListener('click', () => showScreen('inversor-section'));
-    document.getElementById('back-to-paneles')?.addEventListener('click', () => showScreen('paneles-section'));
-    document.getElementById('next-to-perdidas')?.addEventListener('click', () => showScreen('perdidas-section'));
-    document.getElementById('back-to-inversor')?.addEventListener('click', () => showScreen('inversor-section'));
-    document.getElementById('next-to-analisis-economico')?.addEventListener('click', () => showScreen('analisis-economico-section'));
-    document.getElementById('back-to-perdidas')?.addEventListener('click', () => showScreen('perdidas-section'));
+    // Configurar los botones de navegación entre secciones (EXISTENTES, but some are now conditional or replaced)
+    // document.getElementById('next-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen')); // Replaced by user type buttons
+    // document.getElementById('back-to-map')?.addEventListener('click', () => showScreen('map-screen')); // Contextual back buttons are better
+    // document.getElementById('next-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section')); // This is now a target from other flows
+    // document.getElementById('back-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen')); // Contextual back buttons
+
+    document.getElementById('next-to-energia')?.addEventListener('click', () => { // From data-meteorologicos to energia
+        showScreen('energia-section');
+        updateStepIndicator('energia-section');
+    });
+    document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => { // From energia to data-meteorologicos
+        showScreen('data-meteorologicos-section');
+        updateStepIndicator('data-meteorologicos-section');
+    });
+
+    const nextToPanelesButton = document.getElementById('next-to-paneles'); // From energia to (paneles OR analisis-economico)
+    if (nextToPanelesButton) {
+        nextToPanelesButton.addEventListener('click', () => {
+            if (userSelections.userType === 'basico') {
+                showScreen('analisis-economico-section');
+                updateStepIndicator('analisis-economico-section');
+            } else {
+                showScreen('paneles-section');
+                updateStepIndicator('paneles-section');
+            }
+        });
+    }
+    document.getElementById('back-to-energia')?.addEventListener('click', () => { // From paneles to energia
+        showScreen('energia-section');
+        updateStepIndicator('energia-section');
+    });
+    document.getElementById('next-to-inversor')?.addEventListener('click', () => { // From paneles to inversor
+        showScreen('inversor-section');
+        updateStepIndicator('inversor-section');
+    });
+    document.getElementById('back-to-paneles')?.addEventListener('click', () => { // From inversor to paneles
+        showScreen('paneles-section');
+        updateStepIndicator('paneles-section');
+    });
+    document.getElementById('next-to-perdidas')?.addEventListener('click', () => { // From inversor to perdidas
+        showScreen('perdidas-section');
+        updateStepIndicator('perdidas-section');
+    });
+    document.getElementById('back-to-inversor')?.addEventListener('click', () => { // From perdidas to inversor
+        showScreen('inversor-section');
+        updateStepIndicator('inversor-section');
+    });
+    document.getElementById('next-to-analisis-economico')?.addEventListener('click', () => { // From perdidas to analisis-economico
+        showScreen('analisis-economico-section');
+        updateStepIndicator('analisis-economico-section');
+    });
+    document.getElementById('back-to-perdidas')?.addEventListener('click', () => { // From analisis-economico to perdidas
+        showScreen('perdidas-section');
+        updateStepIndicator('perdidas-section');
+    });
 
     // --- Lógica del botón "Finalizar Cálculo" (NUEVO BLOQUE INTEGRADO) ---
     const finalizarCalculoBtn = document.getElementById('finalizar-calculo');
@@ -470,13 +718,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupNavigationButtons(); // 5. Configura todos los botones de navegación y otros listeners.
 
     // 6. Muestra la pantalla guardada o la inicial después de que todo esté cargado y listo
-    const currentScreenId = localStorage.getItem('currentScreenId') || 'map-screen';
+    const currentScreenId = 'map-screen'; // Always start on map-screen
     showScreen(currentScreenId);
+    // Ensure the first step indicator is for the map screen
+    updateStepIndicator('map-screen');
+
 
     // Si la pantalla inicial es la de energía, nos aseguramos de que el consumo se muestre correctamente
-    if (currentScreenId === 'energia-section') {
-        calcularConsumo();
-    }
+    // This might be redundant now as showScreen handles default views.
+    // if (currentScreenId === 'energia-section') {
+    //     calcularConsumo();
+    // }
+    cargarOpcionesSuperficieRodea(); // Pre-load options for expert flow
 
     // ********************************************************************************
     // MANTENIENDO TU CÓDIGO ORIGINAL DESPUÉS DEL DOMContentLoaded:
@@ -513,6 +766,45 @@ document.addEventListener('DOMContentLoaded', async () => {
 // marcadas arriba.
 // --------------------------------------------------------------------------------
 
+async function cargarOpcionesSuperficieRodea() {
+    const selectElement = document.getElementById('superficieRodea');
+    if (!selectElement) {
+        console.error('Elemento select#superficieRodea no encontrado.');
+        return;
+    }
+
+    // Evitar recargar si ya tiene opciones (más allá del placeholder)
+    if (selectElement.options.length > 1 && selectElement.options[0].value !== "") {
+            // console.log('Opciones de superficieRodea ya cargadas.'); // Optional: for debugging
+            return;
+    }
+
+    try {
+        console.log('Fetching /api/superficies_rodean...');
+        const response = await fetch('http://127.0.0.1:5000/api/superficies_rodean');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        if (data.superficies && Array.isArray(data.superficies)) {
+            selectElement.innerHTML = '<option value="">Seleccionar...</option>'; // Clear placeholder & add default
+            data.superficies.forEach(opcion => {
+                const optionElement = document.createElement('option');
+                optionElement.value = opcion;
+                optionElement.textContent = opcion;
+                selectElement.appendChild(optionElement);
+            });
+            console.log('Opciones de superficieRodea cargadas en el dropdown.');
+        } else {
+            console.error('Respuesta de /api/superficies_rodean no tiene el formato esperado:', data);
+            selectElement.innerHTML = '<option value="">Error al cargar opciones</option>';
+        }
+    } catch (error) {
+        console.error('Error al cargar opciones de superficieRodea:', error);
+        if (selectElement) selectElement.innerHTML = '<option value="">Error al cargar opciones</option>';
+    }
+}
 
 // --- Funciones para gráficos (ejemplo, si ya las tenías) ---
 // function updateChart(chartId, newData) { ... }
@@ -552,12 +844,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 // // Si tienes funciones que se llamaban en cada "next" button, deberían seguir haciéndolo.
 // // Por ejemplo, si al pasar de "Energía" a "Paneles" querías validar algo o calcular
 // // ciertos valores, esa lógica debería seguir en los listeners de los botones "next".
-// document.getElementById('next-to-paneles').addEventListener('click', () => {
-//     // if (validateFormStep('energia')) { // Ejemplo de validación
-//         // calculateEnergyNeeds(); // Ejemplo de cálculo específico de energía
-//         showScreen('paneles-section');
-//     // }
-// });
+// // The next-to-paneles button is now handled with conditional logic based on userType.
+// // document.getElementById('next-to-paneles').addEventListener('click', () => {
+// //     // if (validateFormStep('energia')) { // Ejemplo de validación
+// //         // calculateEnergyNeeds(); // Ejemplo de cálculo específico de energía
+// //         showScreen('paneles-section');
+// //     // }
+// // });
 
 // --------------------------------------------------------------------------------
 // FIN DEL CÓDIGO ORIGINAL DE TU ARCHIVO CALCULADOR.JS QUE DEBE PERMANECER
