@@ -611,6 +611,49 @@
                     </div>
                 </div>
                 <!-- Fin de Nueva sección para Rotación -->
+                <!-- Nueva sección para Altura Instalación -->
+                <div id="altura-instalacion-section" style="display:none;">
+                    <h1>¿Cuál es la altura a la cual se encontrará la instalación fotovoltaica, desde la superficie de apoyo?</h1>
+                    <div class="form-group">
+                        <label for="altura-instalacion-input">Altura (metros):</label>
+                        <input type="number" id="altura-instalacion-input" name="alturaInstalacion" class="form-control" min="0" step="0.1" placeholder="Ej: 1.5">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-rotacion-from-altura" class="back-button">Atrás</button>
+                        <button type="button" id="next-to-metodo-calculo-from-altura">Siguiente</button>
+                    </div>
+                </div>
+                <!-- Fin de Nueva sección para Altura Instalación -->
+                <!-- Nueva sección para Método de Cálculo -->
+                <div id="metodo-calculo-section" style="display:none;">
+                    <h1>¿Con qué método de cálculo de radiación desea realizar el dimensionamiento?</h1>
+                    <div class="form-group">
+                        <!-- Options (select dropdown) will be dynamically inserted here by JavaScript -->
+                        <div id="metodo-calculo-options-container">
+                            <!-- Example: <select id="metodo-calculo-select" class="form-control"></select> will go here -->
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-altura-from-metodo" class="back-button">Atrás</button>
+                        <button type="button" id="next-to-modelo-metodo-from-metodo">Siguiente</button>
+                    </div>
+                </div>
+                <!-- Fin de Nueva sección para Método de Cálculo -->
+                <!-- Nueva sección para Modelo del Método -->
+                <div id="modelo-metodo-section" style="display:none;">
+                    <h1>¿Con qué modelo del método desea realizar el dimensionamiento?</h1>
+                    <div class="form-group">
+                        <!-- Options (select dropdown) will be dynamically inserted here by JavaScript -->
+                        <div id="modelo-metodo-options-container">
+                            <!-- Example: <select id="modelo-metodo-select" class="form-control"></select> will go here -->
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-metodo-calculo-from-modelo" class="back-button">Atrás</button>
+                        <button type="button" id="next-to-paneles-from-modelo">Siguiente</button>
+                    </div>
+                </div>
+                <!-- Fin de Nueva sección para Modelo del Método -->
                 <div id="energia-section" style="display:none;">
                     <h1>Paso 2: Consumo de Energía</h1>
                     <p>A continuación, ingrese la cantidad de cada electrodoméstico que posee.</p>

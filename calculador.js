@@ -24,6 +24,9 @@ let userSelections = {
         descripcion: null,
         valor: null
     },
+    alturaInstalacion: null,       // New property
+    metodoCalculoRadiacion: null,  // New property
+    modeloMetodoRadiacion: null,   // New property
     electrodomesticos: {}, // Almacenará { "Nombre Electrodoméstico": cantidad }
     totalMonthlyConsumption: 0,
     totalAnnualConsumption: 0,
@@ -72,6 +75,9 @@ const consumoFacturaSection = document.getElementById('consumo-factura-section')
 const superficieSection = document.getElementById('superficie-section');
 const rugosidadSection = document.getElementById('rugosidad-section');
 const rotacionSection = document.getElementById('rotacion-section');
+const alturaInstalacionSection = document.getElementById('altura-instalacion-section');
+const metodoCalculoSection = document.getElementById('metodo-calculo-section');
+const modeloMetodoSection = document.getElementById('modelo-metodo-section');
 
 
 // --- Funciones de Persistencia (NUEVO BLOQUE INTEGRADO) ---
@@ -83,15 +89,84 @@ function saveUserSelections() {
 
 function loadUserSelections() {
     const savedSelections = localStorage.getItem('userSelections');
+
+    // Define the complete default structure for userSelections, including all nested objects.
+    // This should align with the initial global declaration of userSelections.
+    const defaultUserSelectionsStructure = {
+        userType: null,
+        location: { lat: -34.6037, lng: -58.3816 }, // Default Buenos Aires
+        installationType: null,
+        incomeLevel: null,
+        zonaInstalacionExpert: null,
+        zonaInstalacionBasic: null,
+        selectedZonaInstalacion: null,
+        superficieRodea: { descripcion: null, valor: null },
+        rugosidadSuperficie: { descripcion: null, valor: null },
+        rotacionInstalacion: { descripcion: null, valor: null },
+        electrodomesticos: {},
+        totalMonthlyConsumption: 0,
+        totalAnnualConsumption: 0,
+        selectedCurrency: 'Pesos argentinos',
+        panelesSolares: { tipo: null, cantidad: 0, potenciaNominal: 0, superficie: 0 },
+        inversor: { tipo: null, potenciaNominal: 0 },
+        perdidas: { eficienciaPanel: 0, eficienciaInversor: 0, factorPerdidas: 0 },
+        consumosMensualesFactura: [] // Assuming this might be stored
+        // Add any other top-level properties that should have a default
+    };
+
     if (savedSelections) {
-        userSelections = JSON.parse(savedSelections);
-        console.log('User selections cargadas:', userSelections);
-        // Asegurarse de que userLocation esté actualizado si se cargó de localStorage
-        if (userSelections.location) {
-            userLocation = userSelections.location;
+        const loadedSelections = JSON.parse(savedSelections);
+
+        // Start with a fresh copy of the default structure
+        let newSelections = JSON.parse(JSON.stringify(defaultUserSelectionsStructure));
+
+        // Merge loaded top-level properties
+        for (const key in loadedSelections) {
+            if (loadedSelections.hasOwnProperty(key)) {
+                if (typeof defaultUserSelectionsStructure[key] === 'object' &&
+                    defaultUserSelectionsStructure[key] !== null &&
+                    !Array.isArray(defaultUserSelectionsStructure[key]) &&
+                    typeof loadedSelections[key] === 'object' && // Ensure loaded value is also an object for merging
+                    loadedSelections[key] !== null) {
+                    // Merge nested objects: default values first, then loaded values
+                    newSelections[key] = { ...defaultUserSelectionsStructure[key], ...loadedSelections[key] };
+                } else if (typeof defaultUserSelectionsStructure[key] !== 'undefined') {
+                    // For non-objects or if loaded[key] is not an object, take the loaded value if the key is valid
+                    newSelections[key] = loadedSelections[key];
+                } else {
+                    // If loaded key is not in default structure at all, still copy it (might be from newer version)
+                     newSelections[key] = loadedSelections[key];
+                }
+            }
         }
-        // También actualiza la UI para los campos no-electrodomésticos
+
+        // Ensure all default keys are present even if not in loadedSelections
+        for (const key in defaultUserSelectionsStructure) {
+            if (typeof newSelections[key] === 'undefined') {
+                newSelections[key] = defaultUserSelectionsStructure[key];
+            }
+        }
+
+        userSelections = newSelections;
+
+        // Special handling for the global 'userLocation' variable
+        if (userSelections.location && typeof userSelections.location.lat !== 'undefined' && typeof userSelections.location.lng !== 'undefined') {
+            userLocation = userSelections.location;
+        } else {
+            // Fallback to default if location is malformed or missing after merge
+            userLocation = defaultUserSelectionsStructure.location;
+            userSelections.location = userLocation;
+        }
+
+        console.log('User selections cargadas y normalizadas:', userSelections);
         updateUIFromSelections();
+    } else {
+        // No saved data, so global userSelections (which should already match defaultUserSelectionsStructure) is used.
+        // Optionally, explicitly set userSelections to a deep copy of defaults here too for consistency:
+        // userSelections = JSON.parse(JSON.stringify(defaultUserSelectionsStructure));
+        // And ensure userLocation is also set from this default:
+        // userLocation = userSelections.location;
+        console.log('No saved selections found, using initial default structure.');
     }
 }
 
@@ -158,6 +233,13 @@ function updateUIFromSelections() {
     const factorPerdidasInput = document.getElementById('factor-perdidas-input');
     if (factorPerdidasInput && userSelections.perdidas?.factorPerdidas) {
         factorPerdidasInput.value = userSelections.perdidas.factorPerdidas;
+    }
+
+    const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
+    if (alturaInstalacionInput && userSelections.alturaInstalacion !== null) {
+        alturaInstalacionInput.value = userSelections.alturaInstalacion;
+    } else if (alturaInstalacionInput) {
+        alturaInstalacionInput.value = ''; // Clear if null
     }
 }
 
@@ -915,6 +997,27 @@ function setupNavigationButtons() {
         userSelections.perdidas.factorPerdidas = parseFloat(e.target.value) || 0;
         saveUserSelections();
     });
+
+    const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
+    if (alturaInstalacionInput) {
+        alturaInstalacionInput.addEventListener('input', (event) => {
+            const value = parseFloat(event.target.value);
+            if (!isNaN(value) && value >= 0) { // Ensure positive or zero
+                userSelections.alturaInstalacion = value;
+            } else if (event.target.value === '') { // Allow clearing the input
+                userSelections.alturaInstalacion = null;
+            } else if (isNaN(value) && event.target.value !== '') {
+                 // If not a number and not empty, it's invalid.
+                 // Optionally, reset to last valid or null, or show validation message.
+                 // For now, just don't update userSelections with NaN from invalid partial input.
+                 // If user types "abc", parseFloat is NaN, we don't want to store that.
+                 // If they clear it, it becomes null.
+                 // If they type a valid number, it's stored.
+                 // Consider if 'event.target.value' should be reset or if HTML min/step handles visual feedback.
+            }
+            saveUserSelections();
+        });
+    }
 
 
     // Configurar los botones de navegación entre secciones (EXISTENTES)

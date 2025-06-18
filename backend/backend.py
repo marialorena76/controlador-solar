@@ -406,5 +406,112 @@ def get_rotacion_options():
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor al obtener opciones de rotación: {str(e)}"}), 500
 
+
+# --- NUEVA RUTA: Para obtener opciones de Método de Cálculo ---
+@app.route('/api/metodo_calculo_options', methods=['GET'])
+def get_metodo_calculo_options():
+    try:
+        print(f"DEBUG: Solicitud a /api/metodo_calculo_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
+        # decimal=',' might not be strictly necessary if column I is purely text, but harmless.
+        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
+        print("DEBUG: Hoja 'Tablas' leída para opciones de método de cálculo.")
+
+        col_idx = 8  # Columna I
+        # Filas Excel 18 a 19 -> iloc 17 a 18
+        fila_inicio_idx = 17 # Fila 18 en Excel
+        fila_fin_idx = 18    # Fila 19 en Excel
+
+        metodo_options_lista = []
+        max_filas_df = df_tablas.shape[0]
+        max_cols_df = df_tablas.shape[1]
+
+        if col_idx >= max_cols_df:
+            print(f"WARN: Columna I ({col_idx}) fuera de límites (hoja 'Tablas' tiene {max_cols_df} columnas).")
+            return jsonify({"error": "Definición de columna para método de cálculo fuera de los límites de la hoja."}), 500
+
+        for r_idx in range(fila_inicio_idx, fila_fin_idx + 1): # +1 para incluir fila_fin_idx
+            if r_idx >= max_filas_df:
+                print(f"WARN: Fila {r_idx+1} para método de cálculo fuera de límites (hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida.")
+                break
+
+            valor_celda = df_tablas.iloc[r_idx, col_idx]
+
+            if pd.isna(valor_celda) or str(valor_celda).strip() == "":
+                print(f"DEBUG: Fila {r_idx+1}, Columna I omitida por valor NaN o vacío para método de cálculo.")
+                continue
+
+            metodo_options_lista.append(str(valor_celda).strip())
+
+        print(f"DEBUG: Total opciones de método de cálculo leídas de 'Tablas' I{fila_inicio_idx+1}:I{fila_fin_idx+1}: {len(metodo_options_lista)}")
+        return jsonify(metodo_options_lista)
+
+    except FileNotFoundError:
+        print(f"ERROR en /api/metodo_calculo_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
+    except KeyError as e:
+        print(f"ERROR en /api/metodo_calculo_options: Hoja 'Tablas' o columna I no encontrada? Error: {e}")
+        return jsonify({"error": f"Error de clave al leer la hoja de cálculo para método de cálculo (¿nombre de hoja o columna incorrecto?): {e}"}), 500
+    except IndexError as e:
+        print(f"ERROR en /api/metodo_calculo_options: Rango de celdas fuera de límites para método de cálculo: {e}")
+        return jsonify({"error": f"Error de índice, rango de celdas fuera de límites para método de cálculo: {e}"}), 500
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/metodo_calculo_options: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno del servidor al obtener opciones de método de cálculo: {str(e)}"}), 500
+
+
+# --- NUEVA RUTA: Para obtener opciones de Modelo del Método ---
+@app.route('/api/modelo_metodo_options', methods=['GET'])
+def get_modelo_metodo_options():
+    try:
+        print(f"DEBUG: Solicitud a /api/modelo_metodo_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
+        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
+        print("DEBUG: Hoja 'Tablas' leída para opciones de modelo del método.")
+
+        col_idx = 8  # Columna I
+        # Filas Excel 20 a 23 -> iloc 19 a 22
+        fila_inicio_idx = 19 # Fila 20 en Excel
+        fila_fin_idx = 22    # Fila 23 en Excel
+
+        modelo_options_lista = []
+        max_filas_df = df_tablas.shape[0]
+        max_cols_df = df_tablas.shape[1]
+
+        if col_idx >= max_cols_df:
+            print(f"WARN: Columna I ({col_idx}) fuera de límites para modelo del método (hoja 'Tablas' tiene {max_cols_df} columnas).")
+            return jsonify({"error": "Definición de columna para modelo del método fuera de los límites de la hoja."}), 500
+
+        for r_idx in range(fila_inicio_idx, fila_fin_idx + 1): # +1 para incluir fila_fin_idx
+            if r_idx >= max_filas_df:
+                print(f"WARN: Fila {r_idx+1} para modelo del método fuera de límites (hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida.")
+                break
+
+            valor_celda = df_tablas.iloc[r_idx, col_idx]
+
+            if pd.isna(valor_celda) or str(valor_celda).strip() == "":
+                print(f"DEBUG: Fila {r_idx+1}, Columna I omitida por valor NaN o vacío para modelo del método.")
+                continue
+
+            modelo_options_lista.append(str(valor_celda).strip())
+
+        print(f"DEBUG: Total opciones de modelo del método leídas de 'Tablas' I{fila_inicio_idx+1}:I{fila_fin_idx+1}: {len(modelo_options_lista)}")
+        return jsonify(modelo_options_lista)
+
+    except FileNotFoundError:
+        print(f"ERROR en /api/modelo_metodo_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
+    except KeyError as e:
+        print(f"ERROR en /api/modelo_metodo_options: Hoja 'Tablas' o columna I no encontrada? Error: {e}")
+        return jsonify({"error": f"Error de clave al leer la hoja de cálculo para modelo del método: {e}"}), 500
+    except IndexError as e:
+        print(f"ERROR en /api/modelo_metodo_options: Rango de celdas fuera de límites para modelo del método: {e}")
+        return jsonify({"error": f"Error de índice, rango de celdas fuera de límites para modelo del método: {e}"}), 500
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/modelo_metodo_options: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno del servidor al obtener opciones de modelo del método: {str(e)}"}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
