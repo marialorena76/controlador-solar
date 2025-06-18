@@ -83,15 +83,84 @@ function saveUserSelections() {
 
 function loadUserSelections() {
     const savedSelections = localStorage.getItem('userSelections');
+
+    // Define the complete default structure for userSelections, including all nested objects.
+    // This should align with the initial global declaration of userSelections.
+    const defaultUserSelectionsStructure = {
+        userType: null,
+        location: { lat: -34.6037, lng: -58.3816 }, // Default Buenos Aires
+        installationType: null,
+        incomeLevel: null,
+        zonaInstalacionExpert: null,
+        zonaInstalacionBasic: null,
+        selectedZonaInstalacion: null,
+        superficieRodea: { descripcion: null, valor: null },
+        rugosidadSuperficie: { descripcion: null, valor: null },
+        rotacionInstalacion: { descripcion: null, valor: null },
+        electrodomesticos: {},
+        totalMonthlyConsumption: 0,
+        totalAnnualConsumption: 0,
+        selectedCurrency: 'Pesos argentinos',
+        panelesSolares: { tipo: null, cantidad: 0, potenciaNominal: 0, superficie: 0 },
+        inversor: { tipo: null, potenciaNominal: 0 },
+        perdidas: { eficienciaPanel: 0, eficienciaInversor: 0, factorPerdidas: 0 },
+        consumosMensualesFactura: [] // Assuming this might be stored
+        // Add any other top-level properties that should have a default
+    };
+
     if (savedSelections) {
-        userSelections = JSON.parse(savedSelections);
-        console.log('User selections cargadas:', userSelections);
-        // Asegurarse de que userLocation esté actualizado si se cargó de localStorage
-        if (userSelections.location) {
-            userLocation = userSelections.location;
+        const loadedSelections = JSON.parse(savedSelections);
+
+        // Start with a fresh copy of the default structure
+        let newSelections = JSON.parse(JSON.stringify(defaultUserSelectionsStructure));
+
+        // Merge loaded top-level properties
+        for (const key in loadedSelections) {
+            if (loadedSelections.hasOwnProperty(key)) {
+                if (typeof defaultUserSelectionsStructure[key] === 'object' &&
+                    defaultUserSelectionsStructure[key] !== null &&
+                    !Array.isArray(defaultUserSelectionsStructure[key]) &&
+                    typeof loadedSelections[key] === 'object' && // Ensure loaded value is also an object for merging
+                    loadedSelections[key] !== null) {
+                    // Merge nested objects: default values first, then loaded values
+                    newSelections[key] = { ...defaultUserSelectionsStructure[key], ...loadedSelections[key] };
+                } else if (typeof defaultUserSelectionsStructure[key] !== 'undefined') {
+                    // For non-objects or if loaded[key] is not an object, take the loaded value if the key is valid
+                    newSelections[key] = loadedSelections[key];
+                } else {
+                    // If loaded key is not in default structure at all, still copy it (might be from newer version)
+                     newSelections[key] = loadedSelections[key];
+                }
+            }
         }
-        // También actualiza la UI para los campos no-electrodomésticos
+
+        // Ensure all default keys are present even if not in loadedSelections
+        for (const key in defaultUserSelectionsStructure) {
+            if (typeof newSelections[key] === 'undefined') {
+                newSelections[key] = defaultUserSelectionsStructure[key];
+            }
+        }
+
+        userSelections = newSelections;
+
+        // Special handling for the global 'userLocation' variable
+        if (userSelections.location && typeof userSelections.location.lat !== 'undefined' && typeof userSelections.location.lng !== 'undefined') {
+            userLocation = userSelections.location;
+        } else {
+            // Fallback to default if location is malformed or missing after merge
+            userLocation = defaultUserSelectionsStructure.location;
+            userSelections.location = userLocation;
+        }
+
+        console.log('User selections cargadas y normalizadas:', userSelections);
         updateUIFromSelections();
+    } else {
+        // No saved data, so global userSelections (which should already match defaultUserSelectionsStructure) is used.
+        // Optionally, explicitly set userSelections to a deep copy of defaults here too for consistency:
+        // userSelections = JSON.parse(JSON.stringify(defaultUserSelectionsStructure));
+        // And ensure userLocation is also set from this default:
+        // userLocation = userSelections.location;
+        console.log('No saved selections found, using initial default structure.');
     }
 }
 
