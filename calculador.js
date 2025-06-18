@@ -1261,82 +1261,84 @@ function showScreen(screenId) {
 }
 
 function updateStepIndicator(screenId) {
-    // let stepNumber = 0; // Original step numbering logic commented out for more descriptive text
+    if (!stepIndicatorText) return; // Guard clause if element doesn't exist
+
     switch (screenId) {
         case 'map-screen':
-            if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 1: Ubicación y Tipo de Usuario';
-            return;
-        // data-form-screen is a container, specific section will dictate the text
+            stepIndicatorText.textContent = 'Paso Inicial: Ubicación y Tipo de Usuario';
+            break;
         case 'data-meteorologicos-section':
             if (userSelections.userType === 'experto') {
-                if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 1 > Zona de Instalación';
-            } else { // Basic user or default
-                if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 1 > Datos Meteorológicos'; // Basic users start data entry here
+                stepIndicatorText.textContent = 'Experto: Paso 1 > Zona de Instalación';
+            } else { // Basic user
+                stepIndicatorText.textContent = 'Paso 1 > Datos Meteorológicos';
             }
-            return;
-        case 'superficie-section': // For expert path
-            if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 2 > Superficie Circundante';
-            return;
-        case 'rugosidad-section': // For expert path
-            if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 3 > Rugosidad Superficie';
-            return;
-        case 'rotacion-section': // For expert path
-            if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 4 > Rotación Instalación';
-            return;
-        case 'altura-instalacion-section': // New
-            if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 5 > Altura Instalación';
-            return;
-        case 'metodo-calculo-section': // New
-            if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 6 > Método Cálculo Radiación';
-            return;
-        case 'modelo-metodo-section': // New
-            if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 7 > Modelo Método Radiación';
-            return;
+            break;
+        case 'superficie-section': // Expert only
+            stepIndicatorText.textContent = 'Experto: Paso 2 > Superficie Circundante';
+            break;
+        case 'rugosidad-section': // Expert only
+            stepIndicatorText.textContent = 'Experto: Paso 3 > Rugosidad Superficie';
+            break;
+        case 'rotacion-section': // Expert only
+            stepIndicatorText.textContent = 'Experto: Paso 4 > Rotación Instalación';
+            break;
+        case 'altura-instalacion-section': // Expert only
+            stepIndicatorText.textContent = 'Experto: Paso 5 > Altura Instalación';
+            break;
+        case 'metodo-calculo-section': // Expert only
+            stepIndicatorText.textContent = 'Experto: Paso 6 > Método Cálculo Radiación';
+            break;
+        case 'modelo-metodo-section': // Expert only
+            stepIndicatorText.textContent = 'Experto: Paso 7 > Modelo Método Radiación';
+            break;
         case 'energia-section':
             if (userSelections.userType === 'experto') {
-                 if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 8 > Consumo Energía';
-            } else { // Basic User
-                 if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 2 > Consumo de Energía';
+                stepIndicatorText.textContent = 'Experto: Paso 8 > Consumo Energía';
+                // Optional: Add sub-step based on userSelections.metodoIngresoConsumoEnergia if desired later
+            } else { // Basic user
+                stepIndicatorText.textContent = 'Paso 2 > Consumo de Energía';
             }
-            return;
-        case 'consumo-factura-section': // Alternative path for Comercial/PYME (non-expert)
-            if (stepIndicatorText) stepIndicatorText.textContent = 'Paso Alternativo > Consumo por Factura';
-            return;
+            break;
+        case 'consumo-factura-section': // Reached by expert's energy choice or basic user's Comercial/PYME path
+            if (userSelections.userType === 'experto' && userSelections.metodoIngresoConsumoEnergia === 'boletaMensual') {
+                 stepIndicatorText.textContent = 'Experto: Paso 8a > Consumo por Factura';
+            } else { // Basic user - Comercial/PYME path (not part of main step count here)
+                 stepIndicatorText.textContent = 'Ingreso de Consumo por Factura';
+            }
+            break;
         case 'paneles-section':
             if (userSelections.userType === 'experto') {
-                if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 9 > Paneles';
-            } else { // Basic user
-                if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 3 > Paneles';
+                stepIndicatorText.textContent = 'Experto: Paso 9 > Paneles Solares';
+            } else {
+                // Basic users should not typically reach 'paneles-section' directly in their main flow anymore.
+                // If they do via some other means, or if this is a shared section for a future feature:
+                stepIndicatorText.textContent = 'Configuración de Paneles';
             }
-            return;
+            break;
         case 'inversor-section':
-             if (userSelections.userType === 'experto') {
-                if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 10 > Inversor';
-            } else { // Basic user
-                if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 4 > Inversor';
+            if (userSelections.userType === 'experto') {
+                stepIndicatorText.textContent = 'Experto: Paso 10 > Inversor';
+            } else {
+                stepIndicatorText.textContent = 'Configuración del Inversor';
             }
-            return;
+            break;
         case 'perdidas-section':
             if (userSelections.userType === 'experto') {
-                if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 11 > Registro Pérdidas';
-            } else { // Basic user - this step might be skipped or have different numbering
-                 if (stepIndicatorText) stepIndicatorText.textContent = 'Paso Avanzado > Registro Pérdidas';
+                stepIndicatorText.textContent = 'Experto: Paso 11 > Registro Pérdidas';
+            } else {
+                stepIndicatorText.textContent = 'Registro de Pérdidas';
             }
-            return;
+            break;
         case 'analisis-economico-section':
-            let pasoFinalTextoAnalisis = "Análisis Económico";
             if (userSelections.userType === 'experto') {
-                pasoFinalTextoAnalisis = `Experto: Paso 12 > ${pasoFinalTextoAnalisis}`;
-            } else if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
-                 pasoFinalTextoAnalisis = `Paso Final > ${pasoFinalTextoAnalisis}`;
-            } else { // Basic Residencial
-                 pasoFinalTextoAnalisis = `Paso 5 > ${pasoFinalTextoAnalisis}`;
+                stepIndicatorText.textContent = 'Experto: Paso 12 > Análisis Económico';
+            } else { // Basic user - this is their Step 3
+                stepIndicatorText.textContent = 'Paso 3 > Análisis Económico';
             }
-            if (stepIndicatorText) stepIndicatorText.textContent = pasoFinalTextoAnalisis;
-            return;
+            break;
         default:
-            if (stepIndicatorText) stepIndicatorText.textContent = 'Calculador Solar'; // Default or error text
-            return;
+            stepIndicatorText.textContent = 'Calculador Solar'; // Default or unknown screen
     }
 }
 
@@ -1516,7 +1518,7 @@ function setupNavigationButtons() {
         } else { // Basic users
             showScreen('energia-section');
             updateStepIndicator('energia-section');
-            initElectrodomesticosSection(); // MODIFICATION 1: Call init for basic users
+            initElectrodomesticosSection(); // Ensure basic user view is rendered // THIS LINE WAS ALREADY PRESENT from previous step
         }
     });
 
@@ -1660,8 +1662,8 @@ function setupNavigationButtons() {
                     alert('Por favor, seleccione un método para ingresar los datos de consumo antes de continuar.');
                 }
             } else { // Basic user
-                showScreen('paneles-section');
-                updateStepIndicator('paneles-section');
+                showScreen('analisis-economico-section');
+                updateStepIndicator('analisis-economico-section');
             }
         });
     }

@@ -528,5 +528,111 @@ def get_modelo_metodo_options():
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor al obtener opciones de modelo del método: {str(e)}"}), 500
 
+
+# --- NUEVA RUTA: Para obtener opciones de Marca Panel ---
+@app.route('/api/marca_panel_options', methods=['GET'])
+def get_marca_panel_options():
+    try:
+        print(f"DEBUG: Solicitud a /api/marca_panel_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
+        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
+        print("DEBUG: Hoja 'Tablas' leída para opciones de marca de panel.")
+
+        col_idx = 8  # Columna I
+        # Filas Excel 38 a 42 -> iloc 37 a 41
+        fila_inicio_idx = 37 # Fila 38 en Excel
+        fila_fin_idx = 41    # Fila 42 en Excel
+
+        options_lista = []
+        max_filas_df = df_tablas.shape[0]
+        max_cols_df = df_tablas.shape[1]
+
+        if col_idx >= max_cols_df:
+            print(f"WARN: Columna I ({col_idx}) fuera de límites para marca panel (hoja 'Tablas' tiene {max_cols_df} columnas).")
+            return jsonify({"error": "Definición de columna para marca panel fuera de los límites de la hoja."}), 500
+
+        for r_idx in range(fila_inicio_idx, fila_fin_idx + 1):
+            if r_idx >= max_filas_df:
+                print(f"WARN: Fila {r_idx+1} para marca panel fuera de límites (hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida.")
+                break
+
+            valor_celda = df_tablas.iloc[r_idx, col_idx]
+
+            if pd.isna(valor_celda) or str(valor_celda).strip() == "":
+                print(f"DEBUG: Fila {r_idx+1}, Columna I omitida por valor NaN o vacío para marca panel.")
+                continue
+
+            options_lista.append(str(valor_celda).strip())
+
+        print(f"DEBUG: Total opciones de marca panel leídas de 'Tablas' I{fila_inicio_idx+1}:I{fila_fin_idx+1}: {len(options_lista)}")
+        return jsonify(options_lista)
+
+    except FileNotFoundError:
+        print(f"ERROR en /api/marca_panel_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
+    except KeyError as e:
+        print(f"ERROR en /api/marca_panel_options: Hoja 'Tablas' o columna I no encontrada? Error: {e}")
+        return jsonify({"error": f"Error de clave al leer la hoja de cálculo para marca panel: {e}"}), 500
+    except IndexError as e:
+        print(f"ERROR en /api/marca_panel_options: Rango de celdas fuera de límites para marca panel: {e}")
+        return jsonify({"error": f"Error de índice, rango de celdas fuera de límites para marca panel: {e}"}), 500
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/marca_panel_options: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno del servidor al obtener opciones de marca panel: {str(e)}"}), 500
+
+# --- NUEVA RUTA: Para obtener opciones de Modelo Temperatura Panel ---
+@app.route('/api/modelo_temperatura_panel_options', methods=['GET'])
+def get_modelo_temperatura_panel_options():
+    try:
+        print(f"DEBUG: Solicitud a /api/modelo_temperatura_panel_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
+        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
+        print("DEBUG: Hoja 'Tablas' leída para opciones de modelo temperatura panel.")
+
+        col_idx = 8  # Columna I
+        # Filas Excel 29 a 33 -> iloc 28 a 32
+        fila_inicio_idx = 28 # Fila 29 en Excel
+        fila_fin_idx = 32    # Fila 33 en Excel
+
+        options_lista = []
+        max_filas_df = df_tablas.shape[0]
+        max_cols_df = df_tablas.shape[1]
+
+        if col_idx >= max_cols_df:
+            print(f"WARN: Columna I ({col_idx}) fuera de límites para modelo temperatura panel (hoja 'Tablas' tiene {max_cols_df} columnas).")
+            return jsonify({"error": "Definición de columna para modelo temperatura panel fuera de los límites de la hoja."}), 500
+
+        for r_idx in range(fila_inicio_idx, fila_fin_idx + 1):
+            if r_idx >= max_filas_df:
+                print(f"WARN: Fila {r_idx+1} para modelo temperatura panel fuera de límites (hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida.")
+                break
+
+            valor_celda = df_tablas.iloc[r_idx, col_idx]
+
+            if pd.isna(valor_celda) or str(valor_celda).strip() == "":
+                print(f"DEBUG: Fila {r_idx+1}, Columna I omitida por valor NaN o vacío para modelo temperatura panel.")
+                continue
+
+            options_lista.append(str(valor_celda).strip())
+
+        print(f"DEBUG: Total opciones de modelo temperatura panel leídas de 'Tablas' I{fila_inicio_idx+1}:I{fila_fin_idx+1}: {len(options_lista)}")
+        return jsonify(options_lista)
+
+    except FileNotFoundError:
+        print(f"ERROR en /api/modelo_temperatura_panel_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
+    except KeyError as e:
+        print(f"ERROR en /api/modelo_temperatura_panel_options: Hoja 'Tablas' o columna I no encontrada? Error: {e}")
+        return jsonify({"error": f"Error de clave al leer la hoja de cálculo para modelo temperatura panel: {e}"}), 500
+    except IndexError as e:
+        print(f"ERROR en /api/modelo_temperatura_panel_options: Rango de celdas fuera de límites para modelo temperatura panel: {e}")
+        return jsonify({"error": f"Error de índice, rango de celdas fuera de límites para modelo temperatura panel: {e}"}), 500
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/modelo_temperatura_panel_options: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno del servidor al obtener opciones de modelo temperatura panel: {str(e)}"}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)
