@@ -241,6 +241,20 @@ function updateUIFromSelections() {
     } else if (alturaInstalacionInput) {
         alturaInstalacionInput.value = ''; // Clear if null
     }
+    // Add similar blocks here for metodoCalculoRadiacion and modeloMetodoRadiacion if they have direct inputs in UI
+    // For example, if they were text inputs (though they are planned as selects):
+    // const metodoCalculoInput = document.getElementById('metodo-calculo-input'); // Assuming such an ID
+    // if (metodoCalculoInput && userSelections.metodoCalculoRadiacion !== null) {
+    //     metodoCalculoInput.value = userSelections.metodoCalculoRadiacion;
+    // } else if (metodoCalculoInput) {
+    //     metodoCalculoInput.value = '';
+    // }
+    // const modeloMetodoInput = document.getElementById('modelo-metodo-input'); // Assuming such an ID
+    // if (modeloMetodoInput && userSelections.modeloMetodoRadiacion !== null) {
+    //     modeloMetodoInput.value = userSelections.modeloMetodoRadiacion;
+    // } else if (modeloMetodoInput) {
+    //     modeloMetodoInput.value = '';
+    // }
 }
 
 
@@ -510,6 +524,306 @@ async function initRotacionSection() {
     }
 }
 
+// --- Nueva función para inicializar la sección de Método de Cálculo ---
+async function initMetodoCalculoSection() {
+    const container = document.getElementById('metodo-calculo-options-container');
+    if (!container) {
+        console.error("Contenedor 'metodo-calculo-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = ''; // Limpiar opciones anteriores
+
+    const selectElement = document.createElement('select');
+    selectElement.id = 'metodo-calculo-select';
+    selectElement.className = 'form-control';
+
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = 'Seleccione un método...';
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    selectElement.appendChild(placeholderOption);
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/metodo_calculo_options');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json(); // Expected: ["Método A", "Método B"]
+
+        if (!Array.isArray(data)) {
+            console.error('[METODO CALCULO OPTIONS LOAD ERROR] Data received is not an array:', data);
+            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para método de cálculo.</p>';
+            return; // Exit if data format is wrong
+        }
+
+        if (data.length === 0) {
+            console.log('[METODO CALCULO OPTIONS LOAD] No hay opciones de método de cálculo disponibles.');
+            // selectElement will only have the placeholder.
+        } else {
+            data.forEach(optionText => { // data is an array of strings
+                const optionElement = document.createElement('option');
+                optionElement.value = optionText;
+                optionElement.textContent = optionText;
+
+                if (userSelections.metodoCalculoRadiacion === optionText) {
+                    optionElement.selected = true;
+                    placeholderOption.selected = false;
+                }
+                selectElement.appendChild(optionElement);
+            });
+        }
+
+        selectElement.addEventListener('change', (event) => {
+            const selectedValue = event.target.value;
+            if (selectedValue && selectedValue !== '') {
+                userSelections.metodoCalculoRadiacion = selectedValue;
+            } else {
+                userSelections.metodoCalculoRadiacion = null;
+            }
+            saveUserSelections();
+            console.log('Método de cálculo seleccionado:', userSelections.metodoCalculoRadiacion);
+        });
+
+        container.appendChild(selectElement);
+
+    } catch (error) {
+        console.error('[METODO CALCULO OPTIONS LOAD ERROR] Error fetching or processing método de cálculo options:', error);
+        if (error.message) {
+            console.error('[METODO CALCULO OPTIONS LOAD ERROR] Message:', error.message);
+        }
+        alert('Error al cargar las opciones de método de cálculo. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
+        if (container) {
+            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de método de cálculo. Intente recargar o contacte a soporte.</p>';
+        }
+    }
+}
+
+// --- Nueva función para inicializar la sección de Método de Cálculo ---
+async function initMetodoCalculoSection() {
+    const container = document.getElementById('metodo-calculo-options-container');
+    if (!container) {
+        console.error("Contenedor 'metodo-calculo-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = ''; // Limpiar opciones anteriores
+
+    const selectElement = document.createElement('select');
+    selectElement.id = 'metodo-calculo-select';
+    selectElement.className = 'form-control';
+
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = 'Seleccione un método...';
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    selectElement.appendChild(placeholderOption);
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/metodo_calculo_options');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json(); // Expected: ["Método A", "Método B"]
+
+        if (!Array.isArray(data)) {
+            console.error('[METODO CALCULO OPTIONS LOAD ERROR] Data received is not an array:', data);
+            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para método de cálculo.</p>';
+            return;
+        }
+
+        if (data.length === 0) {
+            console.log('[METODO CALCULO OPTIONS LOAD] No hay opciones de método de cálculo disponibles.');
+            // selectElement will only have the placeholder.
+        } else {
+            data.forEach(optionText => { // data is an array of strings
+                const optionElement = document.createElement('option');
+                optionElement.value = optionText;
+                optionElement.textContent = optionText;
+
+                if (userSelections.metodoCalculoRadiacion === optionText) {
+                    optionElement.selected = true;
+                    placeholderOption.selected = false;
+                }
+                selectElement.appendChild(optionElement);
+            });
+        }
+
+        selectElement.addEventListener('change', (event) => {
+            const selectedValue = event.target.value;
+            if (selectedValue && selectedValue !== '') {
+                userSelections.metodoCalculoRadiacion = selectedValue;
+            } else {
+                userSelections.metodoCalculoRadiacion = null;
+            }
+            saveUserSelections();
+            console.log('Método de cálculo seleccionado:', userSelections.metodoCalculoRadiacion);
+        });
+
+        container.appendChild(selectElement);
+
+    } catch (error) {
+        console.error('[METODO CALCULO OPTIONS LOAD ERROR] Error fetching or processing método de cálculo options:', error);
+        if (error.message) {
+            console.error('[METODO CALCULO OPTIONS LOAD ERROR] Message:', error.message);
+        }
+        alert('Error al cargar las opciones de método de cálculo. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
+        if (container) {
+            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de método de cálculo. Intente recargar o contacte a soporte.</p>';
+        }
+    }
+}
+
+// --- Nueva función para inicializar la sección de Modelo del Método ---
+async function initModeloMetodoSection() {
+    const container = document.getElementById('modelo-metodo-options-container');
+    if (!container) {
+        console.error("Contenedor 'modelo-metodo-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = ''; // Limpiar opciones anteriores
+
+    const selectElement = document.createElement('select');
+    selectElement.id = 'modelo-metodo-select';
+    selectElement.className = 'form-control';
+
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = 'Seleccione un modelo...';
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    selectElement.appendChild(placeholderOption);
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/modelo_metodo_options');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json(); // Expected: ["Modelo X", "Modelo Y"]
+
+        if (!Array.isArray(data)) {
+            console.error('[MODELO METODO OPTIONS LOAD ERROR] Data received is not an array:', data);
+            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para modelo del método.</p>';
+            return;
+        }
+
+        if (data.length === 0) {
+            console.log('[MODELO METODO OPTIONS LOAD] No hay opciones de modelo del método disponibles.');
+            // selectElement will only have the placeholder.
+        } else {
+            data.forEach(optionText => { // data is an array of strings
+                const optionElement = document.createElement('option');
+                optionElement.value = optionText;
+                optionElement.textContent = optionText;
+
+                if (userSelections.modeloMetodoRadiacion === optionText) {
+                    optionElement.selected = true;
+                    placeholderOption.selected = false;
+                }
+                selectElement.appendChild(optionElement);
+            });
+        }
+
+        selectElement.addEventListener('change', (event) => {
+            const selectedValue = event.target.value;
+            if (selectedValue && selectedValue !== '') {
+                userSelections.modeloMetodoRadiacion = selectedValue;
+            } else {
+                userSelections.modeloMetodoRadiacion = null;
+            }
+            saveUserSelections();
+            console.log('Modelo del método seleccionado:', userSelections.modeloMetodoRadiacion);
+        });
+
+        container.appendChild(selectElement);
+
+    } catch (error) {
+        console.error('[MODELO METODO OPTIONS LOAD ERROR] Error fetching or processing modelo del método options:', error);
+        if (error.message) {
+            console.error('[MODELO METODO OPTIONS LOAD ERROR] Message:', error.message);
+        }
+        alert('Error al cargar las opciones de modelo del método. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
+        if (container) {
+            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de modelo del método. Intente recargar o contacte a soporte.</p>';
+        }
+    }
+}
+
+// --- Nueva función para inicializar la sección de Modelo del Método ---
+async function initModeloMetodoSection() {
+    const container = document.getElementById('modelo-metodo-options-container');
+    if (!container) {
+        console.error("Contenedor 'modelo-metodo-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = ''; // Limpiar opciones anteriores
+
+    const selectElement = document.createElement('select');
+    selectElement.id = 'modelo-metodo-select';
+    selectElement.className = 'form-control';
+
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = 'Seleccione un modelo...';
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    selectElement.appendChild(placeholderOption);
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/modelo_metodo_options');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json(); // Expected: ["Modelo X", "Modelo Y"]
+
+        if (!Array.isArray(data)) {
+            console.error('[MODELO METODO OPTIONS LOAD ERROR] Data received is not an array:', data);
+            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para modelo del método.</p>';
+            return;
+        }
+
+        if (data.length === 0) {
+            console.log('[MODELO METODO OPTIONS LOAD] No hay opciones de modelo del método disponibles.');
+            // selectElement will only have the placeholder.
+        } else {
+            data.forEach(optionText => { // data is an array of strings
+                const optionElement = document.createElement('option');
+                optionElement.value = optionText;
+                optionElement.textContent = optionText;
+
+                if (userSelections.modeloMetodoRadiacion === optionText) {
+                    optionElement.selected = true;
+                    placeholderOption.selected = false;
+                }
+                selectElement.appendChild(optionElement);
+            });
+        }
+
+        selectElement.addEventListener('change', (event) => {
+            const selectedValue = event.target.value;
+            if (selectedValue && selectedValue !== '') {
+                userSelections.modeloMetodoRadiacion = selectedValue;
+            } else {
+                userSelections.modeloMetodoRadiacion = null;
+            }
+            saveUserSelections();
+            console.log('Modelo del método seleccionado:', userSelections.modeloMetodoRadiacion);
+        });
+
+        container.appendChild(selectElement);
+
+    } catch (error) {
+        console.error('[MODELO METODO OPTIONS LOAD ERROR] Error fetching or processing modelo del método options:', error);
+        if (error.message) {
+            console.error('[MODELO METODO OPTIONS LOAD ERROR] Message:', error.message);
+        }
+        alert('Error al cargar las opciones de modelo del método. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
+        if (container) {
+            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de modelo del método. Intente recargar o contacte a soporte.</p>';
+        }
+    }
+}
+
 
 // --- Funciones para Consumo y Electrodomésticos (NUEVO BLOQUE INTEGRADO) ---
 
@@ -547,17 +861,66 @@ async function cargarElectrodomesticosDesdeBackend() {
 
 // Función que genera dinámicamente los campos de entrada para electrodomésticos
 function initElectrodomesticosSection() {
-    const contenedor = document.getElementById('electrodomesticos-list');
-    if (!contenedor) {
+    const electrodomesticosListContainer = document.getElementById('electrodomesticos-list');
+    if (!electrodomesticosListContainer) {
         console.error("El contenedor 'electrodomesticos-list' no se encontró en el HTML.");
         return;
     }
-    contenedor.innerHTML = ''; // Limpiar el contenido anterior
+
+    const energySummaryContainer = document.querySelector('#energia-section .energy-summary');
+    // It's okay if energySummaryContainer is not found, we'll check before using it.
+
+    // Conditional logic based on userType
+    if (userSelections.userType === 'experto') {
+        electrodomesticosListContainer.innerHTML = `<p style="text-align: center; padding: 20px; font-style: italic;">Formatos específicos para el ingreso de consumo energético para usuarios expertos se configurarán aquí próximamente.</p>`;
+
+        if (energySummaryContainer) {
+            energySummaryContainer.style.display = 'none';
+        }
+
+        // Attempt to get references to totalConsumoMensualDisplay and totalConsumoAnualDisplay
+        // These are already global constants, but checking if they exist in the DOM here is good practice
+        // if they were dynamically added/removed (though in this app, they seem static).
+        const totalConsumoMensualEl = document.getElementById('totalConsumoMensual');
+        const totalConsumoAnualEl = document.getElementById('totalConsumoAnual');
+
+        if (totalConsumoMensualEl) {
+            totalConsumoMensualEl.value = 'N/A';
+        }
+        if (totalConsumoAnualEl) {
+            totalConsumoAnualEl.value = 'N/A';
+        }
+
+        // Critical: Prevent further execution for expert users
+        return;
+    } else {
+        // For 'basico' users or if userType is not 'experto'
+        if (energySummaryContainer) {
+            // Ensure the summary is visible for basic users.
+            // 'flex' is typically the default display for this element if it uses flexbox.
+            // If it's block or another display type, adjust accordingly or simply remove 'display: none'.
+            energySummaryContainer.style.display = 'flex'; // Or 'block', or '' to reset
+        }
+        // Ensure consumption values are numbers or re-calculated, not "N/A"
+        // This will be handled by calcularConsumo() called after this function or by input changes.
+        // We might want to reset them to 0 or re-calculate if coming from 'experto' view.
+        const totalConsumoMensualEl = document.getElementById('totalConsumoMensual');
+        const totalConsumoAnualEl = document.getElementById('totalConsumoAnual');
+        if (totalConsumoMensualEl && totalConsumoMensualEl.value === 'N/A') {
+            totalConsumoMensualEl.value = '0.00'; // Reset or recalculate
+        }
+        if (totalConsumoAnualEl && totalConsumoAnualEl.value === 'N/A') {
+            totalConsumoAnualEl.value = '0.00'; // Reset or recalculate
+        }
+    }
+
+    // Original logic for non-expert users continues here
+    electrodomesticosListContainer.innerHTML = ''; // Limpiar el contenido anterior
 
     Object.keys(electrodomesticosCategorias).forEach(categoria => {
         const h2 = document.createElement('h2');
         h2.textContent = categoria;
-        contenedor.appendChild(h2);
+        electrodomesticosListContainer.appendChild(h2);
 
         const itemsDiv = document.createElement('div');
         itemsDiv.className = 'electrodomesticos-categoria';
@@ -594,7 +957,7 @@ function initElectrodomesticosSection() {
             row.appendChild(input);
             itemsDiv.appendChild(row);
         });
-        contenedor.appendChild(itemsDiv); // NO debe haber un 'btn' aquí si no quieres un botón por categoría
+        electrodomesticosListContainer.appendChild(itemsDiv); // NO debe haber un 'btn' aquí si no quieres un botón por categoría
     });
 }
 
@@ -701,6 +1064,9 @@ function showScreen(screenId) {
     if (superficieSection) superficieSection.style.display = 'none';
     if (rugosidadSection) rugosidadSection.style.display = 'none';
     if (rotacionSection) rotacionSection.style.display = 'none';
+    if (alturaInstalacionSection) alturaInstalacionSection.style.display = 'none'; // Added
+    if (metodoCalculoSection) metodoCalculoSection.style.display = 'none';   // Added
+    if (modeloMetodoSection) modeloMetodoSection.style.display = 'none';     // Added
     if (energiaSection) energiaSection.style.display = 'none';
     if (consumoFacturaSection) consumoFacturaSection.style.display = 'none';
     if (panelesSection) panelesSection.style.display = 'none';
@@ -761,11 +1127,18 @@ function updateStepIndicator(screenId) {
         case 'rotacion-section': // For expert path
             if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 4 > Rotación Instalación';
             return;
-        case 'energia-section': // For basic path primarily
-            // For expert path, this would be step 5 (after rotacion) if they were to go here.
-            // However, the current expert flow from rotacion goes to paneles.
+        case 'altura-instalacion-section': // New
+            if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 5 > Altura Instalación';
+            return;
+        case 'metodo-calculo-section': // New
+            if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 6 > Método Cálculo Radiación';
+            return;
+        case 'modelo-metodo-section': // New
+            if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 7 > Modelo Método Radiación';
+            return;
+        case 'energia-section':
             if (userSelections.userType === 'experto') {
-                 if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso Adicional > Consumo de Energía'; // Should ideally not be reached in expert flow
+                 if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 8 > Consumo Energía';
             } else { // Basic User
                  if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 2 > Consumo de Energía';
             }
@@ -773,31 +1146,31 @@ function updateStepIndicator(screenId) {
         case 'consumo-factura-section': // Alternative path for Comercial/PYME (non-expert)
             if (stepIndicatorText) stepIndicatorText.textContent = 'Paso Alternativo > Consumo por Factura';
             return;
-        case 'paneles-section': // Step 5 for expert, Step 3 for basic (after energia)
+        case 'paneles-section':
             if (userSelections.userType === 'experto') {
-                if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 5 > Paneles';
-            } else {
+                if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 9 > Paneles';
+            } else { // Basic user
                 if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 3 > Paneles';
             }
             return;
-        case 'inversor-section': // Step 6 for expert, Step 4 for basic
+        case 'inversor-section':
              if (userSelections.userType === 'experto') {
-                if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 6 > Inversor';
-            } else {
+                if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 10 > Inversor';
+            } else { // Basic user
                 if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 4 > Inversor';
             }
             return;
-        case 'perdidas-section': // Step 7 for expert. Basic users might not see this.
+        case 'perdidas-section':
             if (userSelections.userType === 'experto') {
-                if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 7 > Registro Pérdidas';
-            } else {
-                 if (stepIndicatorText) stepIndicatorText.textContent = 'Paso Avanzado > Registro Pérdidas'; // Or hide for basic
+                if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 11 > Registro Pérdidas';
+            } else { // Basic user - this step might be skipped or have different numbering
+                 if (stepIndicatorText) stepIndicatorText.textContent = 'Paso Avanzado > Registro Pérdidas';
             }
             return;
         case 'analisis-economico-section':
             let pasoFinalTextoAnalisis = "Análisis Económico";
             if (userSelections.userType === 'experto') {
-                pasoFinalTextoAnalisis = `Experto: Paso 8 > ${pasoFinalTextoAnalisis}`;
+                pasoFinalTextoAnalisis = `Experto: Paso 12 > ${pasoFinalTextoAnalisis}`;
             } else if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
                  pasoFinalTextoAnalisis = `Paso Final > ${pasoFinalTextoAnalisis}`;
             } else { // Basic Residencial
@@ -1002,22 +1375,18 @@ function setupNavigationButtons() {
     if (alturaInstalacionInput) {
         alturaInstalacionInput.addEventListener('input', (event) => {
             const value = parseFloat(event.target.value);
-            if (!isNaN(value) && value >= 0) { // Ensure positive or zero
+            if (!isNaN(value) && value >= 0) {
                 userSelections.alturaInstalacion = value;
-            } else if (event.target.value === '') { // Allow clearing the input
+            } else if (event.target.value === '') {
                 userSelections.alturaInstalacion = null;
-            } else if (isNaN(value) && event.target.value !== '') {
-                 // If not a number and not empty, it's invalid.
-                 // Optionally, reset to last valid or null, or show validation message.
-                 // For now, just don't update userSelections with NaN from invalid partial input.
-                 // If user types "abc", parseFloat is NaN, we don't want to store that.
-                 // If they clear it, it becomes null.
-                 // If they type a valid number, it's stored.
-                 // Consider if 'event.target.value' should be reset or if HTML min/step handles visual feedback.
             }
+            // If input is invalid (e.g., "abc") but not empty, userSelections.alturaInstalacion retains its last valid value or null.
             saveUserSelections();
         });
     }
+    // Add similar event listeners for 'metodoCalculoRadiacion' and 'modeloMetodoRadiacion'
+    // if they were simple inputs. Since they will be selects populated by JS,
+    // their event listeners will be part of their respective init functions.
 
 
     // Configurar los botones de navegación entre secciones (EXISTENTES)
@@ -1088,11 +1457,60 @@ function setupNavigationButtons() {
         updateStepIndicator('rugosidad-section');
     });
 
-    // Listener for "Next" from rotacion-section to PANELES section
+    // Listener for "Next" from rotacion-section to altura-instalacion-section (MODIFIED)
     document.getElementById('next-to-paneles-from-rotacion')?.addEventListener('click', () => {
-        // Optional: Add validation here if needed for rotacion selection
-        showScreen('paneles-section');
-        updateStepIndicator('paneles-section');
+        // Optional: Add validation for rotacion selection if needed
+        showScreen('altura-instalacion-section');
+        updateStepIndicator('altura-instalacion-section');
+        // To ensure the input field shows the latest saved value if user navigates back and forth:
+        const alturaInput = document.getElementById('altura-instalacion-input');
+        if (alturaInput && userSelections.alturaInstalacion !== null) {
+            alturaInput.value = userSelections.alturaInstalacion;
+        } else if (alturaInput) {
+            alturaInput.value = ''; // Clear if null or not set
+        }
+    });
+
+    // From altura-instalacion-section (Back)
+    document.getElementById('back-to-rotacion-from-altura')?.addEventListener('click', () => {
+        showScreen('rotacion-section');
+        updateStepIndicator('rotacion-section');
+    });
+
+    // From altura-instalacion-section (Next)
+    document.getElementById('next-to-metodo-calculo-from-altura')?.addEventListener('click', () => {
+        // Optional: Add validation for alturaInstalacionInput if needed
+        showScreen('metodo-calculo-section');
+        updateStepIndicator('metodo-calculo-section');
+        initMetodoCalculoSection();
+    });
+
+    // From metodo-calculo-section (Back)
+    document.getElementById('back-to-altura-from-metodo')?.addEventListener('click', () => {
+        showScreen('altura-instalacion-section');
+        updateStepIndicator('altura-instalacion-section');
+    });
+
+    // From metodo-calculo-section (Next)
+    document.getElementById('next-to-modelo-metodo-from-metodo')?.addEventListener('click', () => {
+        // Optional: Add validation for metodoCalculo selection if needed
+        showScreen('modelo-metodo-section');
+        updateStepIndicator('modelo-metodo-section');
+        initModeloMetodoSection();
+    });
+
+    // From modelo-metodo-section (Back)
+    document.getElementById('back-to-metodo-calculo-from-modelo')?.addEventListener('click', () => {
+        showScreen('metodo-calculo-section');
+        updateStepIndicator('metodo-calculo-section');
+    });
+
+    // From modelo-metodo-section (Next) to energia-section (MODIFIED)
+    document.getElementById('next-to-paneles-from-modelo')?.addEventListener('click', () => {
+        // Optional: Add validation for modeloMetodo selection if needed
+        showScreen('energia-section'); // Corrected target
+        updateStepIndicator('energia-section');
+        initElectrodomesticosSection(); // Ensures conditional content for expert users
     });
 
     // Listener for back button from energia-section to data-meteorologicos-section (for basic user)
