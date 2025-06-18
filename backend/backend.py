@@ -21,6 +21,7 @@ def get_electrodomesticos_consumos():
 
         col_nombre_idx = 0  # Columna A
         col_consumo_idx = 1 # Columna B
+        col_watts_idx = 2   # Columna C (Potencia en Watts)
         fila_inicio_idx = 110 # Fila 111 en Excel (111 - 1)
         fila_fin_idx = 173  # Fila 174 en Excel (174 - 1)
 
@@ -31,12 +32,16 @@ def get_electrodomesticos_consumos():
             if r_idx >= max_filas_df:
                 print(f"WARN: Fila {r_idx+1} fuera de límites (hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida.")
                 break
-            if col_nombre_idx >= df_tablas.shape[1] or col_consumo_idx >= df_tablas.shape[1]:
-                print(f"WARN: Columna para nombre/consumo fuera de límites (hoja 'Tablas' tiene {df_tablas.shape[1]} columnas).")
+            # Updated column boundary check
+            if col_nombre_idx >= df_tablas.shape[1] or \
+               col_consumo_idx >= df_tablas.shape[1] or \
+               col_watts_idx >= df_tablas.shape[1]:
+                print(f"WARN: Columna para nombre/consumo/watts fuera de límites (hoja 'Tablas' tiene {df_tablas.shape[1]} columnas).")
                 break
 
             nombre = df_tablas.iloc[r_idx, col_nombre_idx]
             consumo_kwh = df_tablas.iloc[r_idx, col_consumo_idx]
+            watts_val = df_tablas.iloc[r_idx, col_watts_idx]
 
             if pd.isna(nombre) or str(nombre).strip() == "":
                 print(f"DEBUG: Fila {r_idx+1} omitida por nombre NaN o vacío.")
@@ -51,12 +56,22 @@ def get_electrodomesticos_consumos():
                 except ValueError:
                     print(f"WARN: No se pudo convertir consumo '{consumo_kwh}' a float para '{nombre}'. Usando 0.")
 
+            watts_float = 0.0
+            if pd.isna(watts_val):
+                print(f"DEBUG: Watts NaN para '{nombre}' en fila {r_idx+1}, usando 0.0.")
+            else:
+                try:
+                    watts_float = float(str(watts_val).replace(',', '.')) # Handle comma decimal just in case
+                except ValueError:
+                    print(f"WARN: No se pudo convertir watts '{watts_val}' a float para '{nombre}'. Usando 0.0.")
+
             electrodomesticos_lista.append({
                 "name": str(nombre),
-                "consumo_diario_kwh": consumo_kwh_float
+                "consumo_diario_kwh": consumo_kwh_float,
+                "watts": watts_float  # New field
             })
 
-        print(f"DEBUG: Total electrodomésticos leídos de 'Tablas' A{fila_inicio_idx+1}:B{fila_fin_idx+1}: {len(electrodomesticos_lista)}")
+        print(f"DEBUG: Total electrodomésticos (con watts) leídos de 'Tablas' A{fila_inicio_idx+1}:C{fila_fin_idx+1}: {len(electrodomesticos_lista)}")
         categorias_respuesta = {"Electrodomésticos Disponibles": electrodomesticos_lista}
 
         return jsonify({"categorias": categorias_respuesta})

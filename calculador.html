@@ -655,8 +655,28 @@
                 </div>
                 <!-- Fin de Nueva sección para Modelo del Método -->
                 <div id="energia-section" style="display:none;">
-                    <h1>Paso 2: Consumo de Energía</h1>
-                    <p>A continuación, ingrese la cantidad de cada electrodoméstico que posee.</p>
+                    <h1>Paso 2: Consumo de Energía</h1> <!-- Or other title set by JS -->
+                    <p>A continuación ingrese los datos requeridos acerca de su consumo de energía eléctrica.</p> <!-- New subtitle -->
+
+                    <div id="energia-modo-seleccion-container" style="display:none;"> <!-- Initially hidden, JS will show for experts -->
+                        <h2>¿Cómo desea ingresar los datos de consumo?</h2>
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="metodoIngresoConsumo" value="detalleHogar" required>
+                                INGRESO DE DETALLE DE CONSUMOS EN EL HOGAR
+                            </label>
+                            <label>
+                                <input type="radio" name="metodoIngresoConsumo" value="boletaMensual">
+                                INGRESO DE CONSUMO MENSUAL SEGUN BOLETA DE ENERGIA ELECTRICA
+                            </label>
+                            <label>
+                                <input type="radio" name="metodoIngresoConsumo" value="detalleHogarHoras">
+                                INGRESO DE DETALLE DE CONSUMO EN EL HOGAR (ARTEFACTOS Y HORAS DE USO)
+                            </label>
+                        </div>
+                        <hr style="margin-top: 1.5rem; margin-bottom: 1.5rem;"> <!-- Optional separator -->
+                    </div>
+
                     <div id="electrodomesticos-list"></div>
                     <div class="energy-summary">
                         <div>

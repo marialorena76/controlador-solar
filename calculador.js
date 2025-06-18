@@ -27,7 +27,8 @@ let userSelections = {
     alturaInstalacion: null,       // New property
     metodoCalculoRadiacion: null,  // New property
     modeloMetodoRadiacion: null,   // New property
-    electrodomesticos: {}, // Almacenará { "Nombre Electrodoméstico": cantidad }
+    metodoIngresoConsumoEnergia: null, // New property
+    electrodomesticos: {}, // This will now store objects like { "Heladera": { cantidad: 1 } }
     totalMonthlyConsumption: 0,
     totalAnnualConsumption: 0,
     selectedCurrency: 'Pesos argentinos', // Valor por defecto
@@ -103,7 +104,8 @@ function loadUserSelections() {
         superficieRodea: { descripcion: null, valor: null },
         rugosidadSuperficie: { descripcion: null, valor: null },
         rotacionInstalacion: { descripcion: null, valor: null },
-        electrodomesticos: {},
+        metodoIngresoConsumoEnergia: null, // Added to default structure
+        electrodomesticos: {}, // Remains {} as default
         totalMonthlyConsumption: 0,
         totalAnnualConsumption: 0,
         selectedCurrency: 'Pesos argentinos',
@@ -167,6 +169,30 @@ function loadUserSelections() {
         // And ensure userLocation is also set from this default:
         // userLocation = userSelections.location;
         console.log('No saved selections found, using initial default structure.');
+    }
+
+    // Migration/Normalization for userSelections.electrodomesticos
+    if (userSelections.electrodomesticos) {
+        const normalizedElectrodomesticos = {};
+        for (const key in userSelections.electrodomesticos) {
+            if (userSelections.electrodomesticos.hasOwnProperty(key)) {
+                const currentEntry = userSelections.electrodomesticos[key];
+                if (typeof currentEntry === 'number') { // Old format: "Heladera": 1
+                    normalizedElectrodomesticos[key] = { cantidad: currentEntry };
+                } else if (typeof currentEntry === 'object' && currentEntry !== null) { // New format or partially new
+                    normalizedElectrodomesticos[key] = {
+                        cantidad: currentEntry.cantidad || 0,
+                        horasVerano: currentEntry.horasVerano || null, // Prepare for future fields
+                        horasInvierno: currentEntry.horasInvierno || null // Prepare for future fields
+                    };
+                } else {
+                     normalizedElectrodomesticos[key] = { cantidad: 0 }; // Default if malformed
+                }
+            }
+        }
+        userSelections.electrodomesticos = normalizedElectrodomesticos;
+    } else {
+        userSelections.electrodomesticos = {}; // Ensure it's an object if missing entirely
     }
 }
 
@@ -859,106 +885,224 @@ async function cargarElectrodomesticosDesdeBackend() {
     }
 }
 
-// Función que genera dinámicamente los campos de entrada para electrodomésticos
+
 function initElectrodomesticosSection() {
-    const electrodomesticosListContainer = document.getElementById('electrodomesticos-list');
-    if (!electrodomesticosListContainer) {
-        console.error("El contenedor 'electrodomesticos-list' no se encontró en el HTML.");
+    const modoSeleccionContainer = document.getElementById('energia-modo-seleccion-container');
+    const listContainer = document.getElementById('electrodomesticos-list');
+    const summaryContainer = document.querySelector('#energia-section .energy-summary');
+    // Ensure totalConsumoMensualDisplay and totalConsumoAnualDisplay are accessible if needed here
+    // const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');
+    // const totalConsumoAnualDisplay = document.getElementById('totalConsumoAnual');
+
+
+    if (!listContainer || !modoSeleccionContainer) {
+        console.error("Elementos necesarios para energia-section no encontrados.");
         return;
     }
 
-    const energySummaryContainer = document.querySelector('#energia-section .energy-summary');
-    // It's okay if energySummaryContainer is not found, we'll check before using it.
+    // Default states
+    modoSeleccionContainer.style.display = 'none';
+    listContainer.innerHTML = ''; // Clear previous content from list area
+    if (summaryContainer) summaryContainer.style.display = 'none';
 
-    // Conditional logic based on userType
+
     if (userSelections.userType === 'experto') {
-        electrodomesticosListContainer.innerHTML = `<p style="text-align: center; padding: 20px; font-style: italic;">Formatos específicos para el ingreso de consumo energético para usuarios expertos se configurarán aquí próximamente.</p>`;
+        // Function to handle display based on expert's choice
+        const handleExpertEnergyChoice = (choice) => {
+            modoSeleccionContainer.style.display = 'none'; // Hide selection once a choice is made or loaded
+            listContainer.innerHTML = ''; // Clear list container before populating based on choice
 
-        if (energySummaryContainer) {
-            energySummaryContainer.style.display = 'none';
+            if (choice === 'detalleHogar') {
+                if (summaryContainer) summaryContainer.style.display = 'flex';
+                populateStandardApplianceList(listContainer);
+            } else if (choice === 'boletaMensual') {
+                if (summaryContainer) summaryContainer.style.display = 'none';
+                listContainer.innerHTML = '';
+                showScreen('consumo-factura-section');
+                updateStepIndicator('consumo-factura-section');
+            } else if (choice === 'detalleHogarHoras') {
+                // if (summaryContainer) summaryContainer.style.display = 'flex'; // Handled by populateDetailedApplianceList
+                populateDetailedApplianceList(listContainer);
+            } else {
+                // No choice made or invalid choice, show selection prompt
+                modoSeleccionContainer.style.display = 'block';
+                if (summaryContainer) summaryContainer.style.display = 'none';
+            }
+        };
+
+        // Check if a choice is already saved
+        if (userSelections.metodoIngresoConsumoEnergia) {
+            handleExpertEnergyChoice(userSelections.metodoIngresoConsumoEnergia);
+            const currentRadio = document.querySelector(`input[name="metodoIngresoConsumo"][value="${userSelections.metodoIngresoConsumoEnergia}"]`);
+            if (currentRadio) currentRadio.checked = true;
+        } else {
+            modoSeleccionContainer.style.display = 'block';
         }
 
-        // Attempt to get references to totalConsumoMensualDisplay and totalConsumoAnualDisplay
-        // These are already global constants, but checking if they exist in the DOM here is good practice
-        // if they were dynamically added/removed (though in this app, they seem static).
-        const totalConsumoMensualEl = document.getElementById('totalConsumoMensual');
-        const totalConsumoAnualEl = document.getElementById('totalConsumoAnual');
+        const radioButtons = document.querySelectorAll('input[name="metodoIngresoConsumo"]');
+        radioButtons.forEach(radio => {
+            if (!radio.dataset.listenerAttached) {
+                radio.addEventListener('change', (event) => {
+                    userSelections.metodoIngresoConsumoEnergia = event.target.value;
+                    saveUserSelections();
+                    handleExpertEnergyChoice(event.target.value);
+                });
+                radio.dataset.listenerAttached = 'true';
+            }
+        });
 
-        if (totalConsumoMensualEl) {
-            totalConsumoMensualEl.value = 'N/A';
-        }
-        if (totalConsumoAnualEl) {
-            totalConsumoAnualEl.value = 'N/A';
-        }
-
-        // Critical: Prevent further execution for expert users
-        return;
-    } else {
-        // For 'basico' users or if userType is not 'experto'
-        if (energySummaryContainer) {
-            // Ensure the summary is visible for basic users.
-            // 'flex' is typically the default display for this element if it uses flexbox.
-            // If it's block or another display type, adjust accordingly or simply remove 'display: none'.
-            energySummaryContainer.style.display = 'flex'; // Or 'block', or '' to reset
-        }
-        // Ensure consumption values are numbers or re-calculated, not "N/A"
-        // This will be handled by calcularConsumo() called after this function or by input changes.
-        // We might want to reset them to 0 or re-calculate if coming from 'experto' view.
-        const totalConsumoMensualEl = document.getElementById('totalConsumoMensual');
-        const totalConsumoAnualEl = document.getElementById('totalConsumoAnual');
-        if (totalConsumoMensualEl && totalConsumoMensualEl.value === 'N/A') {
-            totalConsumoMensualEl.value = '0.00'; // Reset or recalculate
-        }
-        if (totalConsumoAnualEl && totalConsumoAnualEl.value === 'N/A') {
-            totalConsumoAnualEl.value = '0.00'; // Reset or recalculate
-        }
+    } else { // Basic user
+        modoSeleccionContainer.style.display = 'none';
+        if (summaryContainer) summaryContainer.style.display = 'flex';
+        populateStandardApplianceList(listContainer);
     }
+}
 
-    // Original logic for non-expert users continues here
-    electrodomesticosListContainer.innerHTML = ''; // Limpiar el contenido anterior
+// Helper function for the standard appliance list population
+function populateStandardApplianceList(listContainerElement) {
+    if (!listContainerElement) return;
+    listContainerElement.innerHTML = '';
 
     Object.keys(electrodomesticosCategorias).forEach(categoria => {
         const h2 = document.createElement('h2');
         h2.textContent = categoria;
-        electrodomesticosListContainer.appendChild(h2);
-
+        listContainerElement.appendChild(h2);
         const itemsDiv = document.createElement('div');
         itemsDiv.className = 'electrodomesticos-categoria';
-
         electrodomesticosCategorias[categoria].forEach(item => {
             const row = document.createElement('div');
             row.className = 'electrodomestico-row';
-
             const name = document.createElement('span');
             name.textContent = item.name;
-
             const input = document.createElement('input');
             input.type = 'number';
             input.min = '0';
-            // Carga la cantidad guardada para este electrodoméstico, o 0 si no existe
-            input.value = userSelections.electrodomesticos[item.name] || 0;
+            input.value = userSelections.electrodomesticos[item.name]?.cantidad || 0;
             input.id = `cant-${item.name.replace(/\s+/g, '-')}`;
             input.className = 'electrodomestico-input';
-            input.addEventListener('change', (e) => { // Usar 'change' para mejor manejo de blur/enter
-                userSelections.electrodomesticos[item.name] = parseInt(e.target.value) || 0;
-                calcularConsumo(); // Recalcula el consumo total al cambiar una cantidad
-                saveUserSelections(); // Guarda las selecciones
+            input.addEventListener('change', (e) => {
+                const itemName = item.name;
+                if (!userSelections.electrodomesticos[itemName]) {
+                    userSelections.electrodomesticos[itemName] = { cantidad: 0, horasVerano: null, horasInvierno: null };
+                }
+                userSelections.electrodomesticos[itemName].cantidad = parseInt(e.target.value) || 0;
+                calcularConsumo();
+                saveUserSelections();
             });
-
-            // Calcula el consumo diario individual y lo muestra
-            // Asumiendo que tu backend proporciona 'watts' y 'hoursPerDay'
-            // Si tu backend solo da 'consumo_diario', puedes usar item.consumo_diario directamente.
             const consumoDiario = item.consumo_diario_kwh || 0;
             const consumoLabel = document.createElement('span');
             consumoLabel.textContent = `${consumoDiario.toFixed(3)} kWh/día`;
-
             row.appendChild(name);
             row.appendChild(consumoLabel);
             row.appendChild(input);
             itemsDiv.appendChild(row);
         });
-        electrodomesticosListContainer.appendChild(itemsDiv); // NO debe haber un 'btn' aquí si no quieres un botón por categoría
+        listContainerElement.appendChild(itemsDiv);
     });
+    calcularConsumo(); // Initial calculation after populating
+}
+
+function populateDetailedApplianceList(listContainerElement) {
+    if (!listContainerElement) {
+        console.error("Target container for detailed appliance list not provided.");
+        return;
+    }
+    listContainerElement.innerHTML = ''; // Clear previous content
+
+    Object.keys(electrodomesticosCategorias).forEach(categoria => {
+        const h2 = document.createElement('h2');
+        h2.textContent = categoria;
+        listContainerElement.appendChild(h2);
+
+        const itemsDiv = document.createElement('div');
+        itemsDiv.className = 'electrodomesticos-categoria'; // Reuse existing class if suitable
+
+        electrodomesticosCategorias[categoria].forEach(item => {
+            const itemName = item.name;
+            const applianceData = userSelections.electrodomesticos[itemName] || { cantidad: 0, horasVerano: null, horasInvierno: null };
+
+            const row = document.createElement('div');
+            row.className = 'electrodomestico-row electrodomestico-detailed-inputs';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = itemName;
+            nameSpan.style.flexBasis = '30%';
+
+            const wattsSpan = document.createElement('span');
+            wattsSpan.textContent = `(${item.watts || 0} W)`;
+            wattsSpan.style.fontSize = '0.8em';
+            wattsSpan.style.flexBasis = '15%';
+
+            const cantidadInput = document.createElement('input');
+            cantidadInput.type = 'number';
+            cantidadInput.min = '0';
+            cantidadInput.value = applianceData.cantidad || 0;
+            cantidadInput.id = `cant-detailed-${itemName.replace(/\s+/g, '-')}`;
+            cantidadInput.className = 'electrodomestico-input';
+            cantidadInput.style.maxWidth = '60px';
+            cantidadInput.addEventListener('input', (e) => {
+                if (!userSelections.electrodomesticos[itemName]) {
+                    userSelections.electrodomesticos[itemName] = { cantidad: 0, horasVerano: null, horasInvierno: null };
+                }
+                userSelections.electrodomesticos[itemName].cantidad = parseInt(e.target.value) || 0;
+                // TODO: Deferred - Trigger specific consumption calculation for this mode if/when implemented
+                saveUserSelections();
+            });
+
+            const horasVeranoInput = document.createElement('input');
+            horasVeranoInput.type = 'number';
+            horasVeranoInput.min = '0';
+            horasVeranoInput.placeholder = 'Hs. Verano/mes';
+            horasVeranoInput.value = applianceData.horasVerano || '';
+            horasVeranoInput.id = `horas-verano-${itemName.replace(/\s+/g, '-')}`;
+            horasVeranoInput.className = 'electrodomestico-input';
+            horasVeranoInput.style.maxWidth = '100px';
+            horasVeranoInput.addEventListener('input', (e) => {
+                if (!userSelections.electrodomesticos[itemName]) {
+                    userSelections.electrodomesticos[itemName] = { cantidad: 0, horasVerano: null, horasInvierno: null };
+                }
+                const val = parseFloat(e.target.value);
+                userSelections.electrodomesticos[itemName].horasVerano = isNaN(val) ? null : val;
+                // TODO: Deferred - Trigger specific consumption calculation
+                saveUserSelections();
+            });
+
+            const horasInviernoInput = document.createElement('input');
+            horasInviernoInput.type = 'number';
+            horasInviernoInput.min = '0';
+            horasInviernoInput.placeholder = 'Hs. Invierno/mes';
+            horasInviernoInput.value = applianceData.horasInvierno || '';
+            horasInviernoInput.id = `horas-invierno-${itemName.replace(/\s+/g, '-')}`;
+            horasInviernoInput.className = 'electrodomestico-input';
+            horasInviernoInput.style.maxWidth = '100px';
+            horasInviernoInput.addEventListener('input', (e) => {
+                if (!userSelections.electrodomesticos[itemName]) {
+                    userSelections.electrodomesticos[itemName] = { cantidad: 0, horasVerano: null, horasInvierno: null };
+                }
+                const val = parseFloat(e.target.value);
+                userSelections.electrodomesticos[itemName].horasInvierno = isNaN(val) ? null : val;
+                // TODO: Deferred - Trigger specific consumption calculation
+                saveUserSelections();
+            });
+
+            row.appendChild(nameSpan);
+            row.appendChild(wattsSpan);
+            row.appendChild(cantidadInput);
+            row.appendChild(horasVeranoInput);
+            row.appendChild(horasInviernoInput);
+            itemsDiv.appendChild(row);
+        });
+        listContainerElement.appendChild(itemsDiv);
+    });
+
+    const summaryContainer = document.querySelector('#energia-section .energy-summary');
+    if (summaryContainer) {
+        const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');
+        const totalConsumoAnualDisplay = document.getElementById('totalConsumoAnual');
+        if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = 'N/A (modo detallado)';
+        if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = 'N/A (modo detallado)';
+        summaryContainer.style.display = 'flex';
+    }
 }
 
 function calcularConsumo() {
@@ -966,7 +1110,7 @@ function calcularConsumo() {
     for (const categoria in electrodomesticosCategorias) {
         if (electrodomesticosCategorias.hasOwnProperty(categoria)) {
             electrodomesticosCategorias[categoria].forEach(item => {
-                const cant = userSelections.electrodomesticos[item.name] || 0;
+                const cant = userSelections.electrodomesticos[item.name]?.cantidad || 0;
                 // Ajusta esta lógica si tu backend solo da 'consumo_diario'
                 const consumoDiarioItem = item.consumo_diario_kwh || 0;
                 totalDiario += consumoDiarioItem * cant;
@@ -1413,10 +1557,10 @@ function setupNavigationButtons() {
             showScreen('superficie-section');
             updateStepIndicator('superficie-section');
             initSuperficieSection(); // Load options for the new section
-        } else {
-            // Basic users skip superficie-section and go directly to energia
+        } else { // Basic users
             showScreen('energia-section');
             updateStepIndicator('energia-section');
+            initElectrodomesticosSection(); // Ensure basic user view is rendered
         }
     });
 
@@ -1527,9 +1671,17 @@ function setupNavigationButtons() {
     const backFromConsumoFacturaButton = document.getElementById('back-from-consumo-factura');
     if (backFromConsumoFacturaButton) {
         backFromConsumoFacturaButton.addEventListener('click', () => {
-            showScreen('map-screen');
-            showMapScreenFormSection('supply-section'); // Go back to supply type selection
-            // updateStepIndicator('map-screen'); // Or a more specific step if map-screen has conceptual steps
+            if (userSelections.userType === 'experto' && userSelections.metodoIngresoConsumoEnergia === 'boletaMensual') {
+                // Expert chose "boletaMensual" and wants to go back
+                showScreen('energia-section');
+                updateStepIndicator('energia-section');
+                initElectrodomesticosSection(); // This will show the expert's energy mode selection screen again
+            } else {
+                // Original flow for non-expert (Comercial/PYME) from map-screen path
+                showScreen('map-screen');
+                showMapScreenFormSection('supply-section');
+                updateStepIndicator('map-screen');
+            }
         });
     }
 
@@ -1577,13 +1729,14 @@ function setupNavigationButtons() {
     const nextToPanelesButton = document.getElementById('next-to-paneles');
     if (nextToPanelesButton) {
         nextToPanelesButton.addEventListener('click', () => {
-            if (userSelections.userType === 'basico') {
-                showScreen('analisis-economico-section');
-                updateStepIndicator('analisis-economico-section');
-            } else { // Assumes 'experto' or any other type follows the expert path
-                showScreen('paneles-section');
-                updateStepIndicator('paneles-section');
-            }
+            // This button should simply advance to the 'paneles-section' for all user types
+            // who reach this button (Basic users after appliance list, Experts after their chosen energy input method if it leads here).
+            // The current expert flow from 'energia-section' (if 'detalleHogar' or 'detalleHogarHoras' was chosen)
+            // would logically proceed to 'paneles-section'.
+            showScreen('paneles-section');
+            updateStepIndicator('paneles-section');
+            // If 'paneles-section' needs initialization (e.g., loading panel types from API), call its init function here.
+            // initPanelesSection();
         });
     }
     document.getElementById('back-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
