@@ -907,38 +907,50 @@ function initElectrodomesticosSection() {
 
 
     if (userSelections.userType === 'experto') {
-        // Function to handle display based on expert's choice
+        // 1. Always show choice screen & reset content areas
+        modoSeleccionContainer.style.display = 'block';
+        listContainer.innerHTML = '';
+        if (summaryContainer) summaryContainer.style.display = 'none';
+        if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = 'N/A';
+        if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = 'N/A';
+
+        // 2. Pre-check radio based on saved selection
+        if (userSelections.metodoIngresoConsumoEnergia) {
+            const currentRadio = document.querySelector(`input[name="metodoIngresoConsumo"][value="${userSelections.metodoIngresoConsumoEnergia}"]`);
+            if (currentRadio) {
+                currentRadio.checked = true;
+            }
+        } else {
+            // If no method was previously selected, explicitly uncheck all radio buttons
+            document.querySelectorAll('input[name="metodoIngresoConsumo"]').forEach(rb => rb.checked = false);
+        }
+
+        // Function to handle display based on expert's choice (this function itself is not changed, but its invocation is)
         const handleExpertEnergyChoice = (choice) => {
-            modoSeleccionContainer.style.display = 'none'; // Hide selection once a choice is made or loaded
+            // modoSeleccionContainer.style.display = 'none'; // Keep it visible unless a choice leads to navigation
             listContainer.innerHTML = ''; // Clear list container before populating based on choice
 
             if (choice === 'detalleHogar') {
-                if (summaryContainer) summaryContainer.style.display = 'flex';
+                if (summaryContainer) summaryContainer.style.display = 'flex'; // Show summary for this option
                 populateStandardApplianceList(listContainer);
             } else if (choice === 'boletaMensual') {
+                // Navigation happens, so this section will be hidden by showScreen
                 if (summaryContainer) summaryContainer.style.display = 'none';
                 listContainer.innerHTML = '';
                 showScreen('consumo-factura-section');
                 updateStepIndicator('consumo-factura-section');
             } else if (choice === 'detalleHogarHoras') {
-                // if (summaryContainer) summaryContainer.style.display = 'flex'; // Handled by populateDetailedApplianceList
+                // Summary display is handled by populateDetailedApplianceList
                 populateDetailedApplianceList(listContainer);
             } else {
-                // No choice made or invalid choice, show selection prompt
+                // This case should ideally not be hit if radios are the only trigger
+                // but as a fallback, ensure mode selection is visible.
                 modoSeleccionContainer.style.display = 'block';
                 if (summaryContainer) summaryContainer.style.display = 'none';
             }
         };
 
-        // Check if a choice is already saved
-        if (userSelections.metodoIngresoConsumoEnergia) {
-            handleExpertEnergyChoice(userSelections.metodoIngresoConsumoEnergia);
-            const currentRadio = document.querySelector(`input[name="metodoIngresoConsumo"][value="${userSelections.metodoIngresoConsumoEnergia}"]`);
-            if (currentRadio) currentRadio.checked = true;
-        } else {
-            modoSeleccionContainer.style.display = 'block';
-        }
-
+        // 3. Ensure radio button 'change' listeners are active
         const radioButtons = document.querySelectorAll('input[name="metodoIngresoConsumo"]');
         radioButtons.forEach(radio => {
             if (!radio.dataset.listenerAttached) {
@@ -1346,6 +1358,7 @@ function showMapScreenFormSection(sectionIdToShow) {
 
 // --- Configuración de Event Listeners para Botones y Selects (EXISTENTE, MODIFICADA) ---
 
+// Contents of the setupNavigationButtons function with all modifications:
 function setupNavigationButtons() {
     // Get buttons - ensure these IDs exist in calculador.html
     const basicUserButton = document.getElementById('basic-user-button');
@@ -1360,12 +1373,6 @@ function setupNavigationButtons() {
     
     const expertDataForm = document.getElementById('expert-data-form'); // Form itself
 
-    // Initial state on map-screen: show only user-type-section
-    // This should ideally be handled by default HTML (display:block for user-type, none for others)
-    // or called once in DOMContentLoaded after defining showMapScreenFormSection
-    // For safety, can call it here if not sure about initial HTML state:
-    // showMapScreenFormSection('user-type-section');
-
     if (basicUserButton) {
         basicUserButton.addEventListener('click', () => {
             userSelections.userType = 'basico';
@@ -1378,14 +1385,8 @@ function setupNavigationButtons() {
         expertUserButton.addEventListener('click', () => {
             userSelections.userType = 'experto';
             saveUserSelections();
-
-            // Explicitly hide map-screen if it's the current one.
-            // The showScreen function should handle this, but being explicit can be safer.
             const mapScreenElement = document.getElementById('map-screen');
             if (mapScreenElement) mapScreenElement.style.display = 'none';
-
-            // Show data-form-screen and ensure data-meteorologicos-section is visible
-            // and hide other sections within data-form-screen.
             showScreen('data-meteorologicos-section');
             updateStepIndicator('data-meteorologicos-section');
         });
@@ -1422,11 +1423,7 @@ function setupNavigationButtons() {
             userSelections.incomeLevel = 'ALTO';
             saveUserSelections();
             showScreen('data-form-screen'); 
-
-            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block'; // Explicitly show this section
-            // Update step indicator to 'data-meteorologicos-section'.
-            // The section itself should be visible by default HTML structure within data-form-screen's main-content
-            // after showScreen('data-form-screen') has hidden all specific sub-sections.
+            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
             updateStepIndicator('data-meteorologicos-section');
         });
     }
@@ -1436,62 +1433,37 @@ function setupNavigationButtons() {
             userSelections.incomeLevel = 'BAJO';
             saveUserSelections();
             showScreen('data-form-screen');
-
-            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block'; // Explicitly show this section
-            // Update step indicator to 'data-meteorologicos-section'.
+            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
             updateStepIndicator('data-meteorologicos-section');
         });
     }
     
     if (expertDataForm) {
         expertDataForm.addEventListener('submit', (event) => {
-            event.preventDefault(); // Prevent actual form submission
-            // Assuming data from expert-data-form is already handled by its 'zona-instalacion-expert' select listener
-            // The main purpose here is to navigate
+            event.preventDefault();
             console.log('Formulario experto guardado (simulado), procediendo a data-form-screen.');
             showScreen('data-form-screen');
         });
     }
 
-    // Listeners para inputs de selección y otros que guardan userSelections
-    // Asegúrate de que estos IDs existan en tu HTML
-    // document.getElementById('user-type')?.addEventListener('change', (e) => {
-    //     userSelections.userType = e.target.value;
-    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    // });
-    // document.getElementById('installation-type')?.addEventListener('change', (e) => {
-    //     userSelections.installationType = e.target.value;
-    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    // });
-    // document.getElementById('income-level')?.addEventListener('change', (e) => {
-    //     userSelections.incomeLevel = e.target.value;
-    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    // });
     document.getElementById('zona-instalacion-expert')?.addEventListener('change', (e) => {
         userSelections.zonaInstalacionExpert = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
+        saveUserSelections();
     });
-    // document.getElementById('zona-instalacion-basic')?.addEventListener('change', (e) => {
-    //     userSelections.zonaInstalacionBasic = e.target.value;
-    //     saveUserSelections(); // AÑADIDO: Guardar en localStorage
-    // });
     document.getElementById('moneda')?.addEventListener('change', (e) => {
         userSelections.selectedCurrency = e.target.value;
-        saveUserSelections(); // AÑADIDO: Guardar en localStorage
+        saveUserSelections();
     });
 
-    // Añade listeners para Paneles Solares si los campos existen y guardan en userSelections.panelesSolares
     document.getElementById('tipo-panel')?.addEventListener('change', (e) => {
         userSelections.panelesSolares.tipo = e.target.value;
         saveUserSelections();
     });
-    document.getElementById('cantidad-paneles-input')?.addEventListener('input', (e) => { // Usar input o change
+    document.getElementById('cantidad-paneles-input')?.addEventListener('input', (e) => {
         userSelections.panelesSolares.cantidad = parseInt(e.target.value) || 0;
         saveUserSelections();
     });
-    // ... y para potenciaNominal, superficie de paneles
 
-    // Añade listeners para Inversor
     document.getElementById('tipo-inversor')?.addEventListener('change', (e) => {
         userSelections.inversor.tipo = e.target.value;
         saveUserSelections();
@@ -1501,7 +1473,6 @@ function setupNavigationButtons() {
         saveUserSelections();
     });
 
-    // Añade listeners para Pérdidas
     document.getElementById('eficiencia-panel-input')?.addEventListener('input', (e) => {
         userSelections.perdidas.eficienciaPanel = parseFloat(e.target.value) || 0;
         saveUserSelections();
@@ -1524,160 +1495,119 @@ function setupNavigationButtons() {
             } else if (event.target.value === '') {
                 userSelections.alturaInstalacion = null;
             }
-            // If input is invalid (e.g., "abc") but not empty, userSelections.alturaInstalacion retains its last valid value or null.
             saveUserSelections();
         });
     }
-    // Add similar event listeners for 'metodoCalculoRadiacion' and 'modeloMetodoRadiacion'
-    // if they were simple inputs. Since they will be selects populated by JS,
-    // their event listeners will be part of their respective init functions.
 
-
-    // Configurar los botones de navegación entre secciones (EXISTENTES)
-    // document.getElementById('next-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
-    // document.getElementById('back-to-map')?.addEventListener('click', () => showScreen('map-screen'));
-    // document.getElementById('next-to-data-meteorologicos')?.addEventListener('click', () => showScreen('data-meteorologicos-section'));
-    // document.getElementById('back-to-data-form')?.addEventListener('click', () => showScreen('data-form-screen'));
     document.getElementById('next-to-energia')?.addEventListener('click', () => {
-        // Get the selected value from the 'zonaInstalacionNewScreen' radio buttons
         const selectedZona = document.querySelector('input[name="zonaInstalacionNewScreen"]:checked');
         if (selectedZona) {
             userSelections.selectedZonaInstalacion = selectedZona.value;
-            saveUserSelections(); // Save the updated selections
+            saveUserSelections();
             console.log('Zona de instalación seleccionada:', userSelections.selectedZonaInstalacion);
         } else {
-            // Optional: Handle case where no option is selected, though 'required' attribute on radio should prevent this.
             console.warn('No se seleccionó zona de instalación.');
-            // Consider if you want to prevent navigation if nothing is selected,
-            // though HTML 'required' attribute should ideally handle form validation.
         }
 
-        // Proceed with navigation
         if (userSelections.userType === 'experto') {
             showScreen('superficie-section');
             updateStepIndicator('superficie-section');
-            initSuperficieSection(); // Load options for the new section
+            initSuperficieSection();
         } else { // Basic users
             showScreen('energia-section');
             updateStepIndicator('energia-section');
-            initElectrodomesticosSection(); // Ensure basic user view is rendered
+            initElectrodomesticosSection(); // MODIFICATION 1: Call init for basic users
         }
     });
 
-    // Listener for back button from superficie-section to data-meteorologicos-section
     document.getElementById('back-to-data-meteorologicos-from-superficie')?.addEventListener('click', () => {
         showScreen('data-meteorologicos-section');
         updateStepIndicator('data-meteorologicos-section');
     });
 
-    // Listener for next button from superficie-section to RUGOSIDAD section
     const nextFromSuperficieButton = document.getElementById('next-to-energia-from-superficie');
     if (nextFromSuperficieButton) {
         nextFromSuperficieButton.addEventListener('click', () => {
-            // Optional: Add validation here if needed for superficie selection
             showScreen('rugosidad-section');
             updateStepIndicator('rugosidad-section');
             initRugosidadSection();
         });
     }
 
-    // Listener for "Back" from rugosidad-section to superficie-section
     document.getElementById('back-to-superficie-from-rugosidad')?.addEventListener('click', () => {
         showScreen('superficie-section');
         updateStepIndicator('superficie-section');
     });
 
-    // Listener for "Next" from rugosidad-section to ROTACION section
     document.getElementById('next-to-rotacion-from-rugosidad')?.addEventListener('click', () => {
-        // Optional: Add validation here if needed for rugosidad selection
         showScreen('rotacion-section');
         updateStepIndicator('rotacion-section');
         initRotacionSection();
     });
 
-    // Listener for "Back" from rotacion-section to rugosidad-section
     document.getElementById('back-to-rugosidad-from-rotacion')?.addEventListener('click', () => {
         showScreen('rugosidad-section');
         updateStepIndicator('rugosidad-section');
     });
 
-    // Listener for "Next" from rotacion-section to altura-instalacion-section (MODIFIED)
     document.getElementById('next-to-paneles-from-rotacion')?.addEventListener('click', () => {
-        // Optional: Add validation for rotacion selection if needed
         showScreen('altura-instalacion-section');
         updateStepIndicator('altura-instalacion-section');
-        // To ensure the input field shows the latest saved value if user navigates back and forth:
         const alturaInput = document.getElementById('altura-instalacion-input');
         if (alturaInput && userSelections.alturaInstalacion !== null) {
             alturaInput.value = userSelections.alturaInstalacion;
         } else if (alturaInput) {
-            alturaInput.value = ''; // Clear if null or not set
+            alturaInput.value = '';
         }
     });
 
-    // From altura-instalacion-section (Back)
     document.getElementById('back-to-rotacion-from-altura')?.addEventListener('click', () => {
         showScreen('rotacion-section');
         updateStepIndicator('rotacion-section');
     });
 
-    // From altura-instalacion-section (Next)
     document.getElementById('next-to-metodo-calculo-from-altura')?.addEventListener('click', () => {
-        // Optional: Add validation for alturaInstalacionInput if needed
         showScreen('metodo-calculo-section');
         updateStepIndicator('metodo-calculo-section');
         initMetodoCalculoSection();
     });
 
-    // From metodo-calculo-section (Back)
     document.getElementById('back-to-altura-from-metodo')?.addEventListener('click', () => {
         showScreen('altura-instalacion-section');
         updateStepIndicator('altura-instalacion-section');
     });
 
-    // From metodo-calculo-section (Next)
     document.getElementById('next-to-modelo-metodo-from-metodo')?.addEventListener('click', () => {
-        // Optional: Add validation for metodoCalculo selection if needed
         showScreen('modelo-metodo-section');
         updateStepIndicator('modelo-metodo-section');
         initModeloMetodoSection();
     });
 
-    // From modelo-metodo-section (Back)
     document.getElementById('back-to-metodo-calculo-from-modelo')?.addEventListener('click', () => {
         showScreen('metodo-calculo-section');
         updateStepIndicator('metodo-calculo-section');
     });
 
-    // From modelo-metodo-section (Next) to energia-section (MODIFIED)
     document.getElementById('next-to-paneles-from-modelo')?.addEventListener('click', () => {
-        // Optional: Add validation for modeloMetodo selection if needed
-        showScreen('energia-section'); // Corrected target
+        showScreen('energia-section');
         updateStepIndicator('energia-section');
-        initElectrodomesticosSection(); // Ensures conditional content for expert users
+        initElectrodomesticosSection();
     });
 
-    // Listener for back button from energia-section to data-meteorologicos-section (for basic user)
-    // OR back to rotacion-section (for expert user, though this path is now more direct to paneles)
-    // This button ID 'back-to-data-meteorologicos' is on the energia-section.
-    // For an expert, they would not typically see this button if they came from rotacion.
-    // This specific listener might need review if expert path can land on energia from somewhere else than rotacion.
-    // For now, it correctly points back from energia to data-meteorologicos, which is fine for basic users.
     document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => {
         showScreen('data-meteorologicos-section');
         updateStepIndicator('data-meteorologicos-section');
     });
-    
+
+    // MODIFICATION 2: `back-from-consumo-factura` button
     const backFromConsumoFacturaButton = document.getElementById('back-from-consumo-factura');
     if (backFromConsumoFacturaButton) {
         backFromConsumoFacturaButton.addEventListener('click', () => {
             if (userSelections.userType === 'experto' && userSelections.metodoIngresoConsumoEnergia === 'boletaMensual') {
-                // Expert chose "boletaMensual" and wants to go back
                 showScreen('energia-section');
                 updateStepIndicator('energia-section');
-                initElectrodomesticosSection(); // This will show the expert's energy mode selection screen again
+                initElectrodomesticosSection();
             } else {
-                // Original flow for non-expert (Comercial/PYME) from map-screen path
                 showScreen('map-screen');
                 showMapScreenFormSection('supply-section');
                 updateStepIndicator('map-screen');
@@ -1695,50 +1625,47 @@ function setupNavigationButtons() {
             ];
             let totalAnnualConsumptionFromBill = 0;
             const monthlyConsumptions = [];
-            let allInputsValid = true;
-
             monthIds.forEach(id => {
                 const inputElement = document.getElementById(id);
                 if (inputElement) {
                     const value = parseFloat(inputElement.value);
                     if (isNaN(value) || value < 0) {
-                        console.warn(`Valor inválido o vacío para ${id}, usando 0.`);
                         monthlyConsumptions.push(0);
                     } else {
                         monthlyConsumptions.push(value);
                         totalAnnualConsumptionFromBill += value;
                     }
-                } else {
-                    console.error(`Input con ID ${id} no encontrado.`);
-                    allInputsValid = false; 
                 }
             });
-
             userSelections.consumosMensualesFactura = monthlyConsumptions; 
             userSelections.totalAnnualConsumption = totalAnnualConsumptionFromBill; 
-            
-            console.log('Consumos mensuales (factura):', userSelections.consumosMensualesFactura);
-            console.log('Consumo anual total (factura):', userSelections.totalAnnualConsumption);
             saveUserSelections();
-
             showScreen('analisis-economico-section');
             updateStepIndicator('analisis-economico-section');
         });
     }
 
+    // MODIFICATION 3: `next-to-paneles` button (from `energia-section`)
     const nextToPanelesButton = document.getElementById('next-to-paneles');
     if (nextToPanelesButton) {
         nextToPanelesButton.addEventListener('click', () => {
-            // This button should simply advance to the 'paneles-section' for all user types
-            // who reach this button (Basic users after appliance list, Experts after their chosen energy input method if it leads here).
-            // The current expert flow from 'energia-section' (if 'detalleHogar' or 'detalleHogarHoras' was chosen)
-            // would logically proceed to 'paneles-section'.
-            showScreen('paneles-section');
-            updateStepIndicator('paneles-section');
-            // If 'paneles-section' needs initialization (e.g., loading panel types from API), call its init function here.
-            // initPanelesSection();
+            if (userSelections.userType === 'experto') {
+                const metodo = userSelections.metodoIngresoConsumoEnergia;
+                if (metodo === 'detalleHogar' || metodo === 'detalleHogarHoras') {
+                    showScreen('paneles-section');
+                    updateStepIndicator('paneles-section');
+                } else if (metodo === 'boletaMensual') {
+                    alert('Por favor, complete el ingreso de consumo por boleta en su sección correspondiente o elija otro método.');
+                } else {
+                    alert('Por favor, seleccione un método para ingresar los datos de consumo antes de continuar.');
+                }
+            } else { // Basic user
+                showScreen('paneles-section');
+                updateStepIndicator('paneles-section');
+            }
         });
     }
+
     document.getElementById('back-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
     document.getElementById('next-to-inversor')?.addEventListener('click', () => showScreen('inversor-section'));
     document.getElementById('back-to-paneles')?.addEventListener('click', () => showScreen('paneles-section'));
@@ -1747,17 +1674,13 @@ function setupNavigationButtons() {
     document.getElementById('next-to-analisis-economico')?.addEventListener('click', () => showScreen('analisis-economico-section'));
     document.getElementById('back-to-perdidas')?.addEventListener('click', () => showScreen('perdidas-section'));
 
-    // --- Lógica del botón "Finalizar Cálculo" (NUEVO BLOQUE INTEGRADO) ---
     const finalizarCalculoBtn = document.getElementById('finalizar-calculo');
     if (finalizarCalculoBtn) {
         finalizarCalculoBtn.addEventListener('click', async (event) => {
-            event.preventDefault(); // Evita el envío del formulario si está dentro de uno
+            event.preventDefault();
             console.log('Finalizar Cálculo clickeado. Enviando datos al backend para generar informe...');
-
-            saveUserSelections(); // Guardar las últimas selecciones antes de enviar
-
+            saveUserSelections();
             try {
-                // Envía TODOS los userSelections al backend
                 const response = await fetch('http://127.0.0.1:5000/api/generar_informe', {
                     method: 'POST',
                     headers: {
@@ -1765,19 +1688,14 @@ function setupNavigationButtons() {
                     },
                     body: JSON.stringify(userSelections)
                 });
-
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(`HTTP error! status: ${response.status} - ${errorData.error || response.statusText}`);
                 }
-
                 const informeFinal = await response.json();
                 console.log('Informe recibido del backend:', informeFinal);
-
-                localStorage.setItem('informeSolar', JSON.stringify(informeFinal)); // Guardar el informe para informe.html
-
-                window.location.href = 'informe.html'; // Redirigir a la página de informe
-
+                localStorage.setItem('informeSolar', JSON.stringify(informeFinal));
+                window.location.href = 'informe.html';
             } catch (error) {
                 console.error('Error al generar el informe:', error);
                 alert('Hubo un error al generar el informe. Por favor, intente de nuevo. Detalle: ' + error.message);
