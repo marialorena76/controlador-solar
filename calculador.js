@@ -24,6 +24,9 @@ let userSelections = {
         descripcion: null,
         valor: null
     },
+    alturaInstalacion: null,       // New property
+    metodoCalculoRadiacion: null,  // New property
+    modeloMetodoRadiacion: null,   // New property
     electrodomesticos: {}, // Almacenará { "Nombre Electrodoméstico": cantidad }
     totalMonthlyConsumption: 0,
     totalAnnualConsumption: 0,
@@ -72,6 +75,9 @@ const consumoFacturaSection = document.getElementById('consumo-factura-section')
 const superficieSection = document.getElementById('superficie-section');
 const rugosidadSection = document.getElementById('rugosidad-section');
 const rotacionSection = document.getElementById('rotacion-section');
+const alturaInstalacionSection = document.getElementById('altura-instalacion-section');
+const metodoCalculoSection = document.getElementById('metodo-calculo-section');
+const modeloMetodoSection = document.getElementById('modelo-metodo-section');
 
 
 // --- Funciones de Persistencia (NUEVO BLOQUE INTEGRADO) ---
@@ -227,6 +233,13 @@ function updateUIFromSelections() {
     const factorPerdidasInput = document.getElementById('factor-perdidas-input');
     if (factorPerdidasInput && userSelections.perdidas?.factorPerdidas) {
         factorPerdidasInput.value = userSelections.perdidas.factorPerdidas;
+    }
+
+    const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
+    if (alturaInstalacionInput && userSelections.alturaInstalacion !== null) {
+        alturaInstalacionInput.value = userSelections.alturaInstalacion;
+    } else if (alturaInstalacionInput) {
+        alturaInstalacionInput.value = ''; // Clear if null
     }
 }
 
@@ -984,6 +997,27 @@ function setupNavigationButtons() {
         userSelections.perdidas.factorPerdidas = parseFloat(e.target.value) || 0;
         saveUserSelections();
     });
+
+    const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
+    if (alturaInstalacionInput) {
+        alturaInstalacionInput.addEventListener('input', (event) => {
+            const value = parseFloat(event.target.value);
+            if (!isNaN(value) && value >= 0) { // Ensure positive or zero
+                userSelections.alturaInstalacion = value;
+            } else if (event.target.value === '') { // Allow clearing the input
+                userSelections.alturaInstalacion = null;
+            } else if (isNaN(value) && event.target.value !== '') {
+                 // If not a number and not empty, it's invalid.
+                 // Optionally, reset to last valid or null, or show validation message.
+                 // For now, just don't update userSelections with NaN from invalid partial input.
+                 // If user types "abc", parseFloat is NaN, we don't want to store that.
+                 // If they clear it, it becomes null.
+                 // If they type a valid number, it's stored.
+                 // Consider if 'event.target.value' should be reset or if HTML min/step handles visual feedback.
+            }
+            saveUserSelections();
+        });
+    }
 
 
     // Configurar los botones de navegación entre secciones (EXISTENTES)
