@@ -172,46 +172,72 @@ async function initSuperficieSection() {
     container.innerHTML = ''; // Limpiar opciones anteriores
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/superficie_options'); // Ensure this URL is correct
+        const response = await fetch('http://127.0.0.1:5000/api/superficie_options');
         if (!response.ok) {
-            // Throw an error that includes response status to be caught by the catch block
             throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
-        const options = await response.json(); // Changed from 'data' to 'options' to match previous version
+        const data = await response.json();
 
-        if (!Array.isArray(options)) {
-            console.error('Respuesta de /api/superficie_options no es un array:', options);
-            // Display error in container as well
+        if (!Array.isArray(data)) {
+            console.error('[SUPERFICIE OPTIONS LOAD ERROR] Data received is not an array:', data);
             container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto.</p>';
             return;
         }
 
-        options.forEach(item => {
-            const label = document.createElement('label');
-            const input = document.createElement('input');
-            input.type = 'radio';
-            input.name = 'superficieRodeaOption'; // Nombre común para el grupo de radios
-            input.value = item.valor;
-            input.dataset.descripcion = item.descripcion; // Guardar descripción en dataset
+        const selectElement = document.createElement('select');
+        selectElement.id = 'superficie-select';
+        // Asegúrate de que esta clase coincida con el estilo de otros selects si es necesario.
+        // Puede que necesites una clase CSS específica para selects en lugar de 'radio-group' en el contenedor.
+        // Por ahora, se asume que 'form-control' o una clase global maneja el estilo de los selects.
+        // Si 'superficie-options-container' tiene estilos de 'radio-group' que interfieren,
+        // considera quitar 'radio-group' de 'superficie-options-container' en el HTML
+        // o añadir una clase específica al select que anule/complemente.
+        selectElement.className = 'form-control'; // Usar una clase estándar para selects
 
-            // Comprobar si esta opción debe estar seleccionada (persistiendo selección)
-            if (userSelections.superficieRodea && userSelections.superficieRodea.valor === item.valor) {
-                input.checked = true;
-            }
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.textContent = 'Seleccione una opción...';
+        placeholderOption.disabled = true;
+        placeholderOption.selected = true; // Selected by default
+        selectElement.appendChild(placeholderOption);
 
-            input.addEventListener('change', () => {
-                if (input.checked) {
-                    userSelections.superficieRodea.descripcion = item.descripcion;
-                    userSelections.superficieRodea.valor = parseFloat(item.valor);
-                    saveUserSelections();
-                    console.log('Superficie rodea seleccionada:', userSelections.superficieRodea);
+        if (data.length === 0) {
+            // No se añaden más opciones, pero el placeholder ya está.
+            // Podrías añadir un mensaje específico si lo deseas, aunque el select vacío con placeholder ya indica algo.
+            console.log('[SUPERFICIE OPTIONS LOAD] No hay opciones de superficie disponibles.');
+        } else {
+            data.forEach(item => {
+                const optionElement = document.createElement('option');
+                optionElement.value = item.valor;
+                optionElement.textContent = item.descripcion;
+                optionElement.dataset.descripcion = item.descripcion;
+
+                if (userSelections.superficieRodea.valor !== null &&
+                    String(userSelections.superficieRodea.valor) === String(item.valor)) {
+                    optionElement.selected = true;
+                    placeholderOption.selected = false; // Unselect placeholder if a real option is selected
                 }
+                selectElement.appendChild(optionElement);
             });
+        }
 
-            label.appendChild(input);
-            label.appendChild(document.createTextNode(" " + item.descripcion));
-            container.appendChild(label);
+        selectElement.addEventListener('change', (event) => {
+            const selectedOption = event.target.options[event.target.selectedIndex];
+            const valor = selectedOption.value;
+            const descripcion = selectedOption.dataset.descripcion;
+
+            if (valor && valor !== '') { // Ensure it's not the placeholder
+                userSelections.superficieRodea.valor = parseFloat(valor);
+                userSelections.superficieRodea.descripcion = descripcion;
+            } else {
+                userSelections.superficieRodea.valor = null;
+                userSelections.superficieRodea.descripcion = null;
+            }
+            saveUserSelections();
+            console.log('Superficie rodea seleccionada (select):', userSelections.superficieRodea);
         });
+
+        container.appendChild(selectElement);
 
     } catch (error) {
         console.error('[SUPERFICIE OPTIONS LOAD ERROR] Error fetching or processing superficie options:', error);
@@ -254,41 +280,59 @@ async function initRugosidadSection() {
         const data = await response.json();
 
         if (!Array.isArray(data)) {
-            console.error('Respuesta de /api/rugosidad_options no es un array:', data);
+            console.error('[RUGOSIDAD OPTIONS LOAD ERROR] Data received is not an array:', data);
             container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para rugosidad.</p>';
             return;
         }
 
+        const selectElement = document.createElement('select');
+        selectElement.id = 'rugosidad-select';
+        selectElement.className = 'form-control';
+
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.textContent = 'Seleccione una opción...';
+        placeholderOption.disabled = true;
+        placeholderOption.selected = true;
+        selectElement.appendChild(placeholderOption);
+
         if (data.length === 0) {
-            container.innerHTML = '<p style="text-align: center;">No hay opciones de rugosidad disponibles.</p>';
-            return;
+            console.log('[RUGOSIDAD OPTIONS LOAD] No hay opciones de rugosidad disponibles.');
+            // The select will only have the placeholder, which is fine.
+            // Or display message in container: container.innerHTML = '<p>No hay opciones...</p>';
+        } else {
+            data.forEach(item => {
+                const optionElement = document.createElement('option');
+                optionElement.value = item.valor;
+                optionElement.textContent = item.descripcion;
+                optionElement.dataset.descripcion = item.descripcion;
+
+                if (userSelections.rugosidadSuperficie.valor !== null &&
+                    String(userSelections.rugosidadSuperficie.valor) === String(item.valor)) {
+                    optionElement.selected = true;
+                    placeholderOption.selected = false;
+                }
+                selectElement.appendChild(optionElement);
+            });
         }
 
-        data.forEach(item => {
-            const label = document.createElement('label');
-            const input = document.createElement('input');
-            input.type = 'radio';
-            input.name = 'rugosidadOption';
-            input.value = item.valor;
-            input.dataset.descripcion = item.descripcion;
+        selectElement.addEventListener('change', (event) => {
+            const selectedOption = event.target.options[event.target.selectedIndex];
+            const valor = selectedOption.value;
+            const descripcion = selectedOption.dataset.descripcion;
 
-            if (userSelections.rugosidadSuperficie && userSelections.rugosidadSuperficie.valor === item.valor) {
-                input.checked = true;
+            if (valor && valor !== '') {
+                userSelections.rugosidadSuperficie.valor = parseFloat(valor);
+                userSelections.rugosidadSuperficie.descripcion = descripcion;
+            } else {
+                userSelections.rugosidadSuperficie.valor = null;
+                userSelections.rugosidadSuperficie.descripcion = null;
             }
-
-            input.addEventListener('change', () => {
-                if (input.checked) {
-                    userSelections.rugosidadSuperficie.descripcion = item.descripcion;
-                    userSelections.rugosidadSuperficie.valor = parseFloat(item.valor);
-                    saveUserSelections();
-                    console.log('Rugosidad de superficie seleccionada:', userSelections.rugosidadSuperficie);
-                }
-            });
-
-            label.appendChild(input);
-            label.appendChild(document.createTextNode(" " + item.descripcion));
-            container.appendChild(label);
+            saveUserSelections();
+            console.log('Rugosidad de superficie seleccionada (select):', userSelections.rugosidadSuperficie);
         });
+
+        container.appendChild(selectElement);
 
     } catch (error) {
         console.error('[RUGOSIDAD OPTIONS LOAD ERROR] Error fetching or processing rugosidad options:', error);
@@ -319,41 +363,58 @@ async function initRotacionSection() {
         const data = await response.json();
 
         if (!Array.isArray(data)) {
-            console.error('Respuesta de /api/rotacion_options no es un array:', data);
+            console.error('[ROTACIÓN OPTIONS LOAD ERROR] Data received is not an array:', data);
             container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para rotación.</p>';
             return;
         }
 
+        const selectElement = document.createElement('select');
+        selectElement.id = 'rotacion-select';
+        selectElement.className = 'form-control';
+
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.textContent = 'Seleccione una opción...';
+        placeholderOption.disabled = true;
+        placeholderOption.selected = true;
+        selectElement.appendChild(placeholderOption);
+
         if (data.length === 0) {
-            container.innerHTML = '<p style="text-align: center;">No hay opciones de rotación disponibles.</p>';
-            return;
+            console.log('[ROTACIÓN OPTIONS LOAD] No hay opciones de rotación disponibles.');
+            // The select will only have the placeholder.
+        } else {
+            data.forEach(item => {
+                const optionElement = document.createElement('option');
+                optionElement.value = item.valor;
+                optionElement.textContent = item.descripcion;
+                optionElement.dataset.descripcion = item.descripcion;
+
+                if (userSelections.rotacionInstalacion.valor !== null &&
+                    String(userSelections.rotacionInstalacion.valor) === String(item.valor)) {
+                    optionElement.selected = true;
+                    placeholderOption.selected = false;
+                }
+                selectElement.appendChild(optionElement);
+            });
         }
 
-        data.forEach(item => {
-            const label = document.createElement('label');
-            const input = document.createElement('input');
-            input.type = 'radio';
-            input.name = 'rotacionOption';
-            input.value = item.valor;
-            input.dataset.descripcion = item.descripcion;
+        selectElement.addEventListener('change', (event) => {
+            const selectedOption = event.target.options[event.target.selectedIndex];
+            const valor = selectedOption.value;
+            const descripcion = selectedOption.dataset.descripcion;
 
-            if (userSelections.rotacionInstalacion && userSelections.rotacionInstalacion.valor === item.valor) {
-                input.checked = true;
+            if (valor && valor !== '') {
+                userSelections.rotacionInstalacion.valor = parseFloat(valor);
+                userSelections.rotacionInstalacion.descripcion = descripcion;
+            } else {
+                userSelections.rotacionInstalacion.valor = null;
+                userSelections.rotacionInstalacion.descripcion = null;
             }
-
-            input.addEventListener('change', () => {
-                if (input.checked) {
-                    userSelections.rotacionInstalacion.descripcion = item.descripcion;
-                    userSelections.rotacionInstalacion.valor = parseFloat(item.valor);
-                    saveUserSelections();
-                    console.log('Rotación de instalación seleccionada:', userSelections.rotacionInstalacion);
-                }
-            });
-
-            label.appendChild(input);
-            label.appendChild(document.createTextNode(" " + item.descripcion));
-            container.appendChild(label);
+            saveUserSelections();
+            console.log('Rotación de instalación seleccionada (select):', userSelections.rotacionInstalacion);
         });
+
+        container.appendChild(selectElement);
 
     } catch (error) {
         console.error('[ROTACIÓN OPTIONS LOAD ERROR] Error fetching or processing rotación options:', error);
@@ -556,8 +617,8 @@ function showScreen(screenId) {
     // Hide all individual sub-sections within dataFormScreen explicitly
     if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'none';
     if (superficieSection) superficieSection.style.display = 'none';
-    if (rugosidadSection) rugosidadSection.style.display = 'none';   // Add/ensure this
-    if (rotacionSection) rotacionSection.style.display = 'none';   // Add/ensure this
+    if (rugosidadSection) rugosidadSection.style.display = 'none';
+    if (rotacionSection) rotacionSection.style.display = 'none';
     if (energiaSection) energiaSection.style.display = 'none';
     if (consumoFacturaSection) consumoFacturaSection.style.display = 'none';
     if (panelesSection) panelesSection.style.display = 'none';
@@ -606,7 +667,7 @@ function updateStepIndicator(screenId) {
             if (userSelections.userType === 'experto') {
                 if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 1 > Zona de Instalación';
             } else { // Basic user or default
-                if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 1 > Datos Meteorológicos';
+                if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 1 > Datos Meteorológicos'; // Basic users start data entry here
             }
             return;
         case 'superficie-section': // For expert path
@@ -618,53 +679,49 @@ function updateStepIndicator(screenId) {
         case 'rotacion-section': // For expert path
             if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 4 > Rotación Instalación';
             return;
-        case 'energia-section': // For basic path primarily now
-            // If an expert somehow lands here, it would be after rotacion (step 4 for expert)
-            // but basic path is simpler.
+        case 'energia-section': // For basic path primarily
+            // For expert path, this would be step 5 (after rotacion) if they were to go here.
+            // However, the current expert flow from rotacion goes to paneles.
             if (userSelections.userType === 'experto') {
-                 if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 5 > Consumo de Energía';
-            } else {
+                 if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso Adicional > Consumo de Energía'; // Should ideally not be reached in expert flow
+            } else { // Basic User
                  if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 2 > Consumo de Energía';
             }
             return;
-        case 'consumo-factura-section': // Alternative path for Comercial/PYME
+        case 'consumo-factura-section': // Alternative path for Comercial/PYME (non-expert)
             if (stepIndicatorText) stepIndicatorText.textContent = 'Paso Alternativo > Consumo por Factura';
             return;
-        case 'paneles-section':
+        case 'paneles-section': // Step 5 for expert, Step 3 for basic (after energia)
             if (userSelections.userType === 'experto') {
                 if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 5 > Paneles';
-                                                                    // This was step 5 if energia was not shown.
-                                                                    // If energia is shown after rotacion, then this is step 6.
-                                                                    // For now, keeping it simple as per previous structure.
-                                                                    // The Rotacion Next button directly goes here.
-            } else { // Basic user
+            } else {
                 if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 3 > Paneles';
             }
             return;
-        case 'inversor-section':
+        case 'inversor-section': // Step 6 for expert, Step 4 for basic
              if (userSelections.userType === 'experto') {
                 if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 6 > Inversor';
-            } else { // Basic user
+            } else {
                 if (stepIndicatorText) stepIndicatorText.textContent = 'Paso 4 > Inversor';
             }
             return;
-        case 'perdidas-section':
+        case 'perdidas-section': // Step 7 for expert. Basic users might not see this.
             if (userSelections.userType === 'experto') {
                 if (stepIndicatorText) stepIndicatorText.textContent = 'Experto: Paso 7 > Registro Pérdidas';
-            } else { // Basic user (doesn't have this step in current flow)
-                 if (stepIndicatorText) stepIndicatorText.textContent = 'Paso Avanzado > Registro Pérdidas';
+            } else {
+                 if (stepIndicatorText) stepIndicatorText.textContent = 'Paso Avanzado > Registro Pérdidas'; // Or hide for basic
             }
             return;
         case 'analisis-economico-section':
-            let pasoFinalTexto = "Análisis Económico";
+            let pasoFinalTextoAnalisis = "Análisis Económico";
             if (userSelections.userType === 'experto') {
-                pasoFinalTexto = `Experto: Paso 8 > ${pasoFinalTexto}`;
+                pasoFinalTextoAnalisis = `Experto: Paso 8 > ${pasoFinalTextoAnalisis}`;
             } else if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
-                 pasoFinalTexto = `Paso Final > ${pasoFinalTexto}`; // After Consumo Factura
+                 pasoFinalTextoAnalisis = `Paso Final > ${pasoFinalTextoAnalisis}`;
             } else { // Basic Residencial
-                 pasoFinalTexto = `Paso 5 > ${pasoFinalTexto}`; // After Inversor for basic
+                 pasoFinalTextoAnalisis = `Paso 5 > ${pasoFinalTextoAnalisis}`;
             }
-            if (stepIndicatorText) stepIndicatorText.textContent = pasoFinalTexto;
+            if (stepIndicatorText) stepIndicatorText.textContent = pasoFinalTextoAnalisis;
             return;
         default:
             if (stepIndicatorText) stepIndicatorText.textContent = 'Calculador Solar'; // Default or error text
