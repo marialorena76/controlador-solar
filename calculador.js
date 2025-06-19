@@ -1134,6 +1134,45 @@ async function initModeloTemperaturaPanelOptions() { // Keep async if other init
                             // The selection mechanism (dropdown) is removed, so it can't be changed from UI here.
 }
 
+function initInversorSection() {
+    console.log('initInversorSection called. User Type:', userSelections.userType);
+
+    // Get references to old input elements (or their parent form-groups)
+    const tipoInversorInput = document.getElementById('tipo-inversor');
+    const potenciaInversorInput = document.getElementById('potencia-inversor-input');
+
+    // Get their parent form-group elements to hide them completely
+    const tipoInversorFormGroup = tipoInversorInput?.closest('.form-group');
+    const potenciaInversorFormGroup = potenciaInversorInput?.closest('.form-group');
+
+    if (userSelections.userType === 'experto') {
+        console.log('Configuring Inversor section for EXPERT user (currently empty form).');
+        // Ensure old input fields (if they somehow still exist or are re-added) are hidden
+        if (tipoInversorFormGroup) {
+            tipoInversorFormGroup.style.display = 'none';
+        }
+        if (potenciaInversorFormGroup) {
+            potenciaInversorFormGroup.style.display = 'none';
+        }
+        // The HTML was already modified to have the correct title and placeholder P tag.
+        // No specific JS action needed here to show content for the expert's empty form,
+        // as the HTML itself defines the "empty" state with the new title and placeholder.
+        // userSelections.inversor.tipo and userSelections.inversor.potenciaNominal will not be set here for experts.
+
+    } else { // Basic User (should not reach here based on current flow)
+        console.log('Configuring Inversor section for BASIC user (showing original inputs).');
+        // If basic users could reach here and old inputs were meant for them:
+        if (tipoInversorFormGroup) {
+            tipoInversorFormGroup.style.display = 'block'; // Or its default
+        }
+        if (potenciaInversorFormGroup) {
+            potenciaInversorFormGroup.style.display = 'block'; // Or its default
+        }
+        // And ensure the expert-specific title/placeholder (if managed by JS) are hidden.
+        // However, since the HTML title was changed directly, this path is less relevant now.
+    }
+}
+
 // --- Funciones para Consumo y Electrodomésticos (NUEVO BLOQUE INTEGRADO) ---
 
 async function cargarElectrodomesticosDesdeBackend() {
@@ -2034,8 +2073,28 @@ function setupNavigationButtons() {
     }
 
     document.getElementById('back-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
-    // document.getElementById('next-to-inversor')?.addEventListener('click', () => showScreen('inversor-section')); // Should be obsolete
-    // document.getElementById('back-to-paneles')?.addEventListener('click', () => showScreen('paneles-section')); // Generic, specific ones preferred
+
+    // Listener for "Next" button on Inversor section (going to Perdidas)
+    document.getElementById('next-to-perdidas')?.addEventListener('click', () => {
+        showScreen('perdidas-section');
+        updateStepIndicator('perdidas-section'); // Shows main Perdidas step or its first sub-step
+        initPerdidasSection(); // Initializes the first sub-form of Perdidas
+    });
+
+    // Listener for "Back" button on Inversor section (going to last Paneles sub-form)
+    document.getElementById('back-to-paneles')?.addEventListener('click', () => {
+        showScreen('paneles-section'); // Show the main Paneles section container
+
+        // Explicitly set the state to the last Paneles sub-form (Modelo Temperatura)
+        if (panelMarcaSubform) panelMarcaSubform.style.display = 'none';
+        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
+        if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
+
+        if (typeof initModeloTemperaturaPanelOptions === 'function') {
+            initModeloTemperaturaPanelOptions(); // Re-initialize its content (placeholder)
+        }
+        updateStepIndicator('paneles-modelo-temperatura'); // Step indicator for the last panel sub-form
+    });
 
     // --- Navigation within "Pérdidas" sub-forms ---
     const nextToFocoPolvoBtn = document.getElementById('next-to-foco-polvo-from-frecuencia');
@@ -2067,19 +2126,28 @@ function setupNavigationButtons() {
         });
     }
 
-    // Main "Back" button for perdidas-section (navigates to Paneles section's first sub-form)
+    // Main "Back" button for perdidas-section (navigates to Inversor section)
     const backFromPerdidasBtn = document.getElementById('back-from-perdidas');
     if (backFromPerdidasBtn) {
         backFromPerdidasBtn.addEventListener('click', () => {
-            showScreen('paneles-section');
-            // initPanelesSectionExpert() should be called by showScreen('paneles-section') logic or its caller
-            // and it should handle displaying the first panel sub-form.
-            updateStepIndicator('paneles-section'); // Or the specific ID for the first panel sub-form
+            showScreen('inversor-section');
+            updateStepIndicator('inversor-section');
+            if (typeof initInversorSection === 'function') {
+                initInversorSection(); // Ensure Inversor section is correctly (re)initialized
+            } else {
+                console.warn('initInversorSection function not yet defined.');
+            }
         });
     }
 
-    // document.getElementById('next-to-perdidas')?.addEventListener('click', () => showScreen('perdidas-section')); // Obsolete
-    // document.getElementById('back-to-inversor')?.addEventListener('click', () => showScreen('inversor-section')); // Obsolete
+    // The following listeners for intra-Pérdidas navigation are expected to be correct from previous work.
+    // Listener for next-to-foco-polvo-from-frecuencia (verified as per previous plan)
+    // Listener for back-to-frecuencia-lluvias-from-foco-polvo (verified as per previous plan)
+    // Listener for next-to-analisis-from-foco-polvo (verified as per previous plan)
+
+    // Obsolete/Previously handled:
+    // document.getElementById('next-to-perdidas')?.addEventListener('click', () => showScreen('perdidas-section'));
+    // document.getElementById('back-to-inversor')?.addEventListener('click', () => showScreen('inversor-section'));
 
     // This listener is for the "Next" button on the "Inversor" page, which is now skipped.
     // document.getElementById('next-to-analisis-economico')?.addEventListener('click', () => showScreen('analisis-economico-section'));
