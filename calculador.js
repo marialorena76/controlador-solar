@@ -304,6 +304,13 @@ function updateUIFromSelections() {
         potenciaPanelDeseadaInput.value = ''; // Clear if null
     }
 
+    // Update Cantidad Paneles Expert Input
+    if (cantidadPanelesExpertInput && userSelections.cantidadPanelesExpert !== null) {
+        cantidadPanelesExpertInput.value = userSelections.cantidadPanelesExpert;
+    } else if (cantidadPanelesExpertInput) {
+        cantidadPanelesExpertInput.value = ''; // Clear if null
+    }
+
     // Add similar blocks here for metodoCalculoRadiacion and modeloMetodoRadiacion if they have direct inputs in UI
     // For example, if they were text inputs (though they are planned as selects):
     // const metodoCalculoInput = document.getElementById('metodo-calculo-input'); // Assuming such an ID
@@ -1777,6 +1784,24 @@ function setupNavigationButtons() {
         });
     }
 
+    // Listener for Cantidad Paneles (Expert Panel Sub-form)
+    if (cantidadPanelesExpertInput) {
+        cantidadPanelesExpertInput.addEventListener('input', (event) => {
+            const valueStr = event.target.value;
+            if (valueStr === '') {
+                userSelections.cantidadPanelesExpert = null;
+            } else {
+                const value = parseInt(valueStr, 10); // Use radix 10
+                if (!isNaN(value) && value >= 1) { // Panels should be at least 1
+                    userSelections.cantidadPanelesExpert = value;
+                }
+                // If input is invalid (e.g., text, zero, negative, or float),
+                // userSelections.cantidadPanelesExpert retains its previous valid value or null.
+            }
+            saveUserSelections();
+        });
+    }
+
     const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
     if (alturaInstalacionInput) {
         alturaInstalacionInput.addEventListener('input', (event) => {
@@ -1885,26 +1910,29 @@ function setupNavigationButtons() {
         initElectrodomesticosSection();
     });
 
-    // Navigation from last Paneles sub-form (Modelo Temperatura) to Perdidas section
-    // Assuming 'next-to-inversor-from-modelo-temperatura' or similar is the ID of the "Next" button
-    // in the "Modelo Temperatura Panel" sub-form. This ID should have been set when
-    // initPanelesSectionExpert created these sub-forms.
-    // For this step, we'll use the ID 'next-to-inversor-from-modelo' as specified in plan,
-    // assuming it refers to the NEXT button of the *final* panel sub-form.
-    const nextFromPanelesToPerdidasBtn = document.getElementById('next-to-inversor-from-modelo'); // ID from plan.
-    if (nextFromPanelesToPerdidasBtn) {
-        // Check if a listener already exists from a generic setup, and remove it if so,
-        // to avoid double navigation or old logic.
-        // This is tricky; ideally, the old generic 'next-to-inversor' listener (if any) wouldn't exist
-        // or would be specific enough not to clash. For now, let's assume we are adding a fresh specific one
-        // or correctly re-assigning the target for the specific button from the last panel subform.
-        nextFromPanelesToPerdidasBtn.addEventListener('click', () => {
-            showScreen('perdidas-section');
-            updateStepIndicator('perdidas-section');
-            initPerdidasSection(); // This will show the first sub-form (frecuencia lluvias)
+    // Navigation from last Paneles sub-form (Modelo Temperatura Panel) to Inversor section
+    const nextFromPanelesToInversorBtn = document.getElementById('next-to-inversor-from-panels'); // CORRECTED ID
+    if (nextFromPanelesToInversorBtn) {
+        nextFromPanelesToInversorBtn.addEventListener('click', () => {
+            // Optional: Add validation for the last panel sub-form (modeloTemperaturaPanel) if needed
+            showScreen('inversor-section');
+            updateStepIndicator('inversor-section');
+            // initInversorSection(); // initInversorSection will be defined/updated later
+                                     // For now, ensure the call is there if the function is expected to exist.
+                                     // If initInversorSection doesn't exist yet, this might cause an error.
+                                     // Let's assume it will exist or be created in a following step.
+                                     // To be safe for now if it doesn't exist:
+            if (typeof initInversorSection === 'function') {
+                initInversorSection();
+            } else {
+                console.warn('initInversorSection function not yet defined. Inversor section may not initialize correctly.');
+            }
         });
     } else {
-        console.warn("Button 'next-to-inversor-from-modelo' (for Paneles to Perdidas) not found. Navigation may be broken.");
+        // This warning will appear if this JS runs before the 'panel-modelo-temperatura-subform' and its button
+        // are dynamically shown, OR if the ID is still mismatched with the HTML.
+        // The HTML for this button (id="next-to-inversor-from-panels") was added in plan step B.3 (HTML for Expert Paneles Sub-Forms).
+        console.warn("Button 'next-to-inversor-from-panels' (for Paneles to Inversor) not found. Check HTML and JS execution order.");
     }
 
     document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => {
@@ -1967,6 +1995,7 @@ function setupNavigationButtons() {
                 if (metodo === 'detalleHogar' || metodo === 'detalleHogarHoras') {
                     showScreen('paneles-section');
                     updateStepIndicator('paneles-section');
+                    initPanelesSectionExpert(); // Ensure this is called for experts
                 } else if (metodo === 'boletaMensual') {
                     alert('Por favor, complete el ingreso de consumo por boleta en su sección correspondiente o elija otro método.');
                 } else {
