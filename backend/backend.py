@@ -634,5 +634,57 @@ def get_modelo_temperatura_panel_options():
         return jsonify({"error": f"Error interno del servidor al obtener opciones de modelo temperatura panel: {str(e)}"}), 500
 
 
+# --- NUEVA RUTA: Para obtener opciones de Frecuencia de Lluvias ---
+@app.route('/api/frecuencia_lluvias_options', methods=['GET'])
+def get_frecuencia_lluvias_options():
+    try:
+        print(f"DEBUG: Solicitud a /api/frecuencia_lluvias_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
+        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
+        print("DEBUG: Hoja 'Tablas' leída para opciones de frecuencia de lluvias.")
+
+        col_data_idx = 12  # Column M
+        fila_inicio_idx = 91 # Excel row 92 (92-1)
+        fila_fin_idx = 94    # Excel row 95 (95-1)
+
+        options_lista = []
+        max_filas_df = df_tablas.shape[0]
+        max_cols_df = df_tablas.shape[1]
+
+        if col_data_idx >= max_cols_df:
+            print(f"WARN: Columna M ({col_data_idx}) fuera de límites para frecuencia lluvias (hoja 'Tablas' tiene {max_cols_df} columnas).")
+            return jsonify({"error": "Definición de columna para frecuencia lluvias fuera de los límites de la hoja."}), 500
+
+        for r_idx in range(fila_inicio_idx, fila_fin_idx + 1):
+            if r_idx >= max_filas_df:
+                print(f"WARN: Fila {r_idx+1} para frecuencia lluvias fuera de límites (hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida.")
+                break
+
+            data_val = df_tablas.iloc[r_idx, col_data_idx]
+
+            if pd.isna(data_val) or str(data_val).strip() == "":
+                print(f"DEBUG: Fila {r_idx+1}, Columna M omitida por valor NaN o vacío para frecuencia lluvias.")
+                continue
+
+            options_lista.append(str(data_val).strip())
+
+        print(f"DEBUG: Total opciones de frecuencia lluvias leídas de 'Tablas' M{fila_inicio_idx+1}:M{fila_fin_idx+1}: {len(options_lista)}")
+        return jsonify(options_lista)
+
+    except FileNotFoundError:
+        print(f"ERROR en /api/frecuencia_lluvias_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
+    except KeyError as e:
+        print(f"ERROR en /api/frecuencia_lluvias_options: Hoja 'Tablas' o columna M no encontrada? Error: {e}")
+        return jsonify({"error": f"Error de clave al leer la hoja de cálculo para frecuencia lluvias: {e}"}), 500
+    except IndexError as e:
+        print(f"ERROR en /api/frecuencia_lluvias_options: Rango de celdas fuera de límites para frecuencia lluvias: {e}")
+        return jsonify({"error": f"Error de índice, rango de celdas fuera de límites para frecuencia lluvias: {e}"}), 500
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/frecuencia_lluvias_options: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno del servidor al obtener opciones de frecuencia lluvias: {str(e)}"}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)

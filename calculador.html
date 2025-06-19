@@ -779,21 +779,27 @@
                 </div>
                 <div id="perdidas-section" style="display:none;">
                     <h1>Paso 5: Registro Pérdidas</h1>
-                    <div class="form-group">
-                        <label for="eficiencia-panel-input">Eficiencia del Panel (%):</label>
-                        <input type="number" id="eficiencia-panel-input" name="eficiencia-panel-input" class="form-control" step="0.1">
+
+                    <div id="frecuencia-lluvias-subform-content" style="display:none;"> <!-- Content for first sub-form -->
+                        <h2>¿Cuál es la frecuencia de lluvias estimada en la locación de la instalación?</h2>
+                        <div class="form-group">
+                            <div id="frecuencia-lluvias-options-container">
+                                <!-- Dropdown select will be inserted here by JS -->
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="eficiencia-inversor-input">Eficiencia del Inversor (%):</label>
-                        <input type="number" id="eficiencia-inversor-input" name="eficiencia-inversor-input" class="form-control" step="0.1">
+                    <div id="foco-polvo-subform-content" style="display:none;"> <!-- Content for second sub-form -->
+                        <h2>¿Existe algún foco generación de polvo cercano a la instalación?</h2>
+                        <div class="form-group">
+                            <div id="foco-polvo-options-container" class="radio-group">
+                                <!-- Radio buttons (SI/NO) will be inserted here by JS -->
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="factor-perdidas-input">Factor de Otras Pérdidas (%):</label>
-                        <input type="number" id="factor-perdidas-input" name="factor-perdidas-input" class="form-control" step="0.1">
-                    </div>
+
                     <div class="form-actions">
-                        <button type="button" id="back-to-inversor" class="back-button">Atrás</button>
-                        <button type="submit" id="next-to-analisis-economico">Siguiente</button>
+                        <button type="button" id="back-from-perdidas" class="back-button">Atrás</button>
+                        <button type="submit" id="next-from-perdidas">Siguiente</button>
                     </div>
                 </div>
                 <div id="analisis-economico-section" style="display:none;">
