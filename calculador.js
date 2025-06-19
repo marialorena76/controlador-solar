@@ -304,6 +304,13 @@ function updateUIFromSelections() {
         potenciaPanelDeseadaInput.value = ''; // Clear if null
     }
 
+    // Update Cantidad Paneles Expert Input
+    if (cantidadPanelesExpertInput && userSelections.cantidadPanelesExpert !== null) {
+        cantidadPanelesExpertInput.value = userSelections.cantidadPanelesExpert;
+    } else if (cantidadPanelesExpertInput) {
+        cantidadPanelesExpertInput.value = ''; // Clear if null
+    }
+
     // Add similar blocks here for metodoCalculoRadiacion and modeloMetodoRadiacion if they have direct inputs in UI
     // For example, if they were text inputs (though they are planned as selects):
     // const metodoCalculoInput = document.getElementById('metodo-calculo-input'); // Assuming such an ID
@@ -1531,85 +1538,102 @@ function showScreen(screenId) {
 }
 
 function updateStepIndicator(screenId) {
-    if (!stepIndicatorText) return; // Guard clause if element doesn't exist
+    if (!stepIndicatorText) return; // Guard clause
 
-    switch (screenId) {
-        case 'map-screen':
-            stepIndicatorText.textContent = 'Paso Inicial: Ubicación y Tipo de Usuario';
-            break;
-        case 'data-meteorologicos-section':
-            if (userSelections.userType === 'experto') {
-                stepIndicatorText.textContent = 'Experto: Paso 1 > Zona de Instalación';
-            } else { // Basic user
-                stepIndicatorText.textContent = 'Paso 1 > Datos Meteorológicos';
-            }
-            break;
-        case 'superficie-section': // Expert only
-            stepIndicatorText.textContent = 'Experto: Paso 2 > Superficie Circundante';
-            break;
-        case 'rugosidad-section': // Expert only
-            stepIndicatorText.textContent = 'Experto: Paso 3 > Rugosidad Superficie';
-            break;
-        case 'rotacion-section': // Expert only
-            stepIndicatorText.textContent = 'Experto: Paso 4 > Rotación Instalación';
-            break;
-        case 'altura-instalacion-section': // Expert only
-            stepIndicatorText.textContent = 'Experto: Paso 5 > Altura Instalación';
-            break;
-        case 'metodo-calculo-section': // Expert only
-            stepIndicatorText.textContent = 'Experto: Paso 6 > Método Cálculo Radiación';
-            break;
-        case 'modelo-metodo-section': // Expert only
-            stepIndicatorText.textContent = 'Experto: Paso 7 > Modelo Método Radiación';
-            break;
-        case 'energia-section':
-            if (userSelections.userType === 'experto') {
-                stepIndicatorText.textContent = 'Experto: Paso 8 > Consumo Energía';
-                // Optional: Add sub-step based on userSelections.metodoIngresoConsumoEnergia if desired later
-            } else { // Basic user
-                stepIndicatorText.textContent = 'Paso 2 > Consumo de Energía';
-            }
-            break;
-        case 'consumo-factura-section': // Reached by expert's energy choice or basic user's Comercial/PYME path
-            if (userSelections.userType === 'experto' && userSelections.metodoIngresoConsumoEnergia === 'boletaMensual') {
-                 stepIndicatorText.textContent = 'Experto: Paso 8a > Consumo por Factura';
-            } else { // Basic user - Comercial/PYME path (not part of main step count here)
-                 stepIndicatorText.textContent = 'Ingreso de Consumo por Factura';
-            }
-            break;
-        case 'paneles-section':
-            if (userSelections.userType === 'experto') {
-                stepIndicatorText.textContent = 'Experto: Paso 9 > Paneles Solares';
-            } else {
-                // Basic users should not typically reach 'paneles-section' directly in their main flow anymore.
-                // If they do via some other means, or if this is a shared section for a future feature:
-                stepIndicatorText.textContent = 'Configuración de Paneles';
-            }
-            break;
-        case 'inversor-section':
-            if (userSelections.userType === 'experto') {
-                stepIndicatorText.textContent = 'Experto: Paso 10 > Inversor';
-            } else {
-                stepIndicatorText.textContent = 'Configuración del Inversor';
-            }
-            break;
-        case 'perdidas-section':
-            if (userSelections.userType === 'experto') {
-                stepIndicatorText.textContent = 'Experto: Paso 11 > Registro Pérdidas';
-            } else {
-                stepIndicatorText.textContent = 'Registro de Pérdidas';
-            }
-            break;
-        case 'analisis-economico-section':
-            if (userSelections.userType === 'experto') {
-                stepIndicatorText.textContent = 'Experto: Paso 12 > Análisis Económico';
-            } else { // Basic user - this is their Step 3
-                stepIndicatorText.textContent = 'Paso 3 > Análisis Económico';
-            }
-            break;
-        default:
-            stepIndicatorText.textContent = 'Calculador Solar'; // Default or unknown screen
+    let currentStepText = 'Calculador Solar'; // Default text
+
+    if (userSelections.userType === 'experto') {
+        switch (screenId) {
+            case 'map-screen': // Should ideally not show data-form-screen indicator
+                currentStepText = 'Paso Inicial: Ubicación y Tipo de Usuario';
+                break;
+            case 'data-meteorologicos-section':
+                currentStepText = 'Experto: Paso 1 > Zona de Instalación';
+                break;
+            case 'superficie-section':
+                currentStepText = 'Experto: Paso 2 > Superficie Circundante';
+                break;
+            case 'rugosidad-section':
+                currentStepText = 'Experto: Paso 3 > Rugosidad Superficie';
+                break;
+            case 'rotacion-section':
+                currentStepText = 'Experto: Paso 4 > Rotación Instalación';
+                break;
+            case 'altura-instalacion-section':
+                currentStepText = 'Experto: Paso 5 > Altura Instalación';
+                break;
+            case 'metodo-calculo-section':
+                currentStepText = 'Experto: Paso 6 > Método Cálculo Radiación';
+                break;
+            case 'modelo-metodo-section':
+                currentStepText = 'Experto: Paso 7 > Modelo Método Radiación';
+                break;
+            case 'energia-section': // Main section for expert's energy choice
+                currentStepText = 'Experto: Paso 8 > Consumo Energía';
+                // Sub-choices like 'detalleHogar', 'boletaMensual', 'detalleHogarHoras' are handled within this step
+                break;
+            case 'consumo-factura-section': // If expert chose 'boletaMensual'
+                 currentStepText = 'Experto: Paso 8a > Consumo por Factura';
+                 break;
+            case 'paneles-section': // Main entry for Paneles sub-forms
+                currentStepText = 'Experto: Paso 9 > Paneles Solares'; // General title
+                // More specific title will be set by dedicated sub-step cases below
+                // initPanelesSectionExpert shows the first sub-form, so this might be immediately overridden
+                // by 'paneles-marca' if updateStepIndicator is called again for the sub-form.
+                break;
+            case 'paneles-marca':
+                currentStepText = 'Experto: Paso 9.1 > Marca Panel';
+                break;
+            case 'paneles-potencia':
+                currentStepText = 'Experto: Paso 9.2 > Potencia Panel';
+                break;
+            case 'paneles-cantidad':
+                currentStepText = 'Experto: Paso 9.3 > Cantidad Paneles';
+                break;
+            case 'paneles-modelo-temperatura':
+                currentStepText = 'Experto: Paso 9.4 > Modelo Temperatura Panel';
+                break;
+            case 'inversor-section':
+                currentStepText = 'Experto: Paso 10 > Inversor';
+                break;
+            case 'perdidas-section': // Main entry for Perdidas sub-forms
+                currentStepText = 'Experto: Paso 11 > Registro Pérdidas';
+                break;
+            case 'perdidas-frecuencia-lluvias': // Specific sub-step for Perdidas
+                currentStepText = 'Experto: Paso 11.1 > Frecuencia Lluvias';
+                break;
+            case 'perdidas-foco-polvo': // Specific sub-step for Perdidas
+                currentStepText = 'Experto: Paso 11.2 > Foco de Polvo';
+                break;
+            case 'analisis-economico-section':
+                currentStepText = 'Experto: Paso 12 > Análisis Económico';
+                break;
+            default:
+                currentStepText = 'Calculador Solar - Experto';
+        }
+    } else { // Basic user
+        switch (screenId) {
+            case 'map-screen':
+                currentStepText = 'Paso Inicial: Ubicación y Tipo de Usuario';
+                break;
+            case 'data-meteorologicos-section':
+                currentStepText = 'Paso 1 > Datos Meteorológicos';
+                break;
+            case 'energia-section':
+                currentStepText = 'Paso 2 > Consumo de Energía';
+                break;
+            case 'analisis-economico-section':
+                currentStepText = 'Paso 3 > Análisis Económico';
+                break;
+            // Basic users should not see other data input sections
+            case 'consumo-factura-section': // For Comercial/PYME basic users
+                 currentStepText = 'Ingreso de Consumo por Factura';
+                 break;
+            default:
+                currentStepText = 'Calculador Solar - Básico';
+        }
     }
+    stepIndicatorText.textContent = currentStepText;
 }
 
 // Helper function to manage visibility of form sections within map-screen
@@ -1777,6 +1801,24 @@ function setupNavigationButtons() {
         });
     }
 
+    // Listener for Cantidad Paneles (Expert Panel Sub-form)
+    if (cantidadPanelesExpertInput) {
+        cantidadPanelesExpertInput.addEventListener('input', (event) => {
+            const valueStr = event.target.value;
+            if (valueStr === '') {
+                userSelections.cantidadPanelesExpert = null;
+            } else {
+                const value = parseInt(valueStr, 10); // Use radix 10
+                if (!isNaN(value) && value >= 1) { // Panels should be at least 1
+                    userSelections.cantidadPanelesExpert = value;
+                }
+                // If input is invalid (e.g., text, zero, negative, or float),
+                // userSelections.cantidadPanelesExpert retains its previous valid value or null.
+            }
+            saveUserSelections();
+        });
+    }
+
     const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
     if (alturaInstalacionInput) {
         alturaInstalacionInput.addEventListener('input', (event) => {
@@ -1885,26 +1927,29 @@ function setupNavigationButtons() {
         initElectrodomesticosSection();
     });
 
-    // Navigation from last Paneles sub-form (Modelo Temperatura) to Perdidas section
-    // Assuming 'next-to-inversor-from-modelo-temperatura' or similar is the ID of the "Next" button
-    // in the "Modelo Temperatura Panel" sub-form. This ID should have been set when
-    // initPanelesSectionExpert created these sub-forms.
-    // For this step, we'll use the ID 'next-to-inversor-from-modelo' as specified in plan,
-    // assuming it refers to the NEXT button of the *final* panel sub-form.
-    const nextFromPanelesToPerdidasBtn = document.getElementById('next-to-inversor-from-modelo'); // ID from plan.
-    if (nextFromPanelesToPerdidasBtn) {
-        // Check if a listener already exists from a generic setup, and remove it if so,
-        // to avoid double navigation or old logic.
-        // This is tricky; ideally, the old generic 'next-to-inversor' listener (if any) wouldn't exist
-        // or would be specific enough not to clash. For now, let's assume we are adding a fresh specific one
-        // or correctly re-assigning the target for the specific button from the last panel subform.
-        nextFromPanelesToPerdidasBtn.addEventListener('click', () => {
-            showScreen('perdidas-section');
-            updateStepIndicator('perdidas-section');
-            initPerdidasSection(); // This will show the first sub-form (frecuencia lluvias)
+    // Navigation from last Paneles sub-form (Modelo Temperatura Panel) to Inversor section
+    const nextFromPanelesToInversorBtn = document.getElementById('next-to-inversor-from-panels'); // CORRECTED ID
+    if (nextFromPanelesToInversorBtn) {
+        nextFromPanelesToInversorBtn.addEventListener('click', () => {
+            // Optional: Add validation for the last panel sub-form (modeloTemperaturaPanel) if needed
+            showScreen('inversor-section');
+            updateStepIndicator('inversor-section');
+            // initInversorSection(); // initInversorSection will be defined/updated later
+                                     // For now, ensure the call is there if the function is expected to exist.
+                                     // If initInversorSection doesn't exist yet, this might cause an error.
+                                     // Let's assume it will exist or be created in a following step.
+                                     // To be safe for now if it doesn't exist:
+            if (typeof initInversorSection === 'function') {
+                initInversorSection();
+            } else {
+                console.warn('initInversorSection function not yet defined. Inversor section may not initialize correctly.');
+            }
         });
     } else {
-        console.warn("Button 'next-to-inversor-from-modelo' (for Paneles to Perdidas) not found. Navigation may be broken.");
+        // This warning will appear if this JS runs before the 'panel-modelo-temperatura-subform' and its button
+        // are dynamically shown, OR if the ID is still mismatched with the HTML.
+        // The HTML for this button (id="next-to-inversor-from-panels") was added in plan step B.3 (HTML for Expert Paneles Sub-Forms).
+        console.warn("Button 'next-to-inversor-from-panels' (for Paneles to Inversor) not found. Check HTML and JS execution order.");
     }
 
     document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => {
@@ -1967,6 +2012,7 @@ function setupNavigationButtons() {
                 if (metodo === 'detalleHogar' || metodo === 'detalleHogarHoras') {
                     showScreen('paneles-section');
                     updateStepIndicator('paneles-section');
+                    initPanelesSectionExpert(); // Ensure this is called for experts
                 } else if (metodo === 'boletaMensual') {
                     alert('Por favor, complete el ingreso de consumo por boleta en su sección correspondiente o elija otro método.');
                 } else {
@@ -2046,6 +2092,78 @@ function setupNavigationButtons() {
             updateStepIndicator('perdidas-foco-polvo');
         });
     }
+
+    // --- Start of Paneles Sub-Form Navigation Listeners ---
+
+    // From "Marca Panel" to "Potencia Deseada"
+    document.getElementById('next-from-panel-marca')?.addEventListener('click', () => {
+        if (panelMarcaSubform) panelMarcaSubform.style.display = 'none';
+        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'block';
+        updateStepIndicator('paneles-potencia');
+        if (potenciaPanelDeseadaInput && userSelections.potenciaPanelDeseada !== null) {
+            potenciaPanelDeseadaInput.value = userSelections.potenciaPanelDeseada;
+        } else if (potenciaPanelDeseadaInput) {
+            potenciaPanelDeseadaInput.value = '';
+        }
+    });
+
+    // From "Potencia Deseada" back to "Marca Panel"
+    document.getElementById('back-to-panel-marca')?.addEventListener('click', () => {
+        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
+        if (panelMarcaSubform) panelMarcaSubform.style.display = 'block';
+        updateStepIndicator('paneles-marca');
+    });
+
+    // From "Potencia Deseada" to "Cantidad de Paneles (Expert)"
+    document.getElementById('next-from-panel-potencia')?.addEventListener('click', () => {
+        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
+        if (panelCantidadExpertSubform) panelCantidadExpertSubform.style.display = 'block';
+        updateStepIndicator('paneles-cantidad');
+        if (cantidadPanelesExpertInput && userSelections.cantidadPanelesExpert !== null) {
+            cantidadPanelesExpertInput.value = userSelections.cantidadPanelesExpert;
+        } else if (cantidadPanelesExpertInput) {
+            cantidadPanelesExpertInput.value = '';
+        }
+    });
+
+    // From "Cantidad de Paneles (Expert)" back to "Potencia Deseada"
+    document.getElementById('back-to-panel-potencia')?.addEventListener('click', () => {
+        if (panelCantidadExpertSubform) panelCantidadExpertSubform.style.display = 'none';
+        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'block';
+        updateStepIndicator('paneles-potencia');
+    });
+
+    // From "Cantidad de Paneles (Expert)" to "Modelo Temperatura Panel"
+    document.getElementById('next-from-panel-cantidad')?.addEventListener('click', () => {
+        if (panelCantidadExpertSubform) panelCantidadExpertSubform.style.display = 'none';
+        if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
+        initModeloTemperaturaPanelOptions();
+        updateStepIndicator('paneles-modelo-temperatura');
+    });
+
+    // From "Modelo Temperatura Panel" back to "Cantidad de Paneles (Expert)"
+    document.getElementById('back-to-panel-cantidad')?.addEventListener('click', () => {
+        if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'none';
+        if (panelCantidadExpertSubform) panelCantidadExpertSubform.style.display = 'block';
+        updateStepIndicator('paneles-cantidad');
+    });
+
+    // Navigation from last Paneles sub-form (Modelo Temperatura Panel) to Inversor section
+    const nextFromPanelModeloToInversor = document.getElementById('next-to-inversor-from-panels');
+    if (nextFromPanelModeloToInversor) {
+        nextFromPanelModeloToInversor.addEventListener('click', () => {
+            showScreen('inversor-section');
+            updateStepIndicator('inversor-section');
+            if (typeof initInversorSection === 'function') {
+                initInversorSection();
+            } else {
+                console.warn('initInversorSection function not yet defined.');
+            }
+        });
+    } else {
+        console.warn("Button 'next-to-inversor-from-panels' (for navigating Paneles to Inversor) not found in HTML or DOM not ready.");
+    }
+    // --- End of Paneles Sub-Form Navigation Listeners ---
 
 
     const finalizarCalculoBtn = document.getElementById('finalizar-calculo');
