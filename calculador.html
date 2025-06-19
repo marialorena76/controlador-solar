@@ -755,11 +755,71 @@
                 <!-- Fin de Nueva sección para Consumo por Factura -->
                 <div id="paneles-section" style="display:none;">
                     <h1>Paso 3: Paneles</h1>
-                    <!-- Old input fields for Tipo de Panel and Cantidad de Paneles will be removed -->
-                    <!-- New sub-form containers will be added here in a future step -->
-                    <div class="form-actions">
+                    <!-- Old input fields for Tipo de Panel and Cantidad de Paneles were removed -->
+
+                    <!-- Sub-Form 1: Marca Panel -->
+                    <div id="panel-marca-subform" style="display:none;">
+                        <h2>Ingrese la marca del panel que desee utilizar:</h2>
+                        <p class="form-subtitle" style="font-size: 0.9em; color: #555; margin-top: -1rem; margin-bottom: 1rem;">Si no conoce sobre marcas o si la marca que desea seleccionar no se encuentra dentro de la lista, seleccione la opción: Genéricos</p>
+                        <div class="form-group">
+                            <div id="marca-panel-options-container">
+                                <!-- Dropdown select for Marca Panel will be inserted here by JS -->
+                            </div>
+                        </div>
+                        <div class="form-actions sub-form-actions"> <!-- Specific actions for this sub-form -->
+                            <!-- No "Back" button for the first sub-form in this sequence -->
+                            <button type="button" id="next-from-panel-marca">Siguiente</button>
+                        </div>
+                        <hr style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                    </div>
+
+                    <!-- Sub-Form 2: Potencia Deseada del Panel -->
+                    <div id="panel-potencia-subform" style="display:none;">
+                        <h2>Ingrese la potencia deseada de los paneles de la instalación:</h2>
+                        <div class="form-group">
+                            <label for="potencia-panel-deseada-input">Potencia por panel (Watts):</label>
+                            <input type="number" id="potencia-panel-deseada-input" name="potenciaPanelDeseada" class="form-control" min="0" step="1" placeholder="Ej: 450">
+                        </div>
+                        <div class="form-actions sub-form-actions">
+                            <button type="button" id="back-to-panel-marca" class="back-button">Atrás</button>
+                            <button type="button" id="next-from-panel-potencia">Siguiente</button>
+                        </div>
+                        <hr style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                    </div>
+
+                    <!-- Sub-Form 3: Cantidad de Paneles (Experto) -->
+                    <div id="panel-cantidad-expert-subform" style="display:none;">
+                        <h2>Cantidad de Paneles:</h2>
+                        <div class="form-group">
+                            <label for="cantidad-paneles-expert-input">Número de paneles:</label>
+                            <input type="number" id="cantidad-paneles-expert-input" name="cantidadPanelesExpert" class="form-control" min="1" step="1" placeholder="Ej: 10">
+                        </div>
+                        <div class="form-actions sub-form-actions">
+                            <button type="button" id="back-to-panel-potencia" class="back-button">Atrás</button>
+                            <button type="button" id="next-from-panel-cantidad">Siguiente</button>
+                        </div>
+                        <hr style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                    </div>
+
+                    <!-- Sub-Form 4: Modelo de Cálculo de Temperatura -->
+                    <div id="panel-modelo-temperatura-subform" style="display:none;">
+                        <h2>Ingrese el modelo de cálculo de temperatura de los paneles:</h2>
+                        <div class="form-group">
+                            <div id="modelo-temperatura-options-container">
+                                <!-- Dropdown select for Modelo Temperatura Panel will be inserted here by JS -->
+                            </div>
+                        </div>
+                        <div class="form-actions sub-form-actions">
+                            <button type="button" id="back-to-panel-cantidad" class="back-button">Atrás</button>
+                            <button type="button" id="next-to-inversor-from-panels">Siguiente</button>
+                        </div>
+                        <!-- No <hr> after the last sub-form before the main section's form-actions -->
+                    </div>
+
+                    <div class="form-actions"> <!-- Main form actions for paneles-section -->
                         <button type="button" id="back-to-energia" class="back-button">Atrás</button>
-                        <button type="submit" id="next-to-inversor">Siguiente</button>
+                        <!-- The "Siguiente" button that was here (id="next-to-inversor") is removed
+                             as navigation is now handled by the last sub-form's "Siguiente" button -->
                     </div>
                 </div>
                 <div id="inversor-section" style="display:none;">

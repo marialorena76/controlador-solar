@@ -88,6 +88,19 @@ const modeloMetodoSection = document.getElementById('modelo-metodo-section');
 const frecuenciaLluviasSubformContent = document.getElementById('frecuencia-lluvias-subform-content');
 const focoPolvoSubformContent = document.getElementById('foco-polvo-subform-content');
 
+// Paneles Section - Expert Sub-forms & Content Containers
+const panelMarcaSubform = document.getElementById('panel-marca-subform');
+const marcaPanelOptionsContainer = document.getElementById('marca-panel-options-container');
+
+const panelPotenciaSubform = document.getElementById('panel-potencia-subform');
+const potenciaPanelDeseadaInput = document.getElementById('potencia-panel-deseada-input');
+
+const panelCantidadExpertSubform = document.getElementById('panel-cantidad-expert-subform');
+const cantidadPanelesExpertInput = document.getElementById('cantidad-paneles-expert-input');
+
+const panelModeloTemperaturaSubform = document.getElementById('panel-modelo-temperatura-subform');
+const modeloTemperaturaOptionsContainer = document.getElementById('modelo-temperatura-options-container');
+
 
 // --- Funciones de Persistencia (NUEVO BLOQUE INTEGRADO) ---
 
@@ -282,6 +295,15 @@ function updateUIFromSelections() {
     } else if (alturaInstalacionInput) {
         alturaInstalacionInput.value = ''; // Clear if null
     }
+
+    // Update Potencia Panel Deseada Input
+    // const potenciaPanelDeseadaInputEl = document.getElementById('potencia-panel-deseada-input'); // Global const potenciaPanelDeseadaInput is used
+    if (potenciaPanelDeseadaInput && userSelections.potenciaPanelDeseada !== null) {
+        potenciaPanelDeseadaInput.value = userSelections.potenciaPanelDeseada;
+    } else if (potenciaPanelDeseadaInput) {
+        potenciaPanelDeseadaInput.value = ''; // Clear if null
+    }
+
     // Add similar blocks here for metodoCalculoRadiacion and modeloMetodoRadiacion if they have direct inputs in UI
     // For example, if they were text inputs (though they are planned as selects):
     // const metodoCalculoInput = document.getElementById('metodo-calculo-input'); // Assuming such an ID
@@ -1006,6 +1028,98 @@ function initFocoPolvoOptions() {
     });
 }
 
+function initPanelesSectionExpert() {
+    // Ensure global DOM variables for Paneles sub-form content wrappers are accessible
+    if (!panelMarcaSubform || !panelPotenciaSubform || !panelCantidadExpertSubform || !panelModeloTemperaturaSubform) {
+        console.error("Contenedores de sub-formularios de Paneles no encontrados.");
+        return;
+    }
+
+    // Hide all Paneles sub-form content wrappers first
+    panelMarcaSubform.style.display = 'none';
+    panelPotenciaSubform.style.display = 'none';
+    panelCantidadExpertSubform.style.display = 'none';
+    panelModeloTemperaturaSubform.style.display = 'none';
+
+    // Show the first sub-form: Marca Panel
+    panelMarcaSubform.style.display = 'block';
+
+    // Initialize its content (populate dropdown)
+    initMarcaPanelOptions();
+
+    // Update step indicator to reflect the first sub-step of "Paneles"
+    // (This will be handled by updateStepIndicator when 'paneles-section' is shown,
+    // and potentially refined further for sub-steps if needed)
+}
+
+async function initMarcaPanelOptions() {
+    const container = document.getElementById('marca-panel-options-container');
+    if (!container) {
+        console.error("Contenedor 'marca-panel-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = '';
+
+    const selectElement = document.createElement('select');
+    selectElement.id = 'marca-panel-select';
+    selectElement.className = 'form-control';
+
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = 'Seleccione una marca...';
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    selectElement.appendChild(placeholderOption);
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/marca_panel_options');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json(); // Expected: array of strings
+
+        if (!Array.isArray(data)) {
+            console.error('[MARCA PANEL OPTIONS LOAD ERROR] Data not an array:', data);
+            container.innerHTML = '<p style="color:red;">Error: Formato de datos incorrecto.</p>';
+            return;
+        }
+        if (data.length === 0) {
+            console.log('[MARCA PANEL OPTIONS LOAD ERROR] No hay marcas de panel disponibles desde la API.');
+            // container.innerHTML = '<p>No hay marcas de panel disponibles.</p>';
+            // No options to add, select will only have placeholder. User might rely on "Genéricos" if typed.
+        } else {
+            data.forEach(optionText => {
+                const optionElement = document.createElement('option');
+                optionElement.value = optionText;
+                optionElement.textContent = optionText;
+                if (userSelections.marcaPanel === optionText) {
+                    optionElement.selected = true;
+                    placeholderOption.selected = false;
+                }
+                selectElement.appendChild(optionElement);
+            });
+        }
+
+        selectElement.addEventListener('change', (event) => {
+            const selectedValue = event.target.value;
+            if (selectedValue && selectedValue !== '') {
+                userSelections.marcaPanel = selectedValue;
+            } else {
+                userSelections.marcaPanel = null;
+            }
+            saveUserSelections();
+            console.log('Marca de panel seleccionada:', userSelections.marcaPanel);
+        });
+        container.appendChild(selectElement);
+
+    } catch (error) {
+        console.error('[MARCA PANEL OPTIONS LOAD ERROR] Fetch/process error:', error);
+        if (error.message) console.error('[MARCA PANEL OPTIONS LOAD ERROR] Message:', error.message);
+        alert('Error al cargar las marcas de panel. Revise consola.');
+        container.innerHTML = '<p style="color:red;">Error al cargar opciones. Intente más tarde.</p>';
+    }
+}
+
 
 // --- Funciones para Consumo y Electrodomésticos (NUEVO BLOQUE INTEGRADO) ---
 
@@ -1643,6 +1757,25 @@ function setupNavigationButtons() {
         userSelections.perdidas.factorPerdidas = parseFloat(e.target.value) || 0;
         saveUserSelections();
     });
+
+    // Listener for Potencia Panel Deseada (Expert Panel Sub-form)
+    if (potenciaPanelDeseadaInput) {
+        potenciaPanelDeseadaInput.addEventListener('input', (event) => {
+            const valueStr = event.target.value;
+            if (valueStr === '') {
+                userSelections.potenciaPanelDeseada = null;
+            } else {
+                const value = parseFloat(valueStr);
+                if (!isNaN(value) && value >= 0) {
+                    userSelections.potenciaPanelDeseada = value;
+                }
+                // If input is invalid (e.g. negative or non-numeric and not empty),
+                // userSelections.potenciaPanelDeseada retains its previous valid value or null.
+                // The input field itself will show what the user typed, but it won't be saved if invalid.
+            }
+            saveUserSelections();
+        });
+    }
 
     const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
     if (alturaInstalacionInput) {
