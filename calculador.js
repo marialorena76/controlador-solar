@@ -29,7 +29,6 @@ let userSelections = {
     modeloMetodoRadiacion: null,   // New property
     marcaPanel: null,               // New property
     potenciaPanelDeseada: null,     // New property
-    cantidadPanelesExpert: null,    // New property
     modeloTemperaturaPanel: null,   // New property
     frecuenciaLluvias: null,      // New property
     focoPolvoCercano: null,       // New property
@@ -95,9 +94,6 @@ const marcaPanelOptionsContainer = document.getElementById('marca-panel-options-
 const panelPotenciaSubform = document.getElementById('panel-potencia-subform');
 const potenciaPanelDeseadaInput = document.getElementById('potencia-panel-deseada-input');
 
-const panelCantidadExpertSubform = document.getElementById('panel-cantidad-expert-subform');
-const cantidadPanelesExpertInput = document.getElementById('cantidad-paneles-expert-input');
-
 const panelModeloTemperaturaSubform = document.getElementById('panel-modelo-temperatura-subform');
 const modeloTemperaturaOptionsContainer = document.getElementById('modelo-temperatura-options-container');
 
@@ -128,7 +124,6 @@ function loadUserSelections() {
         // modeloMetodoRadiacion: null, // This was already present in the global userSelections
         marcaPanel: null,
         potenciaPanelDeseada: null,
-        cantidadPanelesExpert: null,
         modeloTemperaturaPanel: null,
         frecuenciaLluvias: null,      // New property
         focoPolvoCercano: null,       // New property
@@ -302,13 +297,6 @@ function updateUIFromSelections() {
         potenciaPanelDeseadaInput.value = userSelections.potenciaPanelDeseada;
     } else if (potenciaPanelDeseadaInput) {
         potenciaPanelDeseadaInput.value = ''; // Clear if null
-    }
-
-    // Update Cantidad Paneles Expert Input
-    if (cantidadPanelesExpertInput && userSelections.cantidadPanelesExpert !== null) {
-        cantidadPanelesExpertInput.value = userSelections.cantidadPanelesExpert;
-    } else if (cantidadPanelesExpertInput) {
-        cantidadPanelesExpertInput.value = ''; // Clear if null
     }
 
     // Add similar blocks here for metodoCalculoRadiacion and modeloMetodoRadiacion if they have direct inputs in UI
@@ -1037,15 +1025,15 @@ function initFocoPolvoOptions() {
 
 function initPanelesSectionExpert() {
     // Ensure global DOM variables for Paneles sub-form content wrappers are accessible
-    if (!panelMarcaSubform || !panelPotenciaSubform || !panelCantidadExpertSubform || !panelModeloTemperaturaSubform) {
-        console.error("Contenedores de sub-formularios de Paneles no encontrados.");
+    // Note: panelCantidadExpertSubform was removed, so check for its existence is also removed.
+    if (!panelMarcaSubform || !panelPotenciaSubform || !panelModeloTemperaturaSubform) {
+        console.error("Uno o más contenedores de sub-formularios de Paneles no fueron encontrados.");
         return;
     }
 
     // Hide all Paneles sub-form content wrappers first
     panelMarcaSubform.style.display = 'none';
     panelPotenciaSubform.style.display = 'none';
-    panelCantidadExpertSubform.style.display = 'none';
     panelModeloTemperaturaSubform.style.display = 'none';
 
     // Show the first sub-form: Marca Panel
@@ -1058,6 +1046,8 @@ function initPanelesSectionExpert() {
     // (This will be handled by updateStepIndicator when 'paneles-section' is shown,
     // and potentially refined further for sub-steps if needed)
 }
+
+// async function initModeloTemperaturaPanelOptions() { ... } // This was the duplicated incorrect one, remove it.
 
 async function initMarcaPanelOptions() {
     const container = document.getElementById('marca-panel-options-container');
@@ -1127,6 +1117,22 @@ async function initMarcaPanelOptions() {
     }
 }
 
+async function initModeloTemperaturaPanelOptions() { // Keep async if other init functions are, for consistency
+    const container = document.getElementById('modelo-temperatura-options-container');
+    if (!container) {
+        console.error("Contenedor 'modelo-temperatura-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = '<p style="text-align: center; font-style: italic; padding: 10px;">Opciones para Modelo de Cálculo de Temperatura se definirán próximamente.</p>';
+
+    // Ensure userSelections.modeloTemperaturaPanel is reset if we are not loading options
+    // or providing a way to select it. This prevents stale data if user navigates back and forth.
+    // However, if the user *could* have set it previously and we want to retain that (even if options aren't shown),
+    // then don't reset. Given "me faltan datos", resetting seems safer.
+    // userSelections.modeloTemperaturaPanel = null;
+    // saveUserSelections(); // If resetting. For now, let's not reset, just show placeholder.
+                            // The selection mechanism (dropdown) is removed, so it can't be changed from UI here.
+}
 
 // --- Funciones para Consumo y Electrodomésticos (NUEVO BLOQUE INTEGRADO) ---
 
@@ -1544,7 +1550,7 @@ function updateStepIndicator(screenId) {
 
     if (userSelections.userType === 'experto') {
         switch (screenId) {
-            case 'map-screen': // Should ideally not show data-form-screen indicator
+            case 'map-screen':
                 currentStepText = 'Paso Inicial: Ubicación y Tipo de Usuario';
                 break;
             case 'data-meteorologicos-section':
@@ -1568,18 +1574,14 @@ function updateStepIndicator(screenId) {
             case 'modelo-metodo-section':
                 currentStepText = 'Experto: Paso 7 > Modelo Método Radiación';
                 break;
-            case 'energia-section': // Main section for expert's energy choice
+            case 'energia-section':
                 currentStepText = 'Experto: Paso 8 > Consumo Energía';
-                // Sub-choices like 'detalleHogar', 'boletaMensual', 'detalleHogarHoras' are handled within this step
                 break;
-            case 'consumo-factura-section': // If expert chose 'boletaMensual'
+            case 'consumo-factura-section':
                  currentStepText = 'Experto: Paso 8a > Consumo por Factura';
                  break;
-            case 'paneles-section': // Main entry for Paneles sub-forms
-                currentStepText = 'Experto: Paso 9 > Paneles Solares'; // General title
-                // More specific title will be set by dedicated sub-step cases below
-                // initPanelesSectionExpert shows the first sub-form, so this might be immediately overridden
-                // by 'paneles-marca' if updateStepIndicator is called again for the sub-form.
+            case 'paneles-section': // Main entry for Paneles - defaults to first sub-step
+                currentStepText = 'Experto: Paso 9.1 > Marca Panel';
                 break;
             case 'paneles-marca':
                 currentStepText = 'Experto: Paso 9.1 > Marca Panel';
@@ -1587,26 +1589,28 @@ function updateStepIndicator(screenId) {
             case 'paneles-potencia':
                 currentStepText = 'Experto: Paso 9.2 > Potencia Panel';
                 break;
-            case 'paneles-cantidad':
-                currentStepText = 'Experto: Paso 9.3 > Cantidad Paneles';
-                break;
+            // 'paneles-cantidad' case removed
             case 'paneles-modelo-temperatura':
-                currentStepText = 'Experto: Paso 9.4 > Modelo Temperatura Panel';
+                currentStepText = 'Experto: Paso 9.3 > Modelo Temperatura Panel'; // Adjusted step
                 break;
             case 'inversor-section':
-                currentStepText = 'Experto: Paso 10 > Inversor';
+                currentStepText = 'Experto: Paso 10 > Inversor'; // Adjusted step
                 break;
-            case 'perdidas-section': // Main entry for Perdidas sub-forms
-                currentStepText = 'Experto: Paso 11 > Registro Pérdidas';
+            case 'perdidas-section': // Main entry for Perdidas - defaults to first sub-step
+                currentStepText = 'Experto: Paso 11.1 > Frecuencia Lluvias'; // Adjusted step
                 break;
-            case 'perdidas-frecuencia-lluvias': // Specific sub-step for Perdidas
-                currentStepText = 'Experto: Paso 11.1 > Frecuencia Lluvias';
+            case 'perdidas-frecuencia-lluvias':
+                currentStepText = 'Experto: Paso 11.1 > Frecuencia Lluvias'; // Adjusted step
                 break;
-            case 'perdidas-foco-polvo': // Specific sub-step for Perdidas
-                currentStepText = 'Experto: Paso 11.2 > Foco de Polvo';
+            case 'perdidas-foco-polvo':
+                currentStepText = 'Experto: Paso 11.2 > Foco de Polvo'; // Adjusted step
                 break;
-            case 'analisis-economico-section':
-                currentStepText = 'Experto: Paso 12 > Análisis Económico';
+            case 'analisis-economico-section': // This case needs to handle both user types
+                if (userSelections.userType === 'experto') {
+                    currentStepText = 'Experto: Paso 12 > Análisis Económico'; // Adjusted step
+                } else {
+                    currentStepText = 'Paso 3 > Análisis Económico';
+                }
                 break;
             default:
                 currentStepText = 'Calculador Solar - Experto';
@@ -1622,11 +1626,10 @@ function updateStepIndicator(screenId) {
             case 'energia-section':
                 currentStepText = 'Paso 2 > Consumo de Energía';
                 break;
-            case 'analisis-economico-section':
+            case 'analisis-economico-section': // Already handled above for expert, this is for basic
                 currentStepText = 'Paso 3 > Análisis Económico';
                 break;
-            // Basic users should not see other data input sections
-            case 'consumo-factura-section': // For Comercial/PYME basic users
+            case 'consumo-factura-section':
                  currentStepText = 'Ingreso de Consumo por Factura';
                  break;
             default:
@@ -1802,22 +1805,22 @@ function setupNavigationButtons() {
     }
 
     // Listener for Cantidad Paneles (Expert Panel Sub-form)
-    if (cantidadPanelesExpertInput) {
-        cantidadPanelesExpertInput.addEventListener('input', (event) => {
-            const valueStr = event.target.value;
-            if (valueStr === '') {
-                userSelections.cantidadPanelesExpert = null;
-            } else {
-                const value = parseInt(valueStr, 10); // Use radix 10
-                if (!isNaN(value) && value >= 1) { // Panels should be at least 1
-                    userSelections.cantidadPanelesExpert = value;
-                }
-                // If input is invalid (e.g., text, zero, negative, or float),
-                // userSelections.cantidadPanelesExpert retains its previous valid value or null.
-            }
-            saveUserSelections();
-        });
-    }
+    // if (cantidadPanelesExpertInput) { // Block removed as cantidadPanelesExpertInput is removed
+    //     cantidadPanelesExpertInput.addEventListener('input', (event) => {
+    //         const valueStr = event.target.value;
+    //         if (valueStr === '') {
+    //             userSelections.cantidadPanelesExpert = null;
+    //         } else {
+    //             const value = parseInt(valueStr, 10); // Use radix 10
+    //             if (!isNaN(value) && value >= 1) { // Panels should be at least 1
+    //                 userSelections.cantidadPanelesExpert = value;
+    //             }
+    //             // If input is invalid (e.g., text, zero, negative, or float),
+    //             // userSelections.cantidadPanelesExpert retains its previous valid value or null.
+    //         }
+    //         saveUserSelections();
+    //     });
+    // }
 
     const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
     if (alturaInstalacionInput) {
@@ -2007,6 +2010,11 @@ function setupNavigationButtons() {
     const nextToPanelesButton = document.getElementById('next-to-paneles');
     if (nextToPanelesButton) {
         nextToPanelesButton.addEventListener('click', () => {
+            // ADD THESE LINES HERE:
+            console.log('[DEBUG] Next from Energía clicked. User Type:', userSelections.userType);
+            console.log('[DEBUG] Metodo Ingreso Consumo Energia:', userSelections.metodoIngresoConsumoEnergia);
+
+            // Existing logic follows:
             if (userSelections.userType === 'experto') {
                 const metodo = userSelections.metodoIngresoConsumoEnergia;
                 if (metodo === 'detalleHogar' || metodo === 'detalleHogarHoras') {
@@ -2095,11 +2103,12 @@ function setupNavigationButtons() {
 
     // --- Start of Paneles Sub-Form Navigation Listeners ---
 
-    // From "Marca Panel" to "Potencia Deseada"
+    // 1. From "Marca Panel" to "Potencia Deseada"
     document.getElementById('next-from-panel-marca')?.addEventListener('click', () => {
         if (panelMarcaSubform) panelMarcaSubform.style.display = 'none';
         if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'block';
         updateStepIndicator('paneles-potencia');
+        // Ensure potencia input shows persisted value
         if (potenciaPanelDeseadaInput && userSelections.potenciaPanelDeseada !== null) {
             potenciaPanelDeseadaInput.value = userSelections.potenciaPanelDeseada;
         } else if (potenciaPanelDeseadaInput) {
@@ -2107,48 +2116,42 @@ function setupNavigationButtons() {
         }
     });
 
-    // From "Potencia Deseada" back to "Marca Panel"
+    // 2. From "Potencia Deseada" back to "Marca Panel"
     document.getElementById('back-to-panel-marca')?.addEventListener('click', () => {
         if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
         if (panelMarcaSubform) panelMarcaSubform.style.display = 'block';
         updateStepIndicator('paneles-marca');
+        // initMarcaPanelOptions(); // Optional: Re-call if options could change; usually not for 'Back'
     });
 
-    // From "Potencia Deseada" to "Cantidad de Paneles (Expert)"
+    // 3. From "Potencia Deseada" to "Modelo Temperatura Panel"
     document.getElementById('next-from-panel-potencia')?.addEventListener('click', () => {
         if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
-        if (panelCantidadExpertSubform) panelCantidadExpertSubform.style.display = 'block';
-        updateStepIndicator('paneles-cantidad');
-        if (cantidadPanelesExpertInput && userSelections.cantidadPanelesExpert !== null) {
-            cantidadPanelesExpertInput.value = userSelections.cantidadPanelesExpert;
-        } else if (cantidadPanelesExpertInput) {
-            cantidadPanelesExpertInput.value = '';
-        }
-    });
-
-    // From "Cantidad de Paneles (Expert)" back to "Potencia Deseada"
-    document.getElementById('back-to-panel-potencia')?.addEventListener('click', () => {
-        if (panelCantidadExpertSubform) panelCantidadExpertSubform.style.display = 'none';
-        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'block';
-        updateStepIndicator('paneles-potencia');
-    });
-
-    // From "Cantidad de Paneles (Expert)" to "Modelo Temperatura Panel"
-    document.getElementById('next-from-panel-cantidad')?.addEventListener('click', () => {
-        if (panelCantidadExpertSubform) panelCantidadExpertSubform.style.display = 'none';
         if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
-        initModeloTemperaturaPanelOptions();
+        initModeloTemperaturaPanelOptions(); // Call to populate/display placeholder
         updateStepIndicator('paneles-modelo-temperatura');
     });
 
-    // From "Modelo Temperatura Panel" back to "Cantidad de Paneles (Expert)"
+    // 4. From "Modelo Temperatura Panel" back to "Potencia Deseada"
+    // Assuming the back button on panel-modelo-temperatura-subform still has id="back-to-panel-cantidad"
+    // as per HTML structure after "Cantidad" subform removal, where its next button was changed.
+    // The HTML for panel-modelo-temperatura-subform is:
+    // <button type="button" id="back-to-panel-cantidad" class="back-button">Atrás</button>
+    // <button type="button" id="next-to-inversor-from-panels">Siguiente</button>
+    // So, we use 'back-to-panel-cantidad' as the selector.
     document.getElementById('back-to-panel-cantidad')?.addEventListener('click', () => {
         if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'none';
-        if (panelCantidadExpertSubform) panelCantidadExpertSubform.style.display = 'block';
-        updateStepIndicator('paneles-cantidad');
+        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'block';
+        updateStepIndicator('paneles-potencia');
+        // Ensure potencia input shows persisted value
+        if (potenciaPanelDeseadaInput && userSelections.potenciaPanelDeseada !== null) {
+            potenciaPanelDeseadaInput.value = userSelections.potenciaPanelDeseada;
+        } else if (potenciaPanelDeseadaInput) {
+            potenciaPanelDeseadaInput.value = '';
+        }
     });
 
-    // Navigation from last Paneles sub-form (Modelo Temperatura Panel) to Inversor section
+    // 5. Navigation from "Modelo Temperatura Panel" to "Inversor" section
     const nextFromPanelModeloToInversor = document.getElementById('next-to-inversor-from-panels');
     if (nextFromPanelModeloToInversor) {
         nextFromPanelModeloToInversor.addEventListener('click', () => {
