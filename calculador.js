@@ -27,6 +27,12 @@ let userSelections = {
     alturaInstalacion: null,       // New property
     metodoCalculoRadiacion: null,  // New property
     modeloMetodoRadiacion: null,   // New property
+    marcaPanel: null,               // New property
+    potenciaPanelDeseada: null,     // New property
+    cantidadPanelesExpert: null,    // New property
+    modeloTemperaturaPanel: null,   // New property
+    frecuenciaLluvias: null,      // New property
+    focoPolvoCercano: null,       // New property
     metodoIngresoConsumoEnergia: null, // New property
     electrodomesticos: {}, // This will now store objects like { "Heladera": { cantidad: 1 } }
     totalMonthlyConsumption: 0,
@@ -79,6 +85,21 @@ const rotacionSection = document.getElementById('rotacion-section');
 const alturaInstalacionSection = document.getElementById('altura-instalacion-section');
 const metodoCalculoSection = document.getElementById('metodo-calculo-section');
 const modeloMetodoSection = document.getElementById('modelo-metodo-section');
+const frecuenciaLluviasSubformContent = document.getElementById('frecuencia-lluvias-subform-content');
+const focoPolvoSubformContent = document.getElementById('foco-polvo-subform-content');
+
+// Paneles Section - Expert Sub-forms & Content Containers
+const panelMarcaSubform = document.getElementById('panel-marca-subform');
+const marcaPanelOptionsContainer = document.getElementById('marca-panel-options-container');
+
+const panelPotenciaSubform = document.getElementById('panel-potencia-subform');
+const potenciaPanelDeseadaInput = document.getElementById('potencia-panel-deseada-input');
+
+const panelCantidadExpertSubform = document.getElementById('panel-cantidad-expert-subform');
+const cantidadPanelesExpertInput = document.getElementById('cantidad-paneles-expert-input');
+
+const panelModeloTemperaturaSubform = document.getElementById('panel-modelo-temperatura-subform');
+const modeloTemperaturaOptionsContainer = document.getElementById('modelo-temperatura-options-container');
 
 
 // --- Funciones de Persistencia (NUEVO BLOQUE INTEGRADO) ---
@@ -104,8 +125,15 @@ function loadUserSelections() {
         superficieRodea: { descripcion: null, valor: null },
         rugosidadSuperficie: { descripcion: null, valor: null },
         rotacionInstalacion: { descripcion: null, valor: null },
-        metodoIngresoConsumoEnergia: null, // Added to default structure
-        electrodomesticos: {}, // Remains {} as default
+        // modeloMetodoRadiacion: null, // This was already present in the global userSelections
+        marcaPanel: null,
+        potenciaPanelDeseada: null,
+        cantidadPanelesExpert: null,
+        modeloTemperaturaPanel: null,
+        frecuenciaLluvias: null,      // New property
+        focoPolvoCercano: null,       // New property
+        metodoIngresoConsumoEnergia: null,
+        electrodomesticos: {},
         totalMonthlyConsumption: 0,
         totalAnnualConsumption: 0,
         selectedCurrency: 'Pesos argentinos',
@@ -267,6 +295,15 @@ function updateUIFromSelections() {
     } else if (alturaInstalacionInput) {
         alturaInstalacionInput.value = ''; // Clear if null
     }
+
+    // Update Potencia Panel Deseada Input
+    // const potenciaPanelDeseadaInputEl = document.getElementById('potencia-panel-deseada-input'); // Global const potenciaPanelDeseadaInput is used
+    if (potenciaPanelDeseadaInput && userSelections.potenciaPanelDeseada !== null) {
+        potenciaPanelDeseadaInput.value = userSelections.potenciaPanelDeseada;
+    } else if (potenciaPanelDeseadaInput) {
+        potenciaPanelDeseadaInput.value = ''; // Clear if null
+    }
+
     // Add similar blocks here for metodoCalculoRadiacion and modeloMetodoRadiacion if they have direct inputs in UI
     // For example, if they were text inputs (though they are planned as selects):
     // const metodoCalculoInput = document.getElementById('metodo-calculo-input'); // Assuming such an ID
@@ -847,6 +884,239 @@ async function initModeloMetodoSection() {
         if (container) {
             container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de modelo del método. Intente recargar o contacte a soporte.</p>';
         }
+    }
+}
+
+// --- Nueva función para inicializar la sección de Pérdidas ---
+function initPerdidasSection() {
+    // Ensure global DOM variables for sub-form content wrappers are accessible here
+    // const frecuenciaLluviasSubformContent = document.getElementById('frecuencia-lluvias-subform-content');
+    // const focoPolvoSubformContent = document.getElementById('foco-polvo-subform-content');
+    // (These were defined globally in a previous step)
+
+    if (!frecuenciaLluviasSubformContent || !focoPolvoSubformContent) {
+        console.error("Contenedores de sub-formularios de pérdidas no encontrados.");
+        return;
+    }
+
+    // Hide all sub-form content wrappers first
+    frecuenciaLluviasSubformContent.style.display = 'none';
+    focoPolvoSubformContent.style.display = 'none';
+
+    // Show the first sub-form: Frecuencia de Lluvias
+    frecuenciaLluviasSubformContent.style.display = 'block';
+
+    // Initialize its content (e.g., populate dropdown)
+    initFrecuenciaLluviasOptions(); // This function is defined below
+
+    // The existing updateStepIndicator call when showing 'perdidas-section'
+    // from setupNavigationButtons should be sufficient for the overall section title.
+}
+
+async function initFrecuenciaLluviasOptions() {
+    const container = document.getElementById('frecuencia-lluvias-options-container');
+    if (!container) {
+        console.error("Contenedor 'frecuencia-lluvias-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = '';
+
+    const selectElement = document.createElement('select');
+    selectElement.id = 'frecuencia-lluvias-select';
+    selectElement.className = 'form-control';
+
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = 'Seleccione frecuencia de lluvias...';
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    selectElement.appendChild(placeholderOption);
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/frecuencia_lluvias_options');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json(); // Expected: array of strings
+
+        if (!Array.isArray(data)) {
+            console.error('[FRECUENCIA LLUVIAS LOAD ERROR] Data not an array:', data);
+            container.innerHTML = '<p style="color:red;">Error: Formato de datos incorrecto.</p>';
+            return;
+        }
+
+        if (data.length === 0) {
+            // If no options, display a message or leave placeholder.
+            // For consistency with other similar functions, we can just leave the placeholder.
+            console.log('[FRECUENCIA LLUVIAS LOAD] No hay opciones de frecuencia de lluvias disponibles.');
+            // Optionally, add a message to the container:
+            // container.innerHTML = '<p>No hay opciones de frecuencia de lluvias disponibles.</p>';
+        } else {
+            data.forEach(optionText => {
+                const optionElement = document.createElement('option');
+                optionElement.value = optionText;
+                optionElement.textContent = optionText;
+                if (userSelections.frecuenciaLluvias === optionText) {
+                    optionElement.selected = true;
+                    placeholderOption.selected = false; // Unselect placeholder if a real option is selected
+                }
+                selectElement.appendChild(optionElement);
+            });
+        }
+
+        selectElement.addEventListener('change', (event) => {
+            const selectedValue = event.target.value;
+            if (selectedValue && selectedValue !== '') { // Check it's not the placeholder
+                userSelections.frecuenciaLluvias = selectedValue;
+            } else {
+                userSelections.frecuenciaLluvias = null; // Reset if placeholder is re-selected
+            }
+            saveUserSelections();
+            console.log('Frecuencia de lluvias seleccionada:', userSelections.frecuenciaLluvias);
+        });
+        container.appendChild(selectElement);
+
+    } catch (error) {
+        console.error('[FRECUENCIA LLUVIAS LOAD ERROR] Fetch/process error:', error);
+        if (error.message) console.error('[FRECUENCIA LLUVIAS LOAD ERROR] Message:', error.message);
+        alert('Error al cargar las opciones de frecuencia de lluvias. Revise la consola del navegador para más detalles.');
+        container.innerHTML = '<p style="color:red;">Error al cargar opciones. Intente más tarde.</p>';
+    }
+}
+
+function initFocoPolvoOptions() {
+    const container = document.getElementById('foco-polvo-options-container');
+    if (!container) {
+        console.error("Contenedor 'foco-polvo-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = ''; // Clear previous content
+
+    const options = [
+        { text: "SI", value: "SI" },
+        { text: "NO", value: "NO" }
+    ];
+
+    options.forEach(opt => {
+        const label = document.createElement('label');
+        // Assuming 'radio-group' class on container handles individual radio/label styling.
+        // If specific styling for each label/radio pair is needed, add classes here.
+
+        const radioInput = document.createElement('input');
+        radioInput.type = 'radio';
+        radioInput.name = 'focoPolvoOption'; // Shared name for radio group behavior
+        radioInput.value = opt.value;
+        radioInput.id = `focoPolvo-${opt.value.toLowerCase()}`; // Unique ID for each radio
+
+        if (userSelections.focoPolvoCercano === opt.value) {
+            radioInput.checked = true;
+        }
+
+        radioInput.addEventListener('change', (event) => {
+            // Radio buttons only fire 'change' on the one being selected.
+            // No need to check event.target.checked here usually, but good practice.
+            if (event.target.checked) {
+                userSelections.focoPolvoCercano = event.target.value;
+                saveUserSelections();
+                console.log('Foco de polvo cercano seleccionado:', userSelections.focoPolvoCercano);
+            }
+        });
+
+        label.appendChild(radioInput);
+        label.appendChild(document.createTextNode(" " + opt.text)); // Add space before text
+        container.appendChild(label);
+    });
+}
+
+function initPanelesSectionExpert() {
+    // Ensure global DOM variables for Paneles sub-form content wrappers are accessible
+    if (!panelMarcaSubform || !panelPotenciaSubform || !panelCantidadExpertSubform || !panelModeloTemperaturaSubform) {
+        console.error("Contenedores de sub-formularios de Paneles no encontrados.");
+        return;
+    }
+
+    // Hide all Paneles sub-form content wrappers first
+    panelMarcaSubform.style.display = 'none';
+    panelPotenciaSubform.style.display = 'none';
+    panelCantidadExpertSubform.style.display = 'none';
+    panelModeloTemperaturaSubform.style.display = 'none';
+
+    // Show the first sub-form: Marca Panel
+    panelMarcaSubform.style.display = 'block';
+
+    // Initialize its content (populate dropdown)
+    initMarcaPanelOptions();
+
+    // Update step indicator to reflect the first sub-step of "Paneles"
+    // (This will be handled by updateStepIndicator when 'paneles-section' is shown,
+    // and potentially refined further for sub-steps if needed)
+}
+
+async function initMarcaPanelOptions() {
+    const container = document.getElementById('marca-panel-options-container');
+    if (!container) {
+        console.error("Contenedor 'marca-panel-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = '';
+
+    const selectElement = document.createElement('select');
+    selectElement.id = 'marca-panel-select';
+    selectElement.className = 'form-control';
+
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = 'Seleccione una marca...';
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    selectElement.appendChild(placeholderOption);
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/marca_panel_options');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json(); // Expected: array of strings
+
+        if (!Array.isArray(data)) {
+            console.error('[MARCA PANEL OPTIONS LOAD ERROR] Data not an array:', data);
+            container.innerHTML = '<p style="color:red;">Error: Formato de datos incorrecto.</p>';
+            return;
+        }
+        if (data.length === 0) {
+            console.log('[MARCA PANEL OPTIONS LOAD ERROR] No hay marcas de panel disponibles desde la API.');
+            // container.innerHTML = '<p>No hay marcas de panel disponibles.</p>';
+            // No options to add, select will only have placeholder. User might rely on "Genéricos" if typed.
+        } else {
+            data.forEach(optionText => {
+                const optionElement = document.createElement('option');
+                optionElement.value = optionText;
+                optionElement.textContent = optionText;
+                if (userSelections.marcaPanel === optionText) {
+                    optionElement.selected = true;
+                    placeholderOption.selected = false;
+                }
+                selectElement.appendChild(optionElement);
+            });
+        }
+
+        selectElement.addEventListener('change', (event) => {
+            const selectedValue = event.target.value;
+            if (selectedValue && selectedValue !== '') {
+                userSelections.marcaPanel = selectedValue;
+            } else {
+                userSelections.marcaPanel = null;
+            }
+            saveUserSelections();
+            console.log('Marca de panel seleccionada:', userSelections.marcaPanel);
+        });
+        container.appendChild(selectElement);
+
+    } catch (error) {
+        console.error('[MARCA PANEL OPTIONS LOAD ERROR] Fetch/process error:', error);
+        if (error.message) console.error('[MARCA PANEL OPTIONS LOAD ERROR] Message:', error.message);
+        alert('Error al cargar las marcas de panel. Revise consola.');
+        container.innerHTML = '<p style="color:red;">Error al cargar opciones. Intente más tarde.</p>';
     }
 }
 
@@ -1488,6 +1758,25 @@ function setupNavigationButtons() {
         saveUserSelections();
     });
 
+    // Listener for Potencia Panel Deseada (Expert Panel Sub-form)
+    if (potenciaPanelDeseadaInput) {
+        potenciaPanelDeseadaInput.addEventListener('input', (event) => {
+            const valueStr = event.target.value;
+            if (valueStr === '') {
+                userSelections.potenciaPanelDeseada = null;
+            } else {
+                const value = parseFloat(valueStr);
+                if (!isNaN(value) && value >= 0) {
+                    userSelections.potenciaPanelDeseada = value;
+                }
+                // If input is invalid (e.g. negative or non-numeric and not empty),
+                // userSelections.potenciaPanelDeseada retains its previous valid value or null.
+                // The input field itself will show what the user typed, but it won't be saved if invalid.
+            }
+            saveUserSelections();
+        });
+    }
+
     const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
     if (alturaInstalacionInput) {
         alturaInstalacionInput.addEventListener('input', (event) => {
@@ -1596,6 +1885,28 @@ function setupNavigationButtons() {
         initElectrodomesticosSection();
     });
 
+    // Navigation from last Paneles sub-form (Modelo Temperatura) to Perdidas section
+    // Assuming 'next-to-inversor-from-modelo-temperatura' or similar is the ID of the "Next" button
+    // in the "Modelo Temperatura Panel" sub-form. This ID should have been set when
+    // initPanelesSectionExpert created these sub-forms.
+    // For this step, we'll use the ID 'next-to-inversor-from-modelo' as specified in plan,
+    // assuming it refers to the NEXT button of the *final* panel sub-form.
+    const nextFromPanelesToPerdidasBtn = document.getElementById('next-to-inversor-from-modelo'); // ID from plan.
+    if (nextFromPanelesToPerdidasBtn) {
+        // Check if a listener already exists from a generic setup, and remove it if so,
+        // to avoid double navigation or old logic.
+        // This is tricky; ideally, the old generic 'next-to-inversor' listener (if any) wouldn't exist
+        // or would be specific enough not to clash. For now, let's assume we are adding a fresh specific one
+        // or correctly re-assigning the target for the specific button from the last panel subform.
+        nextFromPanelesToPerdidasBtn.addEventListener('click', () => {
+            showScreen('perdidas-section');
+            updateStepIndicator('perdidas-section');
+            initPerdidasSection(); // This will show the first sub-form (frecuencia lluvias)
+        });
+    } else {
+        console.warn("Button 'next-to-inversor-from-modelo' (for Paneles to Perdidas) not found. Navigation may be broken.");
+    }
+
     document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => {
         showScreen('data-meteorologicos-section');
         updateStepIndicator('data-meteorologicos-section');
@@ -1669,12 +1980,73 @@ function setupNavigationButtons() {
     }
 
     document.getElementById('back-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
-    document.getElementById('next-to-inversor')?.addEventListener('click', () => showScreen('inversor-section'));
-    document.getElementById('back-to-paneles')?.addEventListener('click', () => showScreen('paneles-section'));
-    document.getElementById('next-to-perdidas')?.addEventListener('click', () => showScreen('perdidas-section'));
-    document.getElementById('back-to-inversor')?.addEventListener('click', () => showScreen('inversor-section'));
-    document.getElementById('next-to-analisis-economico')?.addEventListener('click', () => showScreen('analisis-economico-section'));
-    document.getElementById('back-to-perdidas')?.addEventListener('click', () => showScreen('perdidas-section'));
+    // document.getElementById('next-to-inversor')?.addEventListener('click', () => showScreen('inversor-section')); // Should be obsolete
+    // document.getElementById('back-to-paneles')?.addEventListener('click', () => showScreen('paneles-section')); // Generic, specific ones preferred
+
+    // --- Navigation within "Pérdidas" sub-forms ---
+    const nextToFocoPolvoBtn = document.getElementById('next-to-foco-polvo-from-frecuencia');
+    if (nextToFocoPolvoBtn) {
+        nextToFocoPolvoBtn.addEventListener('click', () => {
+            if(frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'none';
+            if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block';
+            initFocoPolvoOptions();
+            updateStepIndicator('perdidas-foco-polvo'); // New step indicator ID
+        });
+    }
+
+    const backToFrecuenciaLluviasBtn = document.getElementById('back-to-frecuencia-lluvias-from-foco-polvo');
+    if (backToFrecuenciaLluviasBtn) {
+        backToFrecuenciaLluviasBtn.addEventListener('click', () => {
+            if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'none';
+            if(frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'block';
+            // initFrecuenciaLluviasOptions(); // Usually not needed when going back unless options can change
+            updateStepIndicator('perdidas-frecuencia-lluvias'); // New step indicator ID
+        });
+    }
+
+    // Next from "Foco de Polvo" sub-form (Exiting "Pérdidas") to Analisis Economico
+    const nextToAnalisisFromFocoPolvoBtn = document.getElementById('next-to-analisis-from-foco-polvo');
+    if (nextToAnalisisFromFocoPolvoBtn) {
+        nextToAnalisisFromFocoPolvoBtn.addEventListener('click', () => {
+            showScreen('analisis-economico-section');
+            updateStepIndicator('analisis-economico-section');
+        });
+    }
+
+    // Main "Back" button for perdidas-section (navigates to Paneles section's first sub-form)
+    const backFromPerdidasBtn = document.getElementById('back-from-perdidas');
+    if (backFromPerdidasBtn) {
+        backFromPerdidasBtn.addEventListener('click', () => {
+            showScreen('paneles-section');
+            // initPanelesSectionExpert() should be called by showScreen('paneles-section') logic or its caller
+            // and it should handle displaying the first panel sub-form.
+            updateStepIndicator('paneles-section'); // Or the specific ID for the first panel sub-form
+        });
+    }
+
+    // document.getElementById('next-to-perdidas')?.addEventListener('click', () => showScreen('perdidas-section')); // Obsolete
+    // document.getElementById('back-to-inversor')?.addEventListener('click', () => showScreen('inversor-section')); // Obsolete
+
+    // This listener is for the "Next" button on the "Inversor" page, which is now skipped.
+    // document.getElementById('next-to-analisis-economico')?.addEventListener('click', () => showScreen('analisis-economico-section'));
+
+    // Back button on Analisis Economico page
+    const backToPerdidasFromAnalisisBtn = document.querySelector('#analisis-economico-section .back-button');
+    if (backToPerdidasFromAnalisisBtn) { // Assuming there's a common class or a specific ID
+        // To avoid attaching multiple listeners if this code runs multiple times or if ID is generic:
+        // A more robust way would be to ensure this specific button has a unique ID like 'back-to-perdidas-from-analisis'
+        // For now, let's assume it's the only .back-button or has the specific ID 'back-to-perdidas'.
+        // If its ID is 'back-to-perdidas', this will override any previous generic listener for that ID.
+        backToPerdidasFromAnalisisBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showScreen('perdidas-section');
+            if (frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'none';
+            if (focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block'; // Show last sub-form
+            initFocoPolvoOptions();
+            updateStepIndicator('perdidas-foco-polvo');
+        });
+    }
+
 
     const finalizarCalculoBtn = document.getElementById('finalizar-calculo');
     if (finalizarCalculoBtn) {
