@@ -1064,13 +1064,73 @@ function initPanelesSectionExpert() {
 
 // async function initModeloTemperaturaPanelOptions() { ... } // This was the duplicated incorrect one, remove it.
 
-async function initMarcaPanelOptions() { // Keep async for consistency if it was before
-    console.log("[DEBUG] initMarcaPanelOptions: Called (SIMPLIFIED FOR DEBUGGING).");
+async function initMarcaPanelOptions() {
     const container = document.getElementById('marca-panel-options-container');
-    if (container) {
-        container.innerHTML = "<p style='padding:10px; color:blue;'>[DEBUG] Marca Panel Options Placeholder. If you see this, initMarcaPanelOptions was called and ran its simplified version.</p>";
-    } else {
-        console.error("[DEBUG] initMarcaPanelOptions (Simplified): Container 'marca-panel-options-container' NOT FOUND.");
+    if (!container) {
+        console.error("Contenedor 'marca-panel-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = ''; // Clear previous content, including the debug placeholder
+
+    const selectElement = document.createElement('select');
+    selectElement.id = 'marca-panel-select';
+    selectElement.className = 'form-control';
+
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = 'Seleccione una marca...';
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    selectElement.appendChild(placeholderOption);
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/marca_panel_options');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json(); // Expected: array of strings
+
+        if (!Array.isArray(data)) {
+            console.error('[MARCA PANEL OPTIONS LOAD ERROR] Data not an array:', data);
+            container.innerHTML = '<p style="color:red;">Error: Formato de datos incorrecto.</p>';
+            return;
+        }
+        if (data.length === 0) {
+            console.log('[MARCA PANEL OPTIONS LOAD] No hay marcas de panel disponibles desde la API.');
+            // If API returns empty, "Genéricos" might need to be added manually if it's a fallback.
+            // For now, select will just have placeholder.
+        } else {
+            data.forEach(optionText => {
+                const optionElement = document.createElement('option');
+                optionElement.value = optionText;
+                optionElement.textContent = optionText;
+                // Note: dataset.descripcion is not strictly needed if value and textContent are the same string.
+                // optionElement.dataset.descripcion = optionText;
+                if (userSelections.marcaPanel === optionText) {
+                    optionElement.selected = true;
+                    placeholderOption.selected = false;
+                }
+                selectElement.appendChild(optionElement);
+            });
+        }
+
+        selectElement.addEventListener('change', (event) => {
+            const selectedValue = event.target.value;
+            if (selectedValue && selectedValue !== '') {
+                userSelections.marcaPanel = selectedValue;
+            } else {
+                userSelections.marcaPanel = null;
+            }
+            saveUserSelections();
+            console.log('Marca de panel seleccionada:', userSelections.marcaPanel);
+        });
+        container.appendChild(selectElement);
+
+    } catch (error) {
+        console.error('[MARCA PANEL OPTIONS LOAD ERROR] Fetch/process error:', error);
+        if (error.message) console.error('[MARCA PANEL OPTIONS LOAD ERROR] Message:', error.message);
+        alert('Error al cargar las marcas de panel. Revise consola e intente más tarde.');
+        container.innerHTML = '<p style="color:red;">Error al cargar opciones de marca. Verifique la conexión o contacte a soporte.</p>';
     }
 }
 
