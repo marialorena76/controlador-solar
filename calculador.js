@@ -1024,96 +1024,53 @@ function initFocoPolvoOptions() {
 }
 
 function initPanelesSectionExpert() {
-    // Ensure global DOM variables for Paneles sub-form content wrappers are accessible
-    // Note: panelCantidadExpertSubform was removed, so check for its existence is also removed.
+    console.log('[DEBUG] initPanelesSectionExpert: Called.');
+    console.log('[DEBUG] panelMarcaSubform:', typeof panelMarcaSubform !== 'undefined' ? panelMarcaSubform : 'NOT DEFINED');
+    console.log('[DEBUG] panelPotenciaSubform:', typeof panelPotenciaSubform !== 'undefined' ? panelPotenciaSubform : 'NOT DEFINED');
+    console.log('[DEBUG] panelModeloTemperaturaSubform:', typeof panelModeloTemperaturaSubform !== 'undefined' ? panelModeloTemperaturaSubform : 'NOT DEFINED');
+    // panelCantidadExpertSubform was removed, ensure it's not referenced.
+
     if (!panelMarcaSubform || !panelPotenciaSubform || !panelModeloTemperaturaSubform) {
-        console.error("Uno o más contenedores de sub-formularios de Paneles no fueron encontrados.");
+        console.error("Uno o más contenedores de sub-formularios de Paneles no fueron encontrados en initPanelesSectionExpert. panelMarcaSubform:", panelMarcaSubform, "panelPotenciaSubform:", panelPotenciaSubform, "panelModeloTemperaturaSubform:", panelModeloTemperaturaSubform);
         return;
     }
 
     // Hide all Paneles sub-form content wrappers first
     panelMarcaSubform.style.display = 'none';
     panelPotenciaSubform.style.display = 'none';
+    // panelCantidadExpertSubform was removed
     panelModeloTemperaturaSubform.style.display = 'none';
+    console.log('[DEBUG] initPanelesSectionExpert: All panel sub-forms hidden.');
 
-    // Show the first sub-form: Marca Panel
-    panelMarcaSubform.style.display = 'block';
+    console.log('[DEBUG] initPanelesSectionExpert: Attempting to show panelMarcaSubform.');
+    panelMarcaSubform.style.display = 'block'; // Show the first sub-form
 
-    // Initialize its content (populate dropdown)
-    initMarcaPanelOptions();
+    if (panelMarcaSubform) {
+        try {
+            console.log('[DEBUG] initPanelesSectionExpert: panelMarcaSubform display set to block. Computed style:', window.getComputedStyle(panelMarcaSubform).display);
+        } catch (e) {
+            console.error('[DEBUG] initPanelesSectionExpert: Error getting computed style for panelMarcaSubform', e);
+        }
+    }
 
-    // Update step indicator to reflect the first sub-step of "Paneles"
-    // (This will be handled by updateStepIndicator when 'paneles-section' is shown,
-    // and potentially refined further for sub-steps if needed)
+    console.log('[DEBUG] initPanelesSectionExpert: Calling initMarcaPanelOptions.');
+    if (typeof initMarcaPanelOptions === 'function') {
+        initMarcaPanelOptions();
+    } else {
+        console.error('[DEBUG] initPanelesSectionExpert: initMarcaPanelOptions function IS NOT DEFINED.');
+    }
+    console.log('[DEBUG] initPanelesSectionExpert: Returned from initMarcaPanelOptions call attempt.');
 }
 
 // async function initModeloTemperaturaPanelOptions() { ... } // This was the duplicated incorrect one, remove it.
 
-async function initMarcaPanelOptions() {
+async function initMarcaPanelOptions() { // Keep async for consistency if it was before
+    console.log("[DEBUG] initMarcaPanelOptions: Called (SIMPLIFIED FOR DEBUGGING).");
     const container = document.getElementById('marca-panel-options-container');
-    if (!container) {
-        console.error("Contenedor 'marca-panel-options-container' no encontrado.");
-        return;
-    }
-    container.innerHTML = '';
-
-    const selectElement = document.createElement('select');
-    selectElement.id = 'marca-panel-select';
-    selectElement.className = 'form-control';
-
-    const placeholderOption = document.createElement('option');
-    placeholderOption.value = '';
-    placeholderOption.textContent = 'Seleccione una marca...';
-    placeholderOption.disabled = true;
-    placeholderOption.selected = true;
-    selectElement.appendChild(placeholderOption);
-
-    try {
-        const response = await fetch('http://127.0.0.1:5000/api/marca_panel_options');
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.json(); // Expected: array of strings
-
-        if (!Array.isArray(data)) {
-            console.error('[MARCA PANEL OPTIONS LOAD ERROR] Data not an array:', data);
-            container.innerHTML = '<p style="color:red;">Error: Formato de datos incorrecto.</p>';
-            return;
-        }
-        if (data.length === 0) {
-            console.log('[MARCA PANEL OPTIONS LOAD ERROR] No hay marcas de panel disponibles desde la API.');
-            // container.innerHTML = '<p>No hay marcas de panel disponibles.</p>';
-            // No options to add, select will only have placeholder. User might rely on "Genéricos" if typed.
-        } else {
-            data.forEach(optionText => {
-                const optionElement = document.createElement('option');
-                optionElement.value = optionText;
-                optionElement.textContent = optionText;
-                if (userSelections.marcaPanel === optionText) {
-                    optionElement.selected = true;
-                    placeholderOption.selected = false;
-                }
-                selectElement.appendChild(optionElement);
-            });
-        }
-
-        selectElement.addEventListener('change', (event) => {
-            const selectedValue = event.target.value;
-            if (selectedValue && selectedValue !== '') {
-                userSelections.marcaPanel = selectedValue;
-            } else {
-                userSelections.marcaPanel = null;
-            }
-            saveUserSelections();
-            console.log('Marca de panel seleccionada:', userSelections.marcaPanel);
-        });
-        container.appendChild(selectElement);
-
-    } catch (error) {
-        console.error('[MARCA PANEL OPTIONS LOAD ERROR] Fetch/process error:', error);
-        if (error.message) console.error('[MARCA PANEL OPTIONS LOAD ERROR] Message:', error.message);
-        alert('Error al cargar las marcas de panel. Revise consola.');
-        container.innerHTML = '<p style="color:red;">Error al cargar opciones. Intente más tarde.</p>';
+    if (container) {
+        container.innerHTML = "<p style='padding:10px; color:blue;'>[DEBUG] Marca Panel Options Placeholder. If you see this, initMarcaPanelOptions was called and ran its simplified version.</p>";
+    } else {
+        console.error("[DEBUG] initMarcaPanelOptions (Simplified): Container 'marca-panel-options-container' NOT FOUND.");
     }
 }
 
@@ -1723,10 +1680,15 @@ function setupNavigationButtons() {
         expertUserButton.addEventListener('click', () => {
             userSelections.userType = 'experto';
             saveUserSelections();
-            const mapScreenElement = document.getElementById('map-screen');
-            if (mapScreenElement) mapScreenElement.style.display = 'none';
-            showScreen('data-meteorologicos-section');
-            updateStepIndicator('data-meteorologicos-section');
+            // Ensure map-screen is visible, as supply-section is part of it.
+            // showScreen('map-screen'); // This might be redundant if already on map-screen and only sub-sections change.
+                                      // showMapScreenFormSection handles showing map-screen implicitly if needed or if it's better structured.
+                                      // For now, let's assume user is on map-screen when clicking this.
+            showMapScreenFormSection('supply-section');
+            updateStepIndicator('map-screen'); // Or a more specific step for supply-section if created
+                                               // For now, 'map-screen' indicates they are on the first main screen.
+                                               // Or, perhaps, 'supply-section' needs its own step text.
+                                               // Let's stick to map-screen for now, step indicators for sub-map sections can be refined.
         });
     }
 
@@ -1738,21 +1700,35 @@ function setupNavigationButtons() {
         });
     }
 
-    if (commercialButton) {
+    if (commercialButton) { // commercialButton is const commercialButton = document.getElementById('commercial-button');
         commercialButton.addEventListener('click', () => {
             userSelections.installationType = 'Comercial';
             saveUserSelections();
-            showScreen('consumo-factura-section'); 
-            updateStepIndicator('consumo-factura-section'); 
+            if (userSelections.userType === 'experto') {
+                // Expert + Comercial: Go to Zona de Instalación
+                showScreen('data-meteorologicos-section');
+                updateStepIndicator('data-meteorologicos-section');
+            } else {
+                // Basic + Comercial: Go to Consumo por Factura (existing behavior)
+                showScreen('consumo-factura-section');
+                updateStepIndicator('consumo-factura-section');
+            }
         });
     }
 
-    if (pymeButton) {
+    if (pymeButton) { // pymeButton is const pymeButton = document.getElementById('pyme-button');
         pymeButton.addEventListener('click', () => {
             userSelections.installationType = 'PYME';
             saveUserSelections();
-            showScreen('consumo-factura-section'); 
-            updateStepIndicator('consumo-factura-section');
+            if (userSelections.userType === 'experto') {
+                // Expert + PYME: Go to Zona de Instalación
+                showScreen('data-meteorologicos-section');
+                updateStepIndicator('data-meteorologicos-section');
+            } else {
+                // Basic + PYME: Go to Consumo por Factura (existing behavior)
+                showScreen('consumo-factura-section');
+                updateStepIndicator('consumo-factura-section');
+            }
         });
     }
 
@@ -1884,15 +1860,10 @@ function setupNavigationButtons() {
             console.warn('No se seleccionó zona de instalación.');
         }
 
-        if (userSelections.userType === 'experto') {
-            showScreen('superficie-section');
-            updateStepIndicator('superficie-section');
-            initSuperficieSection();
-        } else { // Basic users
-            showScreen('energia-section');
-            updateStepIndicator('energia-section');
-            initElectrodomesticosSection(); // Ensure basic user view is rendered // THIS LINE WAS ALREADY PRESENT from previous step
-        }
+        // ALL users now go to energia-section from data-meteorologicos-section
+        showScreen('energia-section');
+        updateStepIndicator('energia-section');
+        initElectrodomesticosSection(); // This function will handle expert/basic differences
     });
 
     document.getElementById('back-to-data-meteorologicos-from-superficie')?.addEventListener('click', () => {
@@ -2077,23 +2048,22 @@ function setupNavigationButtons() {
     // Listener for "Next" button on Inversor section (going to Perdidas)
     document.getElementById('next-to-perdidas')?.addEventListener('click', () => {
         showScreen('perdidas-section');
-        updateStepIndicator('perdidas-section'); // Shows main Perdidas step or its first sub-step
-        initPerdidasSection(); // Initializes the first sub-form of Perdidas
+        updateStepIndicator('perdidas-section');
+        initPerdidasSection();
     });
 
     // Listener for "Back" button on Inversor section (going to last Paneles sub-form)
     document.getElementById('back-to-paneles')?.addEventListener('click', () => {
-        showScreen('paneles-section'); // Show the main Paneles section container
+        showScreen('paneles-section');
 
-        // Explicitly set the state to the last Paneles sub-form (Modelo Temperatura)
         if (panelMarcaSubform) panelMarcaSubform.style.display = 'none';
         if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
         if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
 
         if (typeof initModeloTemperaturaPanelOptions === 'function') {
-            initModeloTemperaturaPanelOptions(); // Re-initialize its content (placeholder)
+            initModeloTemperaturaPanelOptions();
         }
-        updateStepIndicator('paneles-modelo-temperatura'); // Step indicator for the last panel sub-form
+        updateStepIndicator('paneles-modelo-temperatura');
     });
 
     // --- Navigation within "Pérdidas" sub-forms ---
@@ -2103,7 +2073,7 @@ function setupNavigationButtons() {
             if(frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'none';
             if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block';
             initFocoPolvoOptions();
-            updateStepIndicator('perdidas-foco-polvo'); // New step indicator ID
+            updateStepIndicator('perdidas-foco-polvo');
         });
     }
 
@@ -2112,8 +2082,7 @@ function setupNavigationButtons() {
         backToFrecuenciaLluviasBtn.addEventListener('click', () => {
             if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'none';
             if(frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'block';
-            // initFrecuenciaLluviasOptions(); // Usually not needed when going back unless options can change
-            updateStepIndicator('perdidas-frecuencia-lluvias'); // New step indicator ID
+            updateStepIndicator('perdidas-frecuencia-lluvias');
         });
     }
 
@@ -2126,31 +2095,19 @@ function setupNavigationButtons() {
         });
     }
 
-    // Main "Back" button for perdidas-section (navigates to Inversor section)
+    // Main "Back" button for perdidas-section (MODIFIED: navigates to Inversor section)
     const backFromPerdidasBtn = document.getElementById('back-from-perdidas');
     if (backFromPerdidasBtn) {
         backFromPerdidasBtn.addEventListener('click', () => {
             showScreen('inversor-section');
             updateStepIndicator('inversor-section');
             if (typeof initInversorSection === 'function') {
-                initInversorSection(); // Ensure Inversor section is correctly (re)initialized
+                initInversorSection();
             } else {
                 console.warn('initInversorSection function not yet defined.');
             }
         });
     }
-
-    // The following listeners for intra-Pérdidas navigation are expected to be correct from previous work.
-    // Listener for next-to-foco-polvo-from-frecuencia (verified as per previous plan)
-    // Listener for back-to-frecuencia-lluvias-from-foco-polvo (verified as per previous plan)
-    // Listener for next-to-analisis-from-foco-polvo (verified as per previous plan)
-
-    // Obsolete/Previously handled:
-    // document.getElementById('next-to-perdidas')?.addEventListener('click', () => showScreen('perdidas-section'));
-    // document.getElementById('back-to-inversor')?.addEventListener('click', () => showScreen('inversor-section'));
-
-    // This listener is for the "Next" button on the "Inversor" page, which is now skipped.
-    // document.getElementById('next-to-analisis-economico')?.addEventListener('click', () => showScreen('analisis-economico-section'));
 
     // Back button on Analisis Economico page
     const backToPerdidasFromAnalisisBtn = document.querySelector('#analisis-economico-section .back-button');
