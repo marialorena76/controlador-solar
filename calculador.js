@@ -2048,22 +2048,23 @@ function setupNavigationButtons() {
     // Listener for "Next" button on Inversor section (going to Perdidas)
     document.getElementById('next-to-perdidas')?.addEventListener('click', () => {
         showScreen('perdidas-section');
-        updateStepIndicator('perdidas-section');
-        initPerdidasSection();
+        updateStepIndicator('perdidas-section'); // Shows main Perdidas step or its first sub-step
+        initPerdidasSection(); // Initializes the first sub-form of Perdidas
     });
 
     // Listener for "Back" button on Inversor section (going to last Paneles sub-form)
     document.getElementById('back-to-paneles')?.addEventListener('click', () => {
-        showScreen('paneles-section');
+        showScreen('paneles-section'); // Show the main Paneles section container
 
+        // Explicitly set the state to the last Paneles sub-form (Modelo Temperatura)
         if (panelMarcaSubform) panelMarcaSubform.style.display = 'none';
         if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
         if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
 
         if (typeof initModeloTemperaturaPanelOptions === 'function') {
-            initModeloTemperaturaPanelOptions();
+            initModeloTemperaturaPanelOptions(); // Re-initialize its content (placeholder)
         }
-        updateStepIndicator('paneles-modelo-temperatura');
+        updateStepIndicator('paneles-modelo-temperatura'); // Step indicator for the last panel sub-form
     });
 
     // --- Navigation within "Pérdidas" sub-forms ---
