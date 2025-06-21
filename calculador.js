@@ -1246,25 +1246,7 @@ function initElectrodomesticosSection() {
 
 
     if (userSelections.userType === 'experto') {
-        // 1. Always show choice screen & reset content areas
-        modoSeleccionContainer.style.display = 'block';
-        listContainer.innerHTML = '';
-        if (summaryContainer) summaryContainer.style.display = 'none';
-        if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = 'N/A';
-        if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = 'N/A';
-
-        // 2. Pre-check radio based on saved selection
-        if (userSelections.metodoIngresoConsumoEnergia) {
-            const currentRadio = document.querySelector(`input[name="metodoIngresoConsumo"][value="${userSelections.metodoIngresoConsumoEnergia}"]`);
-            if (currentRadio) {
-                currentRadio.checked = true;
-            }
-        } else {
-            // If no method was previously selected, explicitly uncheck all radio buttons
-            document.querySelectorAll('input[name="metodoIngresoConsumo"]').forEach(rb => rb.checked = false);
-        }
-
-        // Function to handle display based on expert's choice (this function itself is not changed, but its invocation is)
+        // --- START: Definition of handleExpertEnergyChoice (moved up) ---
         const handleExpertEnergyChoice = (choice) => {
             // modoSeleccionContainer.style.display = 'none'; // Keep it visible unless a choice leads to navigation
             listContainer.innerHTML = ''; // Clear list container before populating based on choice
@@ -1288,8 +1270,45 @@ function initElectrodomesticosSection() {
                 if (summaryContainer) summaryContainer.style.display = 'none';
             }
         };
+        // --- END: Definition of handleExpertEnergyChoice ---
+
+        // --- START: NEW BLOCK for Comercial/PYME ---
+        if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
+            console.log('[DEBUG] Expert Comercial/PYME: Forcing to boletaMensual method.');
+            modoSeleccionContainer.style.display = 'none'; // Ensure choice screen is hidden
+            listContainer.innerHTML = ''; // Clear any potential list
+            if (summaryContainer) summaryContainer.style.display = 'none'; // Hide summary
+
+            userSelections.metodoIngresoConsumoEnergia = 'boletaMensual';
+            saveUserSelections();
+
+            handleExpertEnergyChoice('boletaMensual'); // Call the now-defined function
+            return; // Exit function, as navigation will occur
+        }
+        // --- END: NEW BLOCK for Comercial/PYME ---
+
+        // --- START: Original logic for Expert Residencial (continues from SEARCH block) ---
+        // 1. Always show choice screen & reset content areas
+        //    (Note: modoSeleccionContainer.style.display = 'block' is here, which is fine for Residencial)
+        modoSeleccionContainer.style.display = 'block';
+        listContainer.innerHTML = '';
+        if (summaryContainer) summaryContainer.style.display = 'none';
+        if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = 'N/A';
+        if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = 'N/A';
+
+        // 2. Pre-check radio based on saved selection
+        if (userSelections.metodoIngresoConsumoEnergia) {
+            const currentRadio = document.querySelector(`input[name="metodoIngresoConsumo"][value="${userSelections.metodoIngresoConsumoEnergia}"]`);
+            if (currentRadio) {
+                currentRadio.checked = true;
+            }
+        } else {
+            // If no method was previously selected, explicitly uncheck all radio buttons
+            document.querySelectorAll('input[name="metodoIngresoConsumo"]').forEach(rb => rb.checked = false);
+        }
 
         // 3. Ensure radio button 'change' listeners are active
+        //    (handleExpertEnergyChoice definition was moved up, so listeners will use it)
         const radioButtons = document.querySelectorAll('input[name="metodoIngresoConsumo"]');
         radioButtons.forEach(radio => {
             if (!radio.dataset.listenerAttached) {
@@ -1604,92 +1623,139 @@ function updateStepIndicator(screenId) {
 
     let currentStepText = 'Calculador Solar'; // Default text
 
+    // Determine overall step context (on map or in data form)
+    let onMapScreen = (mapScreen && mapScreen.style.display !== 'none');
+
     if (userSelections.userType === 'experto') {
-        switch (screenId) {
-            case 'map-screen':
-                currentStepText = 'Paso Inicial: Ubicación y Tipo de Usuario';
-                break;
-            case 'data-meteorologicos-section':
-                currentStepText = 'Experto: Paso 1 > Zona de Instalación';
-                break;
-            case 'superficie-section':
-                currentStepText = 'Experto: Paso 2 > Superficie Circundante';
-                break;
-            case 'rugosidad-section':
-                currentStepText = 'Experto: Paso 3 > Rugosidad Superficie';
-                break;
-            case 'rotacion-section':
-                currentStepText = 'Experto: Paso 4 > Rotación Instalación';
-                break;
-            case 'altura-instalacion-section':
-                currentStepText = 'Experto: Paso 5 > Altura Instalación';
-                break;
-            case 'metodo-calculo-section':
-                currentStepText = 'Experto: Paso 6 > Método Cálculo Radiación';
-                break;
-            case 'modelo-metodo-section':
-                currentStepText = 'Experto: Paso 7 > Modelo Método Radiación';
-                break;
-            case 'energia-section':
-                currentStepText = 'Experto: Paso 8 > Consumo Energía';
-                break;
-            case 'consumo-factura-section':
-                 currentStepText = 'Experto: Paso 8a > Consumo por Factura';
-                 break;
-            case 'paneles-section': // Main entry for Paneles - defaults to first sub-step
-                currentStepText = 'Experto: Paso 9.1 > Marca Panel';
-                break;
-            case 'paneles-marca':
-                currentStepText = 'Experto: Paso 9.1 > Marca Panel';
-                break;
-            case 'paneles-potencia':
-                currentStepText = 'Experto: Paso 9.2 > Potencia Panel';
-                break;
-            // 'paneles-cantidad' case removed
-            case 'paneles-modelo-temperatura':
-                currentStepText = 'Experto: Paso 9.3 > Modelo Temperatura Panel'; // Adjusted step
-                break;
-            case 'inversor-section':
-                currentStepText = 'Experto: Paso 10 > Inversor'; // Adjusted step
-                break;
-            case 'perdidas-section': // Main entry for Perdidas - defaults to first sub-step
-                currentStepText = 'Experto: Paso 11.1 > Frecuencia Lluvias'; // Adjusted step
-                break;
-            case 'perdidas-frecuencia-lluvias':
-                currentStepText = 'Experto: Paso 11.1 > Frecuencia Lluvias'; // Adjusted step
-                break;
-            case 'perdidas-foco-polvo':
-                currentStepText = 'Experto: Paso 11.2 > Foco de Polvo'; // Adjusted step
-                break;
-            case 'analisis-economico-section': // This case needs to handle both user types
-                if (userSelections.userType === 'experto') {
-                    currentStepText = 'Experto: Paso 12 > Análisis Económico'; // Adjusted step
-                } else {
-                    currentStepText = 'Paso 3 > Análisis Económico';
-                }
-                break;
-            default:
-                currentStepText = 'Calculador Solar - Experto';
+        // Expert Flow
+        if (onMapScreen) {
+            // Initial expert choices on map screen
+            if (supplySection && supplySection.style.display !== 'none') {
+                currentStepText = 'Experto: Paso 1 > Tipo de Instalación';
+            } else if (incomeSection && incomeSection.style.display !== 'none') {
+                currentStepText = 'Experto: Paso 2 > Nivel de Ingreso'; // Only for Residencial
+            } else { // Default for map screen if user type is expert but no specific sub-form shown
+                currentStepText = 'Experto: Configuración Inicial';
+            }
+        } else { // Expert is on dataFormScreen
+            switch (screenId) {
+                case 'data-meteorologicos-section':
+                    // Determine if this is step 2 (after Com/PYME) or step 3 (after Res+Income)
+                    if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
+                        currentStepText = 'Experto: Paso 2 > Zona de Instalación';
+                    } else { // Assumed Residencial path
+                        currentStepText = 'Experto: Paso 3 > Zona de Instalación';
+                    }
+                    break;
+                case 'energia-section':
+                    // Base step for Energia for Expert. Sub-choices don't get unique main step numbers here.
+                    if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
+                        currentStepText = 'Experto: Paso 3 > Consumo Energía'; // Auto-navigates to boleta
+                    } else { // Assumed Residencial path
+                        currentStepText = 'Experto: Paso 4 > Consumo Energía'; // Shows 3 choices
+                    }
+                    break;
+                case 'consumo-factura-section': // Reached by expert's energy choice OR basic Comercial/PYME
+                    // For expert, this is a sub-part of their "Consumo Energía" step
+                    if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
+                        currentStepText = 'Experto: Paso 3a > Consumo por Factura';
+                    } else { // Expert Residencial who chose boleta
+                        currentStepText = 'Experto: Paso 4a > Consumo por Factura';
+                    }
+                    break;
+                // Detailed data steps start after Energia/Consumo Factura
+                // Their numbering depends on the path taken to Energia
+                let baseStepNumber = (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') ? 3 : 4;
+
+                case 'superficie-section':
+                    currentStepText = `Experto: Paso ${baseStepNumber + 1} > Superficie Circundante`;
+                    break;
+                case 'rugosidad-section':
+                    currentStepText = `Experto: Paso ${baseStepNumber + 2} > Rugosidad Superficie`;
+                    break;
+                case 'rotacion-section':
+                    currentStepText = `Experto: Paso ${baseStepNumber + 3} > Rotación Instalación`;
+                    break;
+                case 'altura-instalacion-section':
+                    currentStepText = `Experto: Paso ${baseStepNumber + 4} > Altura Instalación`;
+                    break;
+                case 'metodo-calculo-section':
+                    currentStepText = `Experto: Paso ${baseStepNumber + 5} > Método Cálculo Radiación`;
+                    break;
+                case 'modelo-metodo-section':
+                    currentStepText = `Experto: Paso ${baseStepNumber + 6} > Modelo Método Radiación`;
+                    break;
+                case 'paneles-section': // Main entry for Paneles sub-forms
+                    currentStepText = `Experto: Paso ${baseStepNumber + 7}.1 > Marca Panel`;
+                    break;
+                case 'paneles-marca':
+                    currentStepText = `Experto: Paso ${baseStepNumber + 7}.1 > Marca Panel`;
+                    break;
+                case 'paneles-potencia':
+                    currentStepText = `Experto: Paso ${baseStepNumber + 7}.2 > Potencia Panel`;
+                    break;
+                case 'paneles-modelo-temperatura':
+                    currentStepText = `Experto: Paso ${baseStepNumber + 7}.3 > Modelo Temperatura Panel`;
+                    break;
+                case 'inversor-section':
+                    currentStepText = `Experto: Paso ${baseStepNumber + 8} > Inversor`;
+                    break;
+                case 'perdidas-section': // Main entry for Perdidas sub-forms
+                    currentStepText = `Experto: Paso ${baseStepNumber + 9}.1 > Frecuencia Lluvias`;
+                    break;
+                case 'perdidas-frecuencia-lluvias':
+                    currentStepText = `Experto: Paso ${baseStepNumber + 9}.1 > Frecuencia Lluvias`;
+                    break;
+                case 'perdidas-foco-polvo':
+                    currentStepText = `Experto: Paso ${baseStepNumber + 9}.2 > Foco de Polvo`;
+                    break;
+                case 'analisis-economico-section':
+                    currentStepText = `Experto: Paso ${baseStepNumber + 10} > Análisis Económico`;
+                    break;
+                default:
+                    currentStepText = 'Calculador Solar - Experto';
+            }
         }
     } else { // Basic user
-        switch (screenId) {
-            case 'map-screen':
+        if (onMapScreen) {
+            if (supplySection && supplySection.style.display !== 'none') {
+                currentStepText = 'Básico: Paso 1 > Tipo de Instalación';
+            } else if (incomeSection && incomeSection.style.display !== 'none') {
+                currentStepText = 'Básico: Paso 2 > Nivel de Ingreso'; // Only for Residencial
+            } else {
                 currentStepText = 'Paso Inicial: Ubicación y Tipo de Usuario';
-                break;
-            case 'data-meteorologicos-section':
-                currentStepText = 'Paso 1 > Datos Meteorológicos';
-                break;
-            case 'energia-section':
-                currentStepText = 'Paso 2 > Consumo de Energía';
-                break;
-            case 'analisis-economico-section': // Already handled above for expert, this is for basic
-                currentStepText = 'Paso 3 > Análisis Económico';
-                break;
-            case 'consumo-factura-section':
-                 currentStepText = 'Ingreso de Consumo por Factura';
-                 break;
-            default:
-                currentStepText = 'Calculador Solar - Básico';
+            }
+        } else { // Basic user on dataFormScreen
+            switch (screenId) {
+                case 'data-meteorologicos-section':
+                     // For basic user, this is after map-screen choices (Tipo Instalacion, Nivel Ingreso if Res)
+                    if (userSelections.installationType === 'Residencial') {
+                        currentStepText = 'Básico: Paso 3 > Zona de Instalación';
+                    } else { // Comercial or PYME (skips Nivel Ingreso)
+                        currentStepText = 'Básico: Paso 2 > Zona de Instalación';
+                    }
+                    break;
+                case 'energia-section':
+                    if (userSelections.installationType === 'Residencial') {
+                        currentStepText = 'Básico: Paso 4 > Consumo de Energía';
+                    } else { // Comercial or PYME
+                        currentStepText = 'Básico: Paso 3 > Consumo de Energía'; // Should not be reached, they go to consumo-factura
+                    }
+                    break;
+                case 'consumo-factura-section': // Reached by basic user's Comercial/PYME path
+                    currentStepText = 'Básico: Paso 3 > Consumo por Factura';
+                    break;
+                case 'analisis-economico-section':
+                    if (userSelections.installationType === 'Residencial') {
+                        currentStepText = 'Básico: Paso 5 > Análisis Económico';
+                    } else { // Comercial or PYME
+                        currentStepText = 'Básico: Paso 4 > Análisis Económico';
+                    }
+                    break;
+                default:
+                    // Sections like paneles, inversor, perdidas, etc. are not in basic flow
+                    currentStepText = 'Calculador Solar - Básico';
+            }
         }
     }
     stepIndicatorText.textContent = currentStepText;
@@ -2034,11 +2100,17 @@ function setupNavigationButtons() {
     const backFromConsumoFacturaButton = document.getElementById('back-from-consumo-factura');
     if (backFromConsumoFacturaButton) {
         backFromConsumoFacturaButton.addEventListener('click', () => {
-            if (userSelections.userType === 'experto' && userSelections.metodoIngresoConsumoEnergia === 'boletaMensual') {
-                showScreen('energia-section');
-                updateStepIndicator('energia-section');
-                initElectrodomesticosSection();
-            } else {
+            if (userSelections.userType === 'experto') {
+                if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
+                    // Expert + Comercial/PYME was auto-routed to boleta. "Back" goes to Zona.
+                    showScreen('data-meteorologicos-section');
+                    updateStepIndicator('data-meteorologicos-section');
+                } else { // Expert + Residencial who chose 'boletaMensual' from options
+                    showScreen('energia-section');
+                    updateStepIndicator('energia-section');
+                    initElectrodomesticosSection(); // This will show the 3 choices again
+                }
+            } else { // Basic user (must be Comercial or PYME to have reached consumo-factura-section)
                 showScreen('map-screen');
                 showMapScreenFormSection('supply-section');
                 updateStepIndicator('map-screen');
@@ -2071,8 +2143,19 @@ function setupNavigationButtons() {
             userSelections.consumosMensualesFactura = monthlyConsumptions; 
             userSelections.totalAnnualConsumption = totalAnnualConsumptionFromBill; 
             saveUserSelections();
-            showScreen('analisis-economico-section');
-            updateStepIndicator('analisis-economico-section');
+
+            if (userSelections.userType === 'experto') {
+                showScreen('superficie-section');
+                updateStepIndicator('superficie-section');
+                if (typeof initSuperficieSection === 'function') {
+                    initSuperficieSection();
+                } else {
+                    console.warn('initSuperficieSection function not yet defined.');
+                }
+            } else { // Basic user (or default if userType not set, though it should be)
+                showScreen('analisis-economico-section');
+                updateStepIndicator('analisis-economico-section');
+            }
         });
     }
 
@@ -2088,9 +2171,13 @@ function setupNavigationButtons() {
             if (userSelections.userType === 'experto') {
                 const metodo = userSelections.metodoIngresoConsumoEnergia;
                 if (metodo === 'detalleHogar' || metodo === 'detalleHogarHoras') {
-                    showScreen('paneles-section');
-                    updateStepIndicator('paneles-section');
-                    initPanelesSectionExpert(); // Ensure this is called for experts
+                    showScreen('superficie-section'); // New target
+                    updateStepIndicator('superficie-section'); // Update to new target's indicator
+                    if (typeof initSuperficieSection === 'function') { // Call init for new target
+                        initSuperficieSection();
+                    } else {
+                        console.warn('initSuperficieSection function not yet defined.');
+                    }
                 } else if (metodo === 'boletaMensual') {
                     alert('Por favor, complete el ingreso de consumo por boleta en su sección correspondiente o elija otro método.');
                 } else {
@@ -2319,7 +2406,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // initOtherFeature();
     // ********************************************************************************
 
-    // EJEMPLO DE CÓDIGO EXISTENTE QUE PODRÍA ESTAR AQUÍ O SER LLAMADO:
+    // EJEMPLO DE CÓDIGO EXISTENTE CHE PODRÍA ESTAR AQUÍ O SER LLAMADO:
     // Algunas de tus funciones que ya tenías podrían ser llamadas aquí si no están
     // atadas a botones o eventos específicos.
     // validateForm(); // Si tenías una función de validación global
