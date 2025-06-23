@@ -8,192 +8,177 @@ app = Flask(__name__)
 CORS(app) # Habilita CORS para permitir solicitudes desde el frontend
 
 # Ruta donde estará tu archivo Excel en el servidor
+# Asegúrate de que esta ruta sea correcta o que el archivo esté en la misma carpeta que 'backend.py'
 EXCEL_FILE_PATH = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx'
 
-# --- NUEVA RUTA: Para obtener la lista de electrodomésticos y sus consumos ---
+# --- Ruta para obtener los datos de electrodomésticos para el frontend ---
 @app.route('/api/electrodomesticos', methods=['GET'])
 def get_electrodomesticos_consumos():
     try:
-        print(f"DEBUG: Solicitud a /api/electrodomesticos. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
-        # ¡¡¡IMPORTANTE!!! Reemplaza 'Tablas' con el nombre exacto de tu hoja si es diferente.
-        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl', decimal=',')
-        print("DEBUG: Hoja 'Tablas' leída para electrodomésticos.")
+        df = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Datos de Entrada', engine='openpyxl')
 
-        col_nombre_idx = 0  # Columna A
-        col_consumo_idx = 1 # Columna B
-        fila_inicio_idx = 110 # Fila 111 en Excel (111 - 1)
-        fila_fin_idx = 173  # Fila 174 en Excel (174 - 1)
+        # Asumo que los nombres de los electrodomésticos están en la columna H (índice 7)
+        # y los consumos diarios (kWh/día) están en la columna Q (índice 16)
+        # en el rango de filas 46 a 64 del Excel (índices 45 a 63 en pandas)
+        col_nombre_electrodomestico_idx = 7  # Columna H
+        col_consumo_diario_kwh_idx = 16 # Columna Q
 
-        electrodomesticos_lista = []
-        max_filas_df = df_tablas.shape[0]
+        electrodomesticos_data = []
+        for r_idx in range(45, 64): # Filas 46 a 64
+            nombre = df.iloc[r_idx, col_nombre_electrodomestico_idx]
+            consumo_diario = df.iloc[r_idx, col_consumo_diario_kwh_idx]
 
-        for r_idx in range(fila_inicio_idx, fila_fin_idx + 1):
-            if r_idx >= max_filas_df:
-                print(f"WARN: Fila {r_idx+1} fuera de límites (hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida.")
-                break
-            if col_nombre_idx >= df_tablas.shape[1] or col_consumo_idx >= df_tablas.shape[1]:
-                print(f"WARN: Columna para nombre/consumo fuera de límites (hoja 'Tablas' tiene {df_tablas.shape[1]} columnas).")
-                break
+            if pd.isna(nombre) or pd.isna(consumo_diario):
+                continue # Saltar filas con datos faltantes
 
-            nombre = df_tablas.iloc[r_idx, col_nombre_idx]
-            consumo_kwh = df_tablas.iloc[r_idx, col_consumo_idx]
-
-            if pd.isna(nombre) or str(nombre).strip() == "":
-                print(f"DEBUG: Fila {r_idx+1} omitida por nombre NaN o vacío.")
-                continue
-
-            consumo_kwh_float = 0.0
-            if pd.isna(consumo_kwh):
-                print(f"DEBUG: Consumo NaN para '{nombre}' en fila {r_idx+1}, usando 0.")
-            else:
-                try:
-                    consumo_kwh_float = float(consumo_kwh)
-                except ValueError:
-                    print(f"WARN: No se pudo convertir consumo '{consumo_kwh}' a float para '{nombre}'. Usando 0.")
-
-            electrodomesticos_lista.append({
+            electrodomesticos_data.append({
                 "name": str(nombre),
-                "consumo_diario_kwh": consumo_kwh_float
+                # Asegúrate de que el consumo diario esté en el formato esperado (kWh/día)
+                # Si tu Excel tiene watts y horas/día, deberías calcularlo aquí.
+                "consumo_diario_kwh": float(consumo_diario)
             })
 
-        print(f"DEBUG: Total electrodomésticos leídos de 'Tablas' A{fila_inicio_idx+1}:B{fila_fin_idx+1}: {len(electrodomesticos_lista)}")
-        categorias_respuesta = {"Electrodomésticos Disponibles": electrodomesticos_lista}
+        # Agrupar por categoría si es necesario. Por ahora, envío una lista plana.
+        # Si tu Excel tiene una columna de categoría, puedes adaptarlo.
+        # Por simplicidad, si no hay columna de categoría, los agrupo en una categoría 'General'.
+        categorias = {"General": electrodomesticos_data}
+        # Si tienes una columna de categoría, podrías hacer algo como:
+        # col_categoria_idx = 8 # Columna I, por ejemplo
+        # for r_idx in range(45, 64):
+        #     categoria = df.iloc[r_idx, col_categoria_idx] if not pd.isna(df.iloc[r_idx, col_categoria_idx]) else "General"
+        #     # ... y luego organizar `electrodomesticos_data` por esa categoría.
 
-        return jsonify({"categorias": categorias_respuesta})
+        return jsonify({"categorias": categorias})
 
     except FileNotFoundError:
-        print(f"ERROR en /api/electrodomesticos: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
-        return jsonify({"error": "Archivo Excel no encontrado."}), 404
-    except KeyError as e:
-        print(f"ERROR en /api/electrodomesticos: Hoja 'Tablas' no encontrada?: {e}")
-        return jsonify({"error": f"Error de clave (¿nombre de hoja?): {e}"}), 500
-    except IndexError as e:
-        print(f"ERROR en /api/electrodomesticos: Rango celdas fuera de límites: {e}")
-        return jsonify({"error": f"Rango celdas fuera de límites: {e}"}), 500
+        return jsonify({"error": "Archivo Excel de electrodomésticos no encontrado en el servidor."}), 404
     except Exception as e:
-        import traceback
-        print(f"ERROR GENERAL en /api/electrodomesticos: {e}")
-        print(traceback.format_exc())
-        return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
+        print(f"Error al cargar electrodomésticos: {e}")
+        return jsonify({"error": f"Error interno del servidor al cargar electrodomésticos: {e}"}), 500
 
-# --- Ruta para generar informe (EXISTENTE) ---
+# --- Ruta para generar el informe ---
 @app.route('/api/generar_informe', methods=['POST'])
 def generar_informe():
     user_data = request.json
-    print("DEBUG: Datos recibidos del frontend para informe:", user_data)
+    print("Datos recibidos del frontend:", user_data)
 
     if not user_data:
         return jsonify({"error": "No se recibieron datos"}), 400
 
     try:
-        print(f"DEBUG: Leyendo Excel para informe: {EXCEL_FILE_PATH}")
-        df_resultados = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Resultados', engine='openpyxl', decimal=',')
-        print("DEBUG: Hoja 'Resultados' leída.")
-        df_area_trabajo = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Area de trabajo', engine='openpyxl', decimal=',')
-        print("DEBUG: Hoja 'Area de trabajo' leída.")
+        df = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Resultados', engine='openpyxl')
 
-        # Acceder a los datos de electrodomésticos y consumo total
-        electrodomesticos_seleccionados = user_data.get('electrodomesticos', {})
-        consumo_mensual_kwh = user_data.get('totalMonthlyConsumption', 0)
-        consumo_anual_kwh = user_data.get('totalAnnualConsumption', 0)
-        latitud = user_data.get('location', {}).get('lat', -34.6037) # Valor por defecto si no se encuentra
-        longitud = user_data.get('location', {}).get('lng', -58.3816) # Valor por defecto
+        # --- Extracción de datos del Excel ---
+        # AQUI ES DONDE DEBERIAS LEER LAS CELDAS ESPECÍFICAS DE TU EXCEL
+        # Reemplaza 'A1', 'B2', etc. con las referencias de celda reales de tu hoja 'Resultados'
+        # o las celdas donde se encuentren los valores calculados.
 
-        print(f"DEBUG: Electrodomésticos seleccionados (para informe): {electrodomesticos_seleccionados}")
-        print(f"DEBUG: Consumo mensual estimado (kWh, para informe): {consumo_mensual_kwh}")
-        print(f"DEBUG: Consumo anual estimado (kWh, para informe): {consumo_anual_kwh}")
-        print(f"DEBUG: Latitud: {latitud}, Longitud: {longitud}")
+        # Ejemplo de lectura de una celda específica (fila, columna)
+        # Nota: pandas.read_excel usa índices base 0 para filas y columnas
+        # Si en Excel es A1, en pandas es df.iloc[0,0]
+        # Si en Excel es C5, en pandas es df.iloc[4,2]
 
-        # Aquí es donde integrarías el consumo_mensual_kwh en tus cálculos para el informe
-        # Ejemplo (muy simplificado, ajusta según tu lógica del Excel):
-        # Necesitarás una lógica para mapear este consumo a la potencia del sistema o a los datos de las tablas.
+        # Consumo Anual (Ejemplo: de user_data o de una celda específica)
+        consumo_anual_calculado = user_data.get('totalAnnualConsumption', 0)
 
-        # Suponiendo que tu hoja 'Resultados' tiene alguna lógica basada en el consumo anual
-        # Buscar la fila que corresponde al consumo anual o interpolar.
-        # Esto es un placeholder; la lógica real dependerá de cómo tu Excel calcula los resultados.
-        # Ejemplo simplificado de cómo podrías buscar un valor en el Excel:
-        # Potencia nominal del sistema (kWp) - EJEMPLO DE CÓMO OBTENER UN DATO
-        # Esta es la parte CLAVE donde tienes que vincular el consumo_anual_kwh
-        # con los datos de tu Excel para obtener la potencia del sistema o el dimensionamiento.
+        # Generación Anual Estimada (debería venir del Excel o cálculo)
+        # SUPONER que la generación anual está en la celda B2 (índice 1,1) de la hoja 'Resultados'
+        generacion_anual = df.iloc[1,1] if not pd.isna(df.iloc[1,1]) else 0
 
-        # Asumo que en la hoja 'Resultados' o 'Area de trabajo' tienes tablas para dimensionar.
-        # Por ejemplo, si tienes una tabla que relaciona kWh/año con kWp necesarios:
-        # df_dimensionamiento = df_area_trabajo[['Consumo Anual (kWh)', 'Potencia Sistema (kWp)']] # Nombres de columnas de tu Excel
-        # potencia_sistema_kwp = df_dimensionamiento.loc[df_dimensionamiento['Consumo Anual (kWh)'] >= consumo_anual_kwh, 'Potencia Sistema (kWp)'].min()
-        # if pd.isna(potencia_sistema_kwp):
-        #     potencia_sistema_kwp = df_dimensionamiento['Potencia Sistema (kWp)'].max() # O un valor por defecto / error
+        # Porcentaje de Autoconsumo (debería venir del Excel o cálculo)
+        # SUPONER que el autoconsumo está en la celda B3 (índice 2,1)
+        autoconsumo = df.iloc[2,1] if not pd.isna(df.iloc[2,1]) else 0
 
-        # Datos de ejemplo para el informe (AJUSTA ESTO CON TUS CÁLCULOS REALES)
+        # Energía Inyectada a la Red (debería venir del Excel o cálculo)
+        # SUPONER que la energía inyectada está en la celda B4 (índice 3,1)
+        inyectada_red = df.iloc[3,1] if not pd.isna(df.iloc[3,1]) else 0
+
+        # Potencia Total de los Paneles (debería venir del Excel o cálculo)
+        # SUPONER que la potencia paneles está en la celda B5 (índice 4,1)
+        potencia_paneles = df.iloc[4,1] if not pd.isna(df.iloc[4,1]) else 0
+
+        # Cantidad de Paneles (de user_data o de una celda específica)
+        cantidad_paneles = user_data['panelesSolares']['cantidad'] if 'panelesSolares' in user_data else 0
+
+        # Superficie de Instalación (debería venir del Excel o cálculo)
+        # SUPONER que la superficie está en la celda B6 (índice 5,1)
+        superficie = df.iloc[5,1] if not pd.isna(df.iloc[5,1]) else 0
+
+        # Vida Útil Estimada del Sistema (debería venir del Excel o ser un valor fijo)
+        vida_util = 25 # Suponemos 25 años, o lee de una celda del Excel
+
+        # Análisis Económico
+        # SUPONER que el costo actual está en la celda B7 (índice 6,1)
+        costo_actual = df.iloc[6,1] if not pd.isna(df.iloc[6,1]) else 0
+        # SUPONER que la inversión inicial está en la celda B8 (índice 7,1)
+        inversion_inicial = df.iloc[7,1] if not pd.isna(df.iloc[7,1]) else 0
+        # SUPONER que el mantenimiento anual está en la celda B9 (índice 8,1)
+        mantenimiento = df.iloc[8,1] if not pd.isna(df.iloc[8,1]) else 0
+        # SUPONER que el costo futuro de energía (ahorro) está en la celda B10 (índice 9,1)
+        costo_futuro = df.iloc[9,1] if not pd.isna(df.iloc[9,1]) else 0
+        # SUPONER que el ingreso por inyección a red está en la celda B11 (índice 10,1)
+        ingreso_red = df.iloc[10,1] if not pd.isna(df.iloc[10,1]) else 0
+
+        # Resumen económico (puede ser una celda de texto en Excel o generado aquí)
+        # SUPONER que el resumen económico está en la celda B12 (índice 11,1)
+        resumen_economico_texto = df.iloc[11,1] if not pd.isna(df.iloc[11,1]) else "Análisis económico no disponible."
+
+        # Contribución al Cambio Climático
+        # SUPONER que las emisiones evitadas están en la celda B13 (índice 12,1)
+        emisiones_evitadas = df.iloc[12,1] if not pd.isna(df.iloc[12,1]) else 0
+
+        # Moneda
+        moneda = user_data.get('selectedCurrency', 'Pesos argentinos')
+
+        # Construir el informe final con los datos extraídos o calculados
         informe_final = {
-            "potencia_sistema_kwp": 0, # <-- Debes calcular esto
-            "energia_generada_anual": consumo_anual_kwh, # <-- Esto viene del frontend
-            "area_paneles_m2": 0, # <-- Debes calcular esto
-            "numero_paneles": 0, # <-- Debes calcular esto
-            "tipo_inversor": user_data.get('inversor', {}).get('tipo', 'No Definido'),
-            "potencia_inversor_kwa": user_data.get('inversor', {}).get('potenciaNominal', 0),
-            "costo_actual": 0, # <-- Debes calcular esto
-            "inversion_inicial": 0, # <-- Debes calcular esto
-            "mantenimiento": 0, # <-- Debes calcular esto
-            "costo_futuro": 0, # <-- Debes calcular esto
-            "ingreso_red": 0, # <-- Debes calcular esto
-            "resumen_economico": "Cálculo pendiente...", # <-- Debes generar un resumen
-            "emisiones": 0, # <-- Debes calcular esto
-            "moneda": user_data.get('selectedCurrency', 'Pesos argentinos')
+            "consumo_anual": consumo_anual_calculado,
+            "generacion_anual": generacion_anual,
+            "autoconsumo": autoconsumo,
+            "inyectada_red": inyectada_red,
+
+            "potencia_paneles": potencia_paneles,
+            "cantidad_paneles": cantidad_paneles,
+            "superficie": superficie,
+            "vida_util": vida_util,
+
+            # Datos de paneles, inversor y pérdidas que pasaste directamente
+            "panelesSolares": user_data.get("panelesSolares", {}),
+            "inversor": user_data.get("inversor", {}),
+            "perdidas": user_data.get("perdidas", {}),
+
+            "costo_actual": costo_actual,
+            "inversion_inicial": inversion_inicial,
+            "mantenimiento": mantenimiento,
+            "costo_futuro": costo_futuro,
+            "ingreso_red": ingreso_red,
+            "resumen_economico": resumen_economico_texto,
+            "emisiones": emisiones_evitadas,
+            "moneda": moneda
         }
 
-        # Ejemplo de cómo podrías obtener un valor de una celda específica (ej. A2 de la hoja Resultados)
-        # Esto es solo un ejemplo, no copies y pegues sin entender su uso.
-        # dato_ejemplo = df_resultados.iloc[1, 0] # Fila 2, Columna A
-
-        # Asumo que la hoja 'Resultados' ya tiene los cálculos listos y solo necesitas
-        # obtener los valores de celdas específicas después de algún tipo de "lookup"
-        # o "simulación" que el Excel haría internamente.
-
-        # Dada la estructura de tu Excel y la descripción, parece que necesitas
-        # buscar los resultados finales en la hoja 'Resultados' o 'Area de trabajo'
-        # basándose en el 'consumo_anual_kwh' y otros parámetros del usuario.
-
-        # Aquí deberías implementar la lógica para leer las celdas adecuadas del Excel
-        # que contienen los resultados finales (potencia del sistema, costos, etc.)
-        # basándote en los datos recibidos del frontend (especialmente el consumo).
-
-        # Placeholder: Rellenar con lógica real de Excel
-        # Por ejemplo, si tienes una celda en 'Resultados' que te da la potencia en base al consumo:
-        # informe_final['potencia_sistema_kwp'] = df_resultados.loc[df_resultados['columna_consumo'] >= consumo_anual_kwh, 'columna_potencia'].iloc[0]
-        # o simplemente leer celdas fijas si tu Excel ya hace el cálculo complejo.
-
-        # SI TU EXCEL YA TIENE TODA LA LÓGICA DE CÁLCULO
-        # Y SÓLO NECESITAS BUSCAR VALORES EN CELDAS ESPECÍFICAS BASADO EN LA ENTRADA:
-        # Tendrías que saber qué celdas leer y cómo se relacionan con los inputs.
-        # Por ejemplo:
-        # informe_final['potencia_sistema_kwp'] = df_resultados.at[fila_potencia, columna_potencia]
-        # Esto es complejo sin saber la estructura exacta de tu Excel.
-        # Por ahora, los valores del informe final serán 0 o N/A hasta que implementes la lectura del Excel.
-
-        print(f"DEBUG: informe_final (simplificado) a punto de ser enviado: {informe_final}")
         return jsonify(informe_final)
 
     except FileNotFoundError:
-        print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO: {EXCEL_FILE_PATH}")
-        return jsonify({"error": "Archivo Excel no encontrado."}), 500
+        return jsonify({"error": "Archivo Excel de cálculos no encontrado en el servidor."}), 404
     except KeyError as e:
-        print(f"Error de KeyError en backend (nombre de hoja?): {e}")
-        return jsonify({"error": f"Error al leer hoja Excel: {e}. Asegúrese de que las hojas 'Resultados' y 'Area de trabajo' existan y las columnas sean correctas."}), 500
+        return jsonify({"error": f"Error al leer hoja o columna en Excel: {e}. Revise los nombres de hoja y las referencias a columnas."}), 500
     except Exception as e:
-        import traceback
-        print(f"ERROR GENERAL en backend (generar_informe): {e}")
-        print(traceback.format_exc())
-        return jsonify({"error": f"Error interno del servidor al generar informe: {str(e)}"}), 500
+        print(f"Error en el backend al generar informe: {e}")
+        return jsonify({"error": f"Error interno del servidor al generar informe: {e}"}), 500
 
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
+# Si 'calculador.html', 'calculador.js', etc. están en la misma carpeta que 'backend.py'
 @app.route('/')
 def serve_calculador_html():
     return send_from_directory('.', 'calculador.html')
 
 @app.route('/<path:path>')
 def serve_static_files(path):
-    # Asegúrate de que los archivos estén en la misma carpeta que 'backend.py'
+    # Reglas para servir archivos estáticos (HTML, JS, CSS, etc.)
+    # Esto es importante para que el navegador pueda cargar todos los recursos.
+    # Asegúrate de que los archivos estén en la misma carpeta que 'backend.py' o ajusta la ruta.
     return send_from_directory('.', path)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True) # debug=True permite recargar automáticamente en cambios y ver errores
