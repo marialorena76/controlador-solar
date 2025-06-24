@@ -1021,14 +1021,14 @@ footer {
   overflow: hidden; /* Ensures border-radius is respected by children */
 }
 
-.acordeon-titulo {
+#energia-section .acordeon-titulo { /* Changed selector */
   background-color: #f7f7f7;
   color: #333;
   cursor: pointer;
   padding: 12px 15px;
   margin: 0; /* Reset margin for h2 */
-  font-size: 1.1em;
-  font-weight: bold;
+  font-size: 0.9em; /* Remove !important */
+  font-weight: normal; /* Remove !important */
   display: flex; /* To align title and icon */
   justify-content: space-between; /* Puts icon to the far right */
   align-items: center; /* Vertically aligns icon and text */
