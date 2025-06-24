@@ -1692,39 +1692,23 @@ function updateStepIndicator(screenId) {
             if (supplySection && supplySection.style.display !== 'none') {
                 currentStepText = 'Experto: Paso 1 > Tipo de Instalación';
             } else if (incomeSection && incomeSection.style.display !== 'none') {
-                currentStepText = 'Experto: Paso 2 > Nivel de Ingreso'; // Only for Residencial
+                currentStepText = 'Experto: Paso 2 > Nivel de Ingreso'; // Now for ALL experts
             } else { // Default for map screen if user type is expert but no specific sub-form shown
                 currentStepText = 'Experto: Configuración Inicial';
             }
         } else { // Expert is on dataFormScreen
             switch (screenId) {
                 case 'data-meteorologicos-section':
-                    // Determine if this is step 2 (after Com/PYME) or step 3 (after Res+Income)
-                    if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
-                        currentStepText = 'Experto: Paso 2 > Zona de Instalación';
-                    } else { // Assumed Residencial path
-                        currentStepText = 'Experto: Paso 3 > Zona de Instalación';
-                    }
+                    currentStepText = 'Experto: Paso 3 > Zona de Instalación'; // Now always step 3 for Experts
                     break;
                 case 'energia-section':
-                    // Base step for Energia for Expert. Sub-choices don't get unique main step numbers here.
-                    if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
-                        currentStepText = 'Experto: Paso 3 > Consumo Energía'; // Auto-navigates to boleta
-                    } else { // Assumed Residencial path
-                        currentStepText = 'Experto: Paso 4 > Consumo Energía'; // Shows 3 choices
-                    }
+                    currentStepText = 'Experto: Paso 4 > Consumo Energía'; // Now always step 4 for Experts
                     break;
-                case 'consumo-factura-section': // Reached by expert's energy choice OR basic Comercial/PYME
-                    // For expert, this is a sub-part of their "Consumo Energía" step
-                    if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
-                        currentStepText = 'Experto: Paso 3a > Consumo por Factura';
-                    } else { // Expert Residencial who chose boleta
-                        currentStepText = 'Experto: Paso 4a > Consumo por Factura';
-                    }
+                case 'consumo-factura-section':
+                    currentStepText = 'Experto: Paso 4a > Consumo por Factura'; // Sub-step of Energia
                     break;
                 // Detailed data steps start after Energia/Consumo Factura
-                // Their numbering depends on the path taken to Energia
-                let baseStepNumber = (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') ? 3 : 4;
+                let baseStepNumber = 4; // All expert paths now have 4 steps before superficie
 
                 case 'superficie-section':
                     currentStepText = `Experto: Paso ${baseStepNumber + 1} > Superficie Circundante`;
@@ -1780,39 +1764,26 @@ function updateStepIndicator(screenId) {
             if (supplySection && supplySection.style.display !== 'none') {
                 currentStepText = 'Básico: Paso 1 > Tipo de Instalación';
             } else if (incomeSection && incomeSection.style.display !== 'none') {
-                currentStepText = 'Básico: Paso 2 > Nivel de Ingreso'; // Only for Residencial
+                currentStepText = 'Básico: Paso 2 > Nivel de Ingreso'; // Applies to all Basic before data form
             } else {
                 currentStepText = 'Paso Inicial: Ubicación y Tipo de Usuario';
             }
         } else { // Basic user on dataFormScreen
             switch (screenId) {
                 case 'data-meteorologicos-section':
-                     // For basic user, this is after map-screen choices (Tipo Instalacion, Nivel Ingreso if Res)
-                    if (userSelections.installationType === 'Residencial') {
-                        currentStepText = 'Básico: Paso 3 > Zona de Instalación';
-                    } else { // Comercial or PYME (skips Nivel Ingreso)
-                        currentStepText = 'Básico: Paso 2 > Zona de Instalación';
-                    }
+                    currentStepText = 'Básico: Paso 3 > Zona de Instalación'; // Now always step 3 for Basic
                     break;
-                case 'energia-section':
-                    if (userSelections.installationType === 'Residencial') {
-                        currentStepText = 'Básico: Paso 4 > Consumo de Energía';
-                    } else { // Comercial or PYME
-                        currentStepText = 'Básico: Paso 3 > Consumo de Energía'; // Should not be reached, they go to consumo-factura
-                    }
+                case 'energia-section': // Only for Basic Residencial
+                    currentStepText = 'Básico: Paso 4 > Consumo de Energía';
                     break;
-                case 'consumo-factura-section': // Reached by basic user's Comercial/PYME path
-                    currentStepText = 'Básico: Paso 3 > Consumo por Factura';
+                case 'consumo-factura-section': // For Basic Comercial/PYME
+                    currentStepText = 'Básico: Paso 4 > Consumo por Factura';
                     break;
                 case 'analisis-economico-section':
-                    if (userSelections.installationType === 'Residencial') {
-                        currentStepText = 'Básico: Paso 5 > Análisis Económico';
-                    } else { // Comercial or PYME
-                        currentStepText = 'Básico: Paso 4 > Análisis Económico';
-                    }
+                    // For Basic users, this is always Step 5
+                    currentStepText = 'Básico: Paso 5 > Análisis Económico';
                     break;
                 default:
-                    // Sections like paneles, inversor, perdidas, etc. are not in basic flow
                     currentStepText = 'Calculador Solar - Básico';
             }
         }
@@ -1891,13 +1862,11 @@ function setupNavigationButtons() {
             userSelections.installationType = 'Comercial';
             saveUserSelections();
             if (userSelections.userType === 'experto') {
-                // Expert + Comercial: Go to Zona de Instalación
-                showScreen('data-meteorologicos-section');
-                updateStepIndicator('data-meteorologicos-section');
+                showMapScreenFormSection('income-section');
+                updateStepIndicator('income-section');
             } else {
-                // Basic + Comercial: Go to Consumo por Factura (existing behavior)
-                showScreen('consumo-factura-section');
-                updateStepIndicator('consumo-factura-section');
+                showMapScreenFormSection('income-section');
+                updateStepIndicator('income-section');
             }
         });
     }
@@ -1907,13 +1876,11 @@ function setupNavigationButtons() {
             userSelections.installationType = 'PYME';
             saveUserSelections();
             if (userSelections.userType === 'experto') {
-                // Expert + PYME: Go to Zona de Instalación
-                showScreen('data-meteorologicos-section');
-                updateStepIndicator('data-meteorologicos-section');
+                showMapScreenFormSection('income-section');
+                updateStepIndicator('income-section');
             } else {
-                // Basic + PYME: Go to Consumo por Factura (existing behavior)
-                showScreen('consumo-factura-section');
-                updateStepIndicator('consumo-factura-section');
+                showMapScreenFormSection('income-section');
+                updateStepIndicator('income-section');
             }
         });
     }
@@ -2057,10 +2024,16 @@ function setupNavigationButtons() {
             console.warn('No se seleccionó zona de instalación.');
         }
 
-        // ALL users now go to energia-section from data-meteorologicos-section
-        showScreen('energia-section');
-        updateStepIndicator('energia-section');
-        initElectrodomesticosSection(); // This function will handle expert/basic differences
+        if (userSelections.userType === 'basico' &&
+            (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME')) {
+            showScreen('consumo-factura-section');
+            updateStepIndicator('consumo-factura-section');
+        } else {
+            // Existing logic:
+            showScreen('energia-section');
+            updateStepIndicator('energia-section');
+            initElectrodomesticosSection();
+        }
     });
 
     document.getElementById('back-to-data-meteorologicos-from-superficie')?.addEventListener('click', () => {
@@ -2181,10 +2154,9 @@ function setupNavigationButtons() {
                     updateStepIndicator('energia-section');
                     initElectrodomesticosSection(); // This will show the 3 choices again
                 }
-            } else { // Basic user (must be Comercial or PYME to have reached consumo-factura-section)
-                showScreen('map-screen');
-                showMapScreenFormSection('supply-section');
-                updateStepIndicator('map-screen');
+            } else { // Basic user (must be Comercial or PYME to have reached consumo-factura-section via new flow)
+                showScreen('data-meteorologicos-section');
+                updateStepIndicator('data-meteorologicos-section');
             }
         });
     }
