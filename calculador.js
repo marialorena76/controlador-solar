@@ -1791,6 +1791,7 @@ function setupNavigationButtons() {
 
     const incomeHighButton = document.getElementById('income-high-button');
     const incomeLowButton = document.getElementById('income-low-button');
+    const incomeMediumButton = document.getElementById('income-medium-button'); // Add this
     
     const expertDataForm = document.getElementById('expert-data-form'); // Form itself
 
@@ -1873,6 +1874,17 @@ function setupNavigationButtons() {
             userSelections.incomeLevel = 'BAJO';
             saveUserSelections();
             showScreen('data-form-screen');
+            if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
+            updateStepIndicator('data-meteorologicos-section');
+        });
+    }
+
+    if (incomeMediumButton) { // Check if the button element exists
+        incomeMediumButton.addEventListener('click', () => {
+            userSelections.incomeLevel = 'MEDIO'; // Using uppercase 'MEDIO' for consistency with ALTO/BAJO values
+            saveUserSelections();
+            showScreen('data-form-screen'); // This shows the dataFormScreen container
+            // Ensure dataMeteorologicosSection is the one shown by default within dataFormScreen
             if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
             updateStepIndicator('data-meteorologicos-section');
         });
