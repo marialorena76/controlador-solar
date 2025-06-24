@@ -3,6 +3,7 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import pandas as pd
 import os
+import json # Added import
 
 app = Flask(__name__)
 CORS(app) # Habilita CORS para permitir solicitudes desde el frontend
@@ -14,8 +15,49 @@ EXCEL_FILE_PATH = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_
 @app.route('/api/electrodomesticos', methods=['GET'])
 def get_electrodomesticos_consumos():
     try:
+        # Load consumos_electrodomesticos.json for category mapping
+        appliance_to_category_map = {}
+        try:
+            # Path relative to backend.py if consumos_electrodomesticos.json is in the project root
+            # app.root_path is the 'backend' directory in this structure.
+            # os.path.dirname(app.root_path) gives the project root directory.
+            json_file_path = os.path.join(os.path.dirname(app.root_path), 'consumos_electrodomesticos.json')
+
+            print(f"DEBUG: Attempting to load JSON from: {json_file_path}")
+            if not os.path.exists(json_file_path):
+                print(f"ERROR: consumos_electrodomesticos.json not found at {json_file_path}")
+                # Fallback: try direct name if relative path fails (e.g. if backend.py is run from root)
+                # This is less likely given app.root_path but good for robustness during dev
+                json_file_path_alt = 'consumos_electrodomesticos.json'
+                if os.path.exists(json_file_path_alt):
+                    json_file_path = json_file_path_alt
+                    print(f"DEBUG: Found JSON at alternate path: {json_file_path}")
+                else: # Try one level up from script __file__ as a common alternative
+                    current_script_dir = os.path.dirname(__file__)
+                    json_file_path_alt_2 = os.path.abspath(os.path.join(current_script_dir, '..', 'consumos_electrodomesticos.json'))
+                    if os.path.exists(json_file_path_alt_2):
+                         json_file_path = json_file_path_alt_2
+                         print(f"DEBUG: Found JSON at path relative to script: {json_file_path}")
+                    else:
+                        print(f"ERROR: consumos_electrodomesticos.json also not found at {json_file_path_alt} or {json_file_path_alt_2}")
+                        raise FileNotFoundError("consumos_electrodomesticos.json not found at primary or alternate paths.")
+
+            with open(json_file_path, 'r', encoding='utf-8') as f:
+                consumos_data = json.load(f) # This should be the root object (dictionary of categories)
+            for category, items in consumos_data.items(): # Iterate through categories (e.g., "Cocina", "Iluminación")
+                for item_detail in items: # Iterate through appliances in that category
+                    appliance_name = item_detail.get('name')
+                    if appliance_name: # Ensure 'name' key exists
+                        appliance_to_category_map[appliance_name.strip().lower()] = category
+            print(f"DEBUG: Loaded {len(appliance_to_category_map)} mappings from consumos_electrodomesticos.json")
+        except FileNotFoundError:
+            print(f"ERROR: consumos_electrodomesticos.json not found. Proceeding without categorization from JSON.")
+        except json.JSONDecodeError as je:
+            print(f"ERROR: Failed to decode consumos_electrodomesticos.json: {je}. Proceeding without categorization.")
+        except Exception as e:
+            print(f"ERROR: Unexpected error loading consumos_electrodomesticos.json: {e}. Proceeding without categorization.")
+
         print(f"DEBUG: Solicitud a /api/electrodomesticos. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
-        # ¡¡¡IMPORTANTE!!! Reemplaza 'Tablas' con el nombre exacto de tu hoja si es diferente.
         df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl', decimal=',')
         print("DEBUG: Hoja 'Tablas' leída para electrodomésticos.")
 
@@ -25,14 +67,14 @@ def get_electrodomesticos_consumos():
         fila_inicio_idx = 110 # Fila 111 en Excel (111 - 1)
         fila_fin_idx = 173  # Fila 174 en Excel (174 - 1)
 
-        electrodomesticos_lista = []
+        # electrodomesticos_lista = [] # Old list
+        categorized_appliances = {} # New categorized dictionary
         max_filas_df = df_tablas.shape[0]
 
         for r_idx in range(fila_inicio_idx, fila_fin_idx + 1):
             if r_idx >= max_filas_df:
                 print(f"WARN: Fila {r_idx+1} fuera de límites (hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida.")
                 break
-            # Updated column boundary check
             if col_nombre_idx >= df_tablas.shape[1] or \
                col_consumo_idx >= df_tablas.shape[1] or \
                col_watts_idx >= df_tablas.shape[1]:
@@ -61,18 +103,27 @@ def get_electrodomesticos_consumos():
                 print(f"DEBUG: Watts NaN para '{nombre}' en fila {r_idx+1}, usando 0.0.")
             else:
                 try:
-                    watts_float = float(str(watts_val).replace(',', '.')) # Handle comma decimal just in case
+                    watts_float = float(str(watts_val).replace(',', '.'))
                 except ValueError:
                     print(f"WARN: No se pudo convertir watts '{watts_val}' a float para '{nombre}'. Usando 0.0.")
 
-            electrodomesticos_lista.append({
-                "name": str(nombre),
-                "consumo_diario_kwh": consumo_kwh_float,
-                "watts": watts_float  # New field
-            })
+            # Categorization logic
+            appliance_name_lower = str(nombre).strip().lower()
+            category = appliance_to_category_map.get(appliance_name_lower, "Varios")
 
-        print(f"DEBUG: Total electrodomésticos (con watts) leídos de 'Tablas' A{fila_inicio_idx+1}:C{fila_fin_idx+1}: {len(electrodomesticos_lista)}")
-        categorias_respuesta = {"Electrodomésticos Disponibles": electrodomesticos_lista}
+            appliance_entry = {
+                "name": str(nombre).strip(),
+                "consumo_diario_kwh": consumo_kwh_float,
+                "watts": watts_float
+            }
+
+            if category not in categorized_appliances:
+                categorized_appliances[category] = []
+            categorized_appliances[category].append(appliance_entry)
+
+        print(f"DEBUG: Total electrodomésticos (con watts) leídos y categorizados de 'Tablas' A{fila_inicio_idx+1}:C{fila_fin_idx+1}: {sum(len(v) for v in categorized_appliances.values())}")
+        # categorias_respuesta = {"Electrodomésticos Disponibles": electrodomesticos_lista} # Old
+        categorias_respuesta = categorized_appliances # New: directly use the categorized dictionary
 
         return jsonify({"categorias": categorias_respuesta})
 
