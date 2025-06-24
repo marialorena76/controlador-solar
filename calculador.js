@@ -1334,11 +1334,22 @@ function populateStandardApplianceList(listContainerElement) {
     listContainerElement.innerHTML = '';
 
     Object.keys(electrodomesticosCategorias).forEach(categoria => {
-        const h2 = document.createElement('h2');
-        h2.textContent = categoria;
-        listContainerElement.appendChild(h2);
+        const categoryWrapper = document.createElement('div');
+        categoryWrapper.className = 'acordeon-categoria-wrapper';
+
+        const titleH2 = document.createElement('h2');
+        titleH2.className = 'acordeon-titulo';
+        titleH2.textContent = categoria;
+
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'acordeon-icono';
+        iconSpan.innerHTML = '&#9660;';
+        titleH2.appendChild(iconSpan);
+
         const itemsDiv = document.createElement('div');
-        itemsDiv.className = 'electrodomesticos-categoria';
+        itemsDiv.className = 'acordeon-items';
+        itemsDiv.style.display = 'none';
+
         electrodomesticosCategorias[categoria].forEach(item => {
             const row = document.createElement('div');
             row.className = 'electrodomestico-row';
@@ -1367,8 +1378,12 @@ function populateStandardApplianceList(listContainerElement) {
             row.appendChild(input);
             itemsDiv.appendChild(row);
         });
-        listContainerElement.appendChild(itemsDiv);
+
+        categoryWrapper.appendChild(titleH2);
+        categoryWrapper.appendChild(itemsDiv);
+        listContainerElement.appendChild(categoryWrapper);
     });
+    initAccordionEventListeners(); // Add this call
     calcularConsumo(); // Initial calculation after populating
 }
 
@@ -1380,12 +1395,21 @@ function populateDetailedApplianceList(listContainerElement) {
     listContainerElement.innerHTML = ''; // Clear previous content
 
     Object.keys(electrodomesticosCategorias).forEach(categoria => {
-        const h2 = document.createElement('h2');
-        h2.textContent = categoria;
-        listContainerElement.appendChild(h2);
+        const categoryWrapper = document.createElement('div');
+        categoryWrapper.className = 'acordeon-categoria-wrapper';
+
+        const titleH2 = document.createElement('h2');
+        titleH2.className = 'acordeon-titulo';
+        titleH2.textContent = categoria;
+
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'acordeon-icono';
+        iconSpan.innerHTML = '&#9660;';
+        titleH2.appendChild(iconSpan);
 
         const itemsDiv = document.createElement('div');
-        itemsDiv.className = 'electrodomesticos-categoria'; // Reuse existing class if suitable
+        itemsDiv.className = 'acordeon-items';
+        itemsDiv.style.display = 'none';
 
         electrodomesticosCategorias[categoria].forEach(item => {
             const itemName = item.name;
@@ -1462,8 +1486,12 @@ function populateDetailedApplianceList(listContainerElement) {
             row.appendChild(horasInviernoInput);
             itemsDiv.appendChild(row);
         });
-        listContainerElement.appendChild(itemsDiv);
+
+        categoryWrapper.appendChild(titleH2);
+        categoryWrapper.appendChild(itemsDiv);
+        listContainerElement.appendChild(categoryWrapper);
     });
+    initAccordionEventListeners(); // Add this call
 
     const summaryContainer = document.querySelector('#energia-section .energy-summary');
     if (summaryContainer) {
@@ -1473,6 +1501,37 @@ function populateDetailedApplianceList(listContainerElement) {
         if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = 'N/A (modo detallado)';
         summaryContainer.style.display = 'flex';
     }
+}
+
+function initAccordionEventListeners() {
+    const accordionTitles = document.querySelectorAll('.acordeon-titulo');
+
+    accordionTitles.forEach(title => {
+        // Check if a listener is already attached to avoid duplicates if called multiple times
+        if (title.dataset.accordionListenerAttached === 'true') {
+            return;
+        }
+        title.dataset.accordionListenerAttached = 'true';
+
+        title.addEventListener('click', () => {
+            const itemsDiv = title.nextElementSibling;
+            const iconSpan = title.querySelector('.acordeon-icono');
+
+            if (itemsDiv && itemsDiv.classList.contains('acordeon-items')) {
+                if (itemsDiv.style.display === 'none' || itemsDiv.style.display === '') {
+                    itemsDiv.style.display = 'block';
+                    title.classList.add('open'); // Add this line
+                    if (iconSpan) iconSpan.innerHTML = '&#9650;'; // Up arrow ▲
+                } else {
+                    itemsDiv.style.display = 'none';
+                    title.classList.remove('open'); // Add this line
+                    if (iconSpan) iconSpan.innerHTML = '&#9660;'; // Down arrow ▼
+                }
+            } else {
+                console.warn('Accordion items div not found or is not the next sibling for:', title);
+            }
+        });
+    });
 }
 
 function calcularConsumo() {
