@@ -109,7 +109,7 @@ def get_electrodomesticos_consumos():
 
             # Categorization logic
             appliance_name_lower = str(nombre).strip().lower()
-            category = appliance_to_category_map.get(appliance_name_lower, "Varios")
+            category = appliance_to_category_map.get(appliance_name_lower, "Artículos del Hogar")
 
             appliance_entry = {
                 "name": str(nombre).strip(),

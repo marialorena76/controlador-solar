@@ -1012,3 +1012,56 @@ footer {
     width: 100px; /* Adjust width as needed */
     text-align: right;
 }
+
+/* Accordion Styles */
+.acordeon-categoria-wrapper {
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden; /* Ensures border-radius is respected by children */
+}
+
+.acordeon-titulo {
+  background-color: #f7f7f7;
+  color: #333;
+  cursor: pointer;
+  padding: 12px 15px;
+  margin: 0; /* Reset margin for h2 */
+  font-size: 1.1em;
+  font-weight: bold;
+  display: flex; /* To align title and icon */
+  justify-content: space-between; /* Puts icon to the far right */
+  align-items: center; /* Vertically aligns icon and text */
+  border-bottom: 1px solid #ddd; /* Separator line if items are hidden */
+}
+
+.acordeon-titulo:hover {
+  background-color: #e9e9e9;
+}
+
+.acordeon-titulo.open { /* Style when accordion is open */
+  border-bottom: 1px solid #ddd; /* Keep separator line when open */
+}
+
+.acordeon-icono {
+  font-size: 0.9em;
+  margin-left: 10px; /* Space between title text and icon */
+  transition: transform 0.2s ease-in-out; /* Smooth icon rotation if we use transform later */
+}
+
+.acordeon-items {
+  padding: 15px;
+  border-top: none; /* Top border is handled by title's bottom border */
+  background-color: #fff;
+  /* display: none; is set inline by JS initially */
+}
+
+/* Styling for items within the accordion if needed, e.g., appliance rows */
+.acordeon-items .form-group-energia {
+  /* Example: Adjust margin or padding if necessary for items within accordion */
+  margin-bottom: 8px;
+}
+
+.acordeon-items .form-group-energia:last-child {
+  margin-bottom: 0;
+}
