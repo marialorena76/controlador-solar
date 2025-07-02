@@ -57,6 +57,39 @@ let userSelections = {
 
 let electrodomesticosCategorias = {}; // JSON que se cargará desde el backend
 
+const sectionInfoMap = {
+    // Initial Map Screen Sections (step numbers handled by direct logic)
+    'user-type-section': { generalCategory: 'Configuración Inicial', specificName: 'Nivel de Conocimiento', sidebarId: null },
+    'supply-section': { generalCategory: 'Configuración Inicial', specificName: 'Tipo de Instalación', sidebarId: null },
+    'income-section': { generalCategory: 'Configuración Inicial', specificName: 'Nivel de Ingreso', sidebarId: null },
+
+    // Data Form Screen Sections
+    'data-meteorologicos-section': { generalCategory: 'Datos', specificName: 'Zona de Instalación', sidebarId: 'sidebar-datos' },
+    'superficie-section': { generalCategory: 'Datos', specificName: 'Superficie Circundante', sidebarId: 'sidebar-datos' },
+    'rugosidad-section': { generalCategory: 'Datos', specificName: 'Rugosidad Superficie', sidebarId: 'sidebar-datos' },
+    'rotacion-section': { generalCategory: 'Datos', specificName: 'Rotación Instalación', sidebarId: 'sidebar-datos' },
+    'altura-instalacion-section': { generalCategory: 'Datos', specificName: 'Altura Instalación', sidebarId: 'sidebar-datos' },
+    'metodo-calculo-section': { generalCategory: 'Datos', specificName: 'Método Cálculo Radiación', sidebarId: 'sidebar-datos' },
+    'modelo-metodo-section': { generalCategory: 'Datos', specificName: 'Modelo Método Radiación', sidebarId: 'sidebar-datos' },
+
+    'energia-section': { generalCategory: 'Energía', specificName: 'Consumo de Energía', sidebarId: 'sidebar-energia' },
+    'energia-modo-seleccion': { generalCategory: 'Energía', specificName: 'Selección Método Consumo', sidebarId: 'sidebar-energia'},
+    'consumo-factura-section': { generalCategory: 'Energía', specificName: 'Consumo por Factura', sidebarId: 'sidebar-energia' },
+
+    'paneles-section': { generalCategory: 'Paneles', specificName: 'Paneles Solares', sidebarId: 'sidebar-paneles' }, // Main section
+    'panel-marca-subform': { generalCategory: 'Paneles', specificName: 'Marca Panel', sidebarId: 'sidebar-paneles' },
+    'panel-potencia-subform': { generalCategory: 'Paneles', specificName: 'Potencia Panel', sidebarId: 'sidebar-paneles' },
+    'panel-modelo-temperatura-subform': { generalCategory: 'Paneles', specificName: 'Modelo Temperatura Panel', sidebarId: 'sidebar-paneles' },
+
+    'inversor-section': { generalCategory: 'Inversor', specificName: 'Selección de Inversor', sidebarId: 'sidebar-inversor' },
+
+    'perdidas-section': { generalCategory: 'Pérdidas', specificName: 'Registro de Pérdidas', sidebarId: 'sidebar-perdidas' }, // Main section
+    'frecuencia-lluvias-subform-content': { generalCategory: 'Pérdidas', specificName: 'Frecuencia Lluvias', sidebarId: 'sidebar-perdidas' },
+    'foco-polvo-subform-content': { generalCategory: 'Pérdidas', specificName: 'Foco de Polvo', sidebarId: 'sidebar-perdidas' },
+
+    'analisis-economico-section': { generalCategory: 'Análisis Económico', specificName: 'Análisis Económico', sidebarId: 'sidebar-analisis-economico' }
+};
+
 // Elementos principales del DOM
 const latitudDisplay = document.getElementById('latitud-display');
 const longitudDisplay = document.getElementById('longitud-display');
@@ -120,6 +153,8 @@ function loadUserSelections() {
         selectedZonaInstalacion: null,
         superficieRodea: { descripcion: null, valor: null },
         rugosidadSuperficie: { descripcion: null, valor: null },
+        anguloInclinacion: null,
+        anguloOrientacion: null,
         rotacionInstalacion: { descripcion: null, valor: null },
         // modeloMetodoRadiacion: null, // This was already present in the global userSelections
         marcaPanel: null,
@@ -313,54 +348,73 @@ function updateUIFromSelections() {
     // } else if (modeloMetodoInput) {
     //     modeloMetodoInput.value = '';
     // }
+
+    const anguloInclinacionInput = document.getElementById('angulo-inclinacion-input');
+    if (anguloInclinacionInput && userSelections.anguloInclinacion !== null) {
+        anguloInclinacionInput.value = userSelections.anguloInclinacion;
+    } else if (anguloInclinacionInput) {
+        anguloInclinacionInput.value = ''; // Clear if null
+    }
+
+    const anguloOrientacionInput = document.getElementById('angulo-orientacion-input');
+    if (anguloOrientacionInput && userSelections.anguloOrientacion !== null) {
+        anguloOrientacionInput.value = userSelections.anguloOrientacion;
+    } else if (anguloOrientacionInput) {
+        anguloOrientacionInput.value = ''; // Clear if null
+    }
 }
 
 
 // --- Nueva función para inicializar la sección de Superficie Rodea ---
 async function initSuperficieSection() {
+    console.log('[initSuperficieSection] called'); // Function entry
     const container = document.getElementById('superficie-options-container');
+    console.log('[initSuperficieSection] container:', container); // Container element
+
     if (!container) {
-        console.error("Contenedor 'superficie-options-container' no encontrado.");
+        console.error("[initSuperficieSection] Contenedor 'superficie-options-container' no encontrado.");
         return;
     }
-    container.innerHTML = ''; // Limpiar opciones anteriores
+    container.innerHTML = '';
+
+    const apiUrl = 'http://127.0.0.1:5000/api/superficie_options';
+    console.log('[initSuperficieSection] fetching from:', apiUrl); // Before fetch
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/superficie_options');
+        const response = await fetch(apiUrl);
+        console.log('[initSuperficieSection] response status:', response.status); // Response status
         if (!response.ok) {
+            // Log the response text if not ok
+            const errorText = await response.text();
+            console.error('[initSuperficieSection] Response not OK. Status:', response.status, 'Text:', errorText);
             throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
         const data = await response.json();
+        console.log('[initSuperficieSection] data received:', data); // Data received
 
         if (!Array.isArray(data)) {
-            console.error('[SUPERFICIE OPTIONS LOAD ERROR] Data received is not an array:', data);
+            console.error('[initSuperficieSection] Data is not an array:', data); // Data validation
             container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto.</p>';
             return;
         }
 
         const selectElement = document.createElement('select');
         selectElement.id = 'superficie-select';
-        // Asegúrate de que esta clase coincida con el estilo de otros selects si es necesario.
-        // Puede que necesites una clase CSS específica para selects en lugar de 'radio-group' en el contenedor.
-        // Por ahora, se asume que 'form-control' o una clase global maneja el estilo de los selects.
-        // Si 'superficie-options-container' tiene estilos de 'radio-group' que interfieren,
-        // considera quitar 'radio-group' de 'superficie-options-container' en el HTML
-        // o añadir una clase específica al select que anule/complemente.
-        selectElement.className = 'form-control'; // Usar una clase estándar para selects
+        selectElement.className = 'form-control';
 
         const placeholderOption = document.createElement('option');
         placeholderOption.value = '';
         placeholderOption.textContent = 'Seleccione una opción...';
         placeholderOption.disabled = true;
-        placeholderOption.selected = true; // Selected by default
+        placeholderOption.selected = true;
         selectElement.appendChild(placeholderOption);
 
         if (data.length === 0) {
-            // No se añaden más opciones, pero el placeholder ya está.
-            // Podrías añadir un mensaje específico si lo deseas, aunque el select vacío con placeholder ya indica algo.
-            console.log('[SUPERFICIE OPTIONS LOAD] No hay opciones de superficie disponibles.');
+            console.log('[initSuperficieSection] No options data received from API.');
         } else {
-            data.forEach(item => {
+            console.log('[initSuperficieSection] Processing item 0:', data[0]); // Log first item
+            data.forEach((item, index) => {
+                // console.log('[initSuperficieSection] Processing item:', index, item); // Optional: log each item
                 const optionElement = document.createElement('option');
                 optionElement.value = item.valor;
                 optionElement.textContent = item.descripcion;
@@ -369,7 +423,8 @@ async function initSuperficieSection() {
                 if (userSelections.superficieRodea.valor !== null &&
                     String(userSelections.superficieRodea.valor) === String(item.valor)) {
                     optionElement.selected = true;
-                    placeholderOption.selected = false; // Unselect placeholder if a real option is selected
+                    placeholderOption.selected = false;
+                    console.log('[initSuperficieSection] pre-selecting option for value:', userSelections.superficieRodea.valor); // Pre-selection
                 }
                 selectElement.appendChild(optionElement);
             });
@@ -380,7 +435,7 @@ async function initSuperficieSection() {
             const valor = selectedOption.value;
             const descripcion = selectedOption.dataset.descripcion;
 
-            if (valor && valor !== '') { // Ensure it's not the placeholder
+            if (valor && valor !== '') {
                 userSelections.superficieRodea.valor = parseFloat(valor);
                 userSelections.superficieRodea.descripcion = descripcion;
             } else {
@@ -388,29 +443,18 @@ async function initSuperficieSection() {
                 userSelections.superficieRodea.descripcion = null;
             }
             saveUserSelections();
-            console.log('Superficie rodea seleccionada (select):', userSelections.superficieRodea);
+            console.log('[initSuperficieSection] Superficie rodea seleccionada (select):', userSelections.superficieRodea);
         });
 
         container.appendChild(selectElement);
+        console.log('[initSuperficieSection] select element appended.'); // After append
 
     } catch (error) {
-        console.error('[SUPERFICIE OPTIONS LOAD ERROR] Error fetching or processing superficie options:', error);
+        console.error('[initSuperficieSection] CATCH block error:', error); // Catch block
         if (error.message) {
-            console.error('[SUPERFICIE OPTIONS LOAD ERROR] Message:', error.message);
+            console.error('[initSuperficieSection] CATCH error message:', error.message);
         }
-        // Attempt to get more details if it's a custom error from !response.ok
-        // Note: 'error.response' is not standard for fetch API errors.
-        // The 'Error(`Error HTTP: ${response.status} ${response.statusText}`);' line
-        // makes error.message contain the status, so this check might be redundant if that's the only source.
-        // However, if other types of errors could have a 'response' property, it could be useful.
-        if (error.response && error.response.status) {
-             console.error('[SUPERFICIE OPTIONS LOAD ERROR] Response Status:', error.response.status);
-             console.error('[SUPERFICIE OPTIONS LOAD ERROR] Response Status Text:', error.response.statusText);
-        }
-
         alert('Error al cargar las opciones de superficie. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
-
-        // Ensure the options container is referenced correctly (it's 'container' in this scope)
         if (container) {
             container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones. Intente recargar o contacte a soporte si el problema persiste.</p>';
         }
@@ -419,22 +463,32 @@ async function initSuperficieSection() {
 
 // --- Nueva función para inicializar la sección de Rugosidad ---
 async function initRugosidadSection() {
+    console.log('[initRugosidadSection] called');
     const container = document.getElementById('rugosidad-options-container');
+    console.log('[initRugosidadSection] container:', container);
+
     if (!container) {
-        console.error("Contenedor 'rugosidad-options-container' no encontrado.");
+        console.error("[initRugosidadSection] Contenedor 'rugosidad-options-container' no encontrado.");
         return;
     }
-    container.innerHTML = ''; // Limpiar opciones anteriores
+    container.innerHTML = '';
+
+    const apiUrl = 'http://127.0.0.1:5000/api/rugosidad_options';
+    console.log('[initRugosidadSection] fetching from:', apiUrl);
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/rugosidad_options');
+        const response = await fetch(apiUrl);
+        console.log('[initRugosidadSection] response status:', response.status);
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[initRugosidadSection] Response not OK. Status:', response.status, 'Text:', errorText);
             throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
         const data = await response.json();
+        console.log('[initRugosidadSection] data received:', data);
 
         if (!Array.isArray(data)) {
-            console.error('[RUGOSIDAD OPTIONS LOAD ERROR] Data received is not an array:', data);
+            console.error('[initRugosidadSection] Data is not an array:', data);
             container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para rugosidad.</p>';
             return;
         }
@@ -451,11 +505,11 @@ async function initRugosidadSection() {
         selectElement.appendChild(placeholderOption);
 
         if (data.length === 0) {
-            console.log('[RUGOSIDAD OPTIONS LOAD] No hay opciones de rugosidad disponibles.');
-            // The select will only have the placeholder, which is fine.
-            // Or display message in container: container.innerHTML = '<p>No hay opciones...</p>';
+            console.log('[initRugosidadSection] No options data received from API.');
         } else {
-            data.forEach(item => {
+            console.log('[initRugosidadSection] Processing item 0:', data[0]);
+            data.forEach((item, index) => {
+                // console.log('[initRugosidadSection] Processing item:', index, item);
                 const optionElement = document.createElement('option');
                 optionElement.value = item.valor;
                 optionElement.textContent = item.descripcion;
@@ -465,6 +519,7 @@ async function initRugosidadSection() {
                     String(userSelections.rugosidadSuperficie.valor) === String(item.valor)) {
                     optionElement.selected = true;
                     placeholderOption.selected = false;
+                    console.log('[initRugosidadSection] pre-selecting option for value:', userSelections.rugosidadSuperficie.valor);
                 }
                 selectElement.appendChild(optionElement);
             });
@@ -483,15 +538,16 @@ async function initRugosidadSection() {
                 userSelections.rugosidadSuperficie.descripcion = null;
             }
             saveUserSelections();
-            console.log('Rugosidad de superficie seleccionada (select):', userSelections.rugosidadSuperficie);
+            console.log('[initRugosidadSection] Rugosidad de superficie seleccionada (select):', userSelections.rugosidadSuperficie);
         });
 
         container.appendChild(selectElement);
+        console.log('[initRugosidadSection] select element appended.');
 
     } catch (error) {
-        console.error('[RUGOSIDAD OPTIONS LOAD ERROR] Error fetching or processing rugosidad options:', error);
+        console.error('[initRugosidadSection] CATCH block error:', error);
         if (error.message) {
-            console.error('[RUGOSIDAD OPTIONS LOAD ERROR] Message:', error.message);
+            console.error('[initRugosidadSection] CATCH error message:', error.message);
         }
         alert('Error al cargar las opciones de rugosidad. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
         if (container) {
@@ -500,24 +556,69 @@ async function initRugosidadSection() {
     }
 }
 
-// --- Nueva función para inicializar la sección de Rotación ---
 async function initRotacionSection() {
+    console.log('[initRotacionSection] called');
     const container = document.getElementById('rotacion-options-container');
+    console.log('[initRotacionSection] container:', container);
+
+    // Add DOM Element References
+    const fijoAnglesContainer = document.getElementById('fijo-angles-container');
+    const anguloInclinacionInput = document.getElementById('angulo-inclinacion-input');
+    const anguloOrientacionInput = document.getElementById('angulo-orientacion-input');
+
+    if (!fijoAnglesContainer || !anguloInclinacionInput || !anguloOrientacionInput) {
+        console.error('[initRotacionSection] One or more conditional input elements not found (fijo-angles-container, angulo-inclinacion-input, angulo-orientacion-input).');
+    }
+
     if (!container) {
-        console.error("Contenedor 'rotacion-options-container' no encontrado.");
+        console.error("[initRotacionSection] Contenedor 'rotacion-options-container' no encontrado.");
         return;
     }
-    container.innerHTML = ''; // Limpiar opciones anteriores
+    container.innerHTML = '';
+
+    // Define toggleFijoFields Helper Function
+    function toggleFijoFields(show) {
+        if (!fijoAnglesContainer || !anguloInclinacionInput || !anguloOrientacionInput) {
+            console.warn('[initRotacionSection] toggleFijoFields: conditional elements not found, cannot toggle.');
+            return;
+        }
+        if (show) {
+            fijoAnglesContainer.style.display = 'block';
+            if (userSelections.anguloInclinacion !== null) {
+                anguloInclinacionInput.value = userSelections.anguloInclinacion;
+            } else {
+                anguloInclinacionInput.value = ''; // Ensure clear if null
+            }
+            if (userSelections.anguloOrientacion !== null) {
+                anguloOrientacionInput.value = userSelections.anguloOrientacion;
+            } else {
+                anguloOrientacionInput.value = ''; // Ensure clear if null
+            }
+            console.log('[initRotacionSection] "Fijos" fields shown. Inclinacion:', anguloInclinacionInput.value, 'Orientacion:', anguloOrientacionInput.value);
+        } else {
+            fijoAnglesContainer.style.display = 'none';
+            console.log('[initRotacionSection] "Fijos" fields hidden.');
+            // Note: Clearing of userSelections.anguloInclinacion/Orientacion and input values
+            // is now handled in the main select's change event when a non-"Fijos" option is chosen.
+        }
+    }
+
+    const apiUrl = 'http://127.0.0.1:5000/api/rotacion_options';
+    console.log('[initRotacionSection] fetching from:', apiUrl);
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/rotacion_options');
+        const response = await fetch(apiUrl);
+        console.log('[initRotacionSection] response status:', response.status);
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[initRotacionSection] Response not OK. Status:', response.status, 'Text:', errorText);
             throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
         const data = await response.json();
+        console.log('[initRotacionSection] data received:', data);
 
         if (!Array.isArray(data)) {
-            console.error('[ROTACIÓN OPTIONS LOAD ERROR] Data received is not an array:', data);
+            console.error('[initRotacionSection] Data is not an array:', data);
             container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para rotación.</p>';
             return;
         }
@@ -530,54 +631,106 @@ async function initRotacionSection() {
         placeholderOption.value = '';
         placeholderOption.textContent = 'Seleccione una opción...';
         placeholderOption.disabled = true;
-        placeholderOption.selected = true;
         selectElement.appendChild(placeholderOption);
 
+        let isFijosActuallyPreselected = false;
+
         if (data.length === 0) {
-            console.log('[ROTACIÓN OPTIONS LOAD] No hay opciones de rotación disponibles.');
-            // The select will only have the placeholder.
+            console.log('[initRotacionSection] No options data received from API.');
         } else {
-            data.forEach(item => {
+            console.log('[initRotacionSection] Processing item 0:', data[0]);
+            data.forEach((item) => {
                 const optionElement = document.createElement('option');
                 optionElement.value = item.valor;
                 optionElement.textContent = item.descripcion;
                 optionElement.dataset.descripcion = item.descripcion;
+                console.log(`[initRotacionSection] Adding option: Valor='${item.valor}', Descripcion='${item.descripcion}'`);
 
-                if (userSelections.rotacionInstalacion.valor !== null &&
-                    String(userSelections.rotacionInstalacion.valor) === String(item.valor)) {
+                // Pre-select based on userSelections.rotacionInstalacion.descripcion
+                if (userSelections.rotacionInstalacion && userSelections.rotacionInstalacion.descripcion === item.descripcion) {
                     optionElement.selected = true;
                     placeholderOption.selected = false;
+                    console.log('[initRotacionSection] pre-selecting option by description:', item.descripcion);
+                    if (item.descripcion === "Fijos") { // Corrected "Fijos"
+                        isFijosActuallyPreselected = true;
+                    }
                 }
                 selectElement.appendChild(optionElement);
             });
         }
 
+        if (selectElement.selectedIndex === -1 || selectElement.options[selectElement.selectedIndex].disabled) {
+             placeholderOption.selected = true; // Ensure placeholder is selected if nothing else was
+        }
+
         selectElement.addEventListener('change', (event) => {
             const selectedOption = event.target.options[event.target.selectedIndex];
             const valor = selectedOption.value;
-            const descripcion = selectedOption.dataset.descripcion;
+            const descripcion = selectedOption.textContent;
 
             if (valor && valor !== '') {
-                userSelections.rotacionInstalacion.valor = parseFloat(valor);
-                userSelections.rotacionInstalacion.descripcion = descripcion;
-            } else {
-                userSelections.rotacionInstalacion.valor = null;
-                userSelections.rotacionInstalacion.descripcion = null;
+                userSelections.rotacionInstalacion = {
+                    descripcion: descripcion,
+                    valor: parseFloat(valor)
+                };
+            } else { // Placeholder selected
+                userSelections.rotacionInstalacion = { descripcion: null, valor: null };
             }
             saveUserSelections();
-            console.log('Rotación de instalación seleccionada (select):', userSelections.rotacionInstalacion);
+            console.log('[initRotacionSection] Rotación de instalación seleccionada (select):', userSelections.rotacionInstalacion);
+
+            if (descripcion === "Fijos") { // Corrected "Fijos"
+                toggleFijoFields(true);
+            } else {
+                toggleFijoFields(false);
+                if (userSelections.anguloInclinacion !== null || userSelections.anguloOrientacion !== null) {
+                    userSelections.anguloInclinacion = null;
+                    userSelections.anguloOrientacion = null;
+                    if(anguloInclinacionInput) anguloInclinacionInput.value = '';
+                    if(anguloOrientacionInput) anguloOrientacionInput.value = '';
+                    saveUserSelections();
+                    console.log('[initRotacionSection] Angle data cleared due to non-"Fijos" selection.');
+                }
+            }
         });
 
         container.appendChild(selectElement);
+        console.log('[initRotacionSection] select element appended.');
+
+        // Initial visibility check based on the actual selected option after population
+        const finalSelectedOptionAfterPopulation = selectElement.options[selectElement.selectedIndex];
+        if (finalSelectedOptionAfterPopulation && finalSelectedOptionAfterPopulation.textContent === "Fijos") { // Corrected "Fijos"
+            toggleFijoFields(true);
+        } else {
+            toggleFijoFields(false);
+        }
+
+        if (anguloInclinacionInput) {
+            anguloInclinacionInput.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                userSelections.anguloInclinacion = isNaN(value) ? null : value;
+                saveUserSelections();
+                console.log('[initRotacionSection] anguloInclinacion input changed:', userSelections.anguloInclinacion);
+            });
+        }
+
+        if (anguloOrientacionInput) {
+            anguloOrientacionInput.addEventListener('input', (e) => {
+                let value = parseFloat(e.target.value);
+                userSelections.anguloOrientacion = isNaN(value) ? null : value;
+                saveUserSelections();
+                console.log('[initRotacionSection] anguloOrientacion input changed:', userSelections.anguloOrientacion);
+            });
+        }
 
     } catch (error) {
-        console.error('[ROTACIÓN OPTIONS LOAD ERROR] Error fetching or processing rotación options:', error);
+        console.error('[initRotacionSection] CATCH block error:', error);
         if (error.message) {
-            console.error('[ROTACIÓN OPTIONS LOAD ERROR] Message:', error.message);
+            console.error('[initRotacionSection] CATCH error message:', error.message);
         }
-        alert('Error al cargar las opciones de rotación. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
+        alert('Error al cargar las opciones de rotación. Intente más tarde. Revise la consola.');
         if (container) {
-            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de rotación. Intente recargar o contacte a soporte.</p>';
+            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de rotación.</p>';
         }
     }
 }
@@ -1677,116 +1830,119 @@ function showScreen(screenId) {
     // immediately after they call showScreen.
 }
 
-function updateStepIndicator(screenId) {
-    if (!stepIndicatorText) return; // Guard clause
+function updateStepIndicator(currentSectionId) {
+    if (!stepIndicatorText) return;
 
-    let currentStepText = 'Calculador Solar'; // Default text
+    let currentStepText = 'Calculador Solar'; // Default
+    const sectionInfo = sectionInfoMap[currentSectionId];
+    const userTypeDisplay = userSelections.userType === 'experto' ? 'Experto' : 'Básico';
 
-    // Determine overall step context (on map or in data form)
-    let onMapScreen = (mapScreen && mapScreen.style.display !== 'none');
+    document.querySelectorAll('.sidebar .sidebar-item').forEach(item => {
+        item.classList.remove('active');
+    });
 
-    if (userSelections.userType === 'experto') {
-        // Expert Flow
-        if (onMapScreen) {
-            // Initial expert choices on map screen
-            if (supplySection && supplySection.style.display !== 'none') {
-                currentStepText = 'Experto: Paso 1 > Tipo de Instalación';
-            } else if (incomeSection && incomeSection.style.display !== 'none') {
-                currentStepText = 'Experto: Paso 2 > Nivel de Ingreso'; // Now for ALL experts
-            } else { // Default for map screen if user type is expert but no specific sub-form shown
-                currentStepText = 'Experto: Configuración Inicial';
-            }
-        } else { // Expert is on dataFormScreen
-            switch (screenId) {
-                case 'data-meteorologicos-section':
-                    currentStepText = 'Experto: Paso 3 > Zona de Instalación'; // Now always step 3 for Experts
-                    break;
-                case 'energia-section':
-                    currentStepText = 'Experto: Paso 4 > Consumo Energía'; // Now always step 4 for Experts
-                    break;
-                case 'consumo-factura-section':
-                    currentStepText = 'Experto: Paso 4a > Consumo por Factura'; // Sub-step of Energia
-                    break;
-                // Detailed data steps start after Energia/Consumo Factura
-                let baseStepNumber = 4; // All expert paths now have 4 steps before superficie
-
-                case 'superficie-section':
-                    currentStepText = `Experto: Paso ${baseStepNumber + 1} > Superficie Circundante`;
-                    break;
-                case 'rugosidad-section':
-                    currentStepText = `Experto: Paso ${baseStepNumber + 2} > Rugosidad Superficie`;
-                    break;
-                case 'rotacion-section':
-                    currentStepText = `Experto: Paso ${baseStepNumber + 3} > Rotación Instalación`;
-                    break;
-                case 'altura-instalacion-section':
-                    currentStepText = `Experto: Paso ${baseStepNumber + 4} > Altura Instalación`;
-                    break;
-                case 'metodo-calculo-section':
-                    currentStepText = `Experto: Paso ${baseStepNumber + 5} > Método Cálculo Radiación`;
-                    break;
-                case 'modelo-metodo-section':
-                    currentStepText = `Experto: Paso ${baseStepNumber + 6} > Modelo Método Radiación`;
-                    break;
-                case 'paneles-section': // Main entry for Paneles sub-forms
-                    currentStepText = `Experto: Paso ${baseStepNumber + 7}.1 > Marca Panel`;
-                    break;
-                case 'paneles-marca':
-                    currentStepText = `Experto: Paso ${baseStepNumber + 7}.1 > Marca Panel`;
-                    break;
-                case 'paneles-potencia':
-                    currentStepText = `Experto: Paso ${baseStepNumber + 7}.2 > Potencia Panel`;
-                    break;
-                case 'paneles-modelo-temperatura':
-                    currentStepText = `Experto: Paso ${baseStepNumber + 7}.3 > Modelo Temperatura Panel`;
-                    break;
-                case 'inversor-section':
-                    currentStepText = `Experto: Paso ${baseStepNumber + 8} > Inversor`;
-                    break;
-                case 'perdidas-section': // Main entry for Perdidas sub-forms
-                    currentStepText = `Experto: Paso ${baseStepNumber + 9}.1 > Frecuencia Lluvias`;
-                    break;
-                case 'perdidas-frecuencia-lluvias':
-                    currentStepText = `Experto: Paso ${baseStepNumber + 9}.1 > Frecuencia Lluvias`;
-                    break;
-                case 'perdidas-foco-polvo':
-                    currentStepText = `Experto: Paso ${baseStepNumber + 9}.2 > Foco de Polvo`;
-                    break;
-                case 'analisis-economico-section':
-                    currentStepText = `Experto: Paso ${baseStepNumber + 10} > Análisis Económico`;
-                    break;
-                default:
-                    currentStepText = 'Calculador Solar - Experto';
+    if (sectionInfo) {
+        if (sectionInfo.sidebarId) {
+            const sidebarElement = document.getElementById(sectionInfo.sidebarId);
+            if (sidebarElement) {
+                sidebarElement.classList.add('active');
             }
         }
-    } else { // Basic user
+
+        let stepNum = 0;
+        const onMapScreen = (mapScreen.style.display !== 'none' && dataFormScreen.style.display === 'none');
+
         if (onMapScreen) {
-            if (supplySection && supplySection.style.display !== 'none') {
-                currentStepText = 'Básico: Paso 1 > Tipo de Instalación';
-            } else if (incomeSection && incomeSection.style.display !== 'none') {
-                currentStepText = 'Básico: Paso 2 > Nivel de Ingreso'; // Applies to all Basic before data form
+            if (currentSectionId === 'user-type-section') stepNum = 0; // Or a different representation
+            else if (currentSectionId === 'supply-section') stepNum = 1;
+            else if (currentSectionId === 'income-section') stepNum = 2;
+
+            if (stepNum > 0) {
+                currentStepText = `${userTypeDisplay}, Paso ${stepNum} (${sectionInfo.generalCategory}), ${sectionInfo.specificName}`;
             } else {
-                currentStepText = 'Paso Inicial: Ubicación y Tipo de Usuario';
+                currentStepText = `${userTypeDisplay}, ${sectionInfo.generalCategory}, ${sectionInfo.specificName}`;
             }
-        } else { // Basic user on dataFormScreen
-            switch (screenId) {
-                case 'data-meteorologicos-section':
-                    currentStepText = 'Básico: Paso 3 > Zona de Instalación'; // Now always step 3 for Basic
-                    break;
-                case 'energia-section': // Only for Basic Residencial
-                    currentStepText = 'Básico: Paso 4 > Consumo de Energía';
-                    break;
-                case 'consumo-factura-section': // For Basic Comercial/PYME
-                    currentStepText = 'Básico: Paso 4 > Consumo por Factura';
-                    break;
-                case 'analisis-economico-section':
-                    // For Basic users, this is always Step 5
-                    currentStepText = 'Básico: Paso 5 > Análisis Económico';
-                    break;
-                default:
-                    currentStepText = 'Calculador Solar - Básico';
+        } else { // On dataFormScreen
+            let currentFlowOrder = [];
+            let baseStepForDataForm = 2; // Steps on map screen before data form (supply-1, income-2)
+
+            if (userSelections.userType === 'experto') {
+                const expertCoreDatosOrder = [
+                    'superficie-section', 'rugosidad-section', 'rotacion-section',
+                    'altura-instalacion-section', 'metodo-calculo-section', 'modelo-metodo-section'
+                ];
+                const expertPostEnergyOrder = [
+                    'panel-marca-subform', 'panel-potencia-subform', 'panel-modelo-temperatura-subform',
+                    'inversor-section',
+                    'frecuencia-lluvias-subform-content', 'foco-polvo-subform-content',
+                    'analisis-economico-section'
+                ];
+
+                let tempFlowOrder = ['data-meteorologicos-section']; // Starts with Zona
+
+                if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
+                    tempFlowOrder.push('consumo-factura-section');
+                } else { // Residencial
+                    tempFlowOrder.push('energia-section');
+                    if (userSelections.metodoIngresoConsumoEnergia === 'boletaMensual') {
+                         tempFlowOrder.push('consumo-factura-section');
+                    }
+                }
+                currentFlowOrder = tempFlowOrder.concat(expertCoreDatosOrder, expertPostEnergyOrder);
+
+            } else { // basico
+                if (userSelections.installationType === 'Residencial') {
+                    currentFlowOrder = ['data-meteorologicos-section', 'energia-section', 'analisis-economico-section'];
+                } else { // Comercial or PYME
+                    currentFlowOrder = ['data-meteorologicos-section', 'consumo-factura-section', 'analisis-economico-section'];
+                }
+            }
+
+            let sectionIndex = currentFlowOrder.indexOf(currentSectionId);
+            // If currentSectionId is a main container for sub-forms, find first sub-form's index
+            if (sectionIndex === -1) {
+                if (currentSectionId === 'paneles-section') sectionIndex = currentFlowOrder.indexOf('panel-marca-subform');
+                else if (currentSectionId === 'perdidas-section') sectionIndex = currentFlowOrder.indexOf('frecuencia-lluvias-subform-content');
+                else if (currentSectionId === 'energia-modo-seleccion') sectionIndex = currentFlowOrder.indexOf('energia-section');
+            }
+
+            if (sectionIndex !== -1) {
+                stepNum = baseStepForDataForm + 1 + sectionIndex;
+                let subStepIndicator = "";
+
+                if (currentSectionId === 'consumo-factura-section' && userSelections.userType === 'experto') {
+                     let energiaOrPrecedingIndex = currentFlowOrder.indexOf('energia-section');
+                     if(energiaOrPrecedingIndex === -1) energiaOrPrecedingIndex = currentFlowOrder.indexOf('data-meteorologicos-section'); // If energia section was skipped for com/pyme expert
+                     stepNum = baseStepForDataForm + 1 + energiaOrPrecedingIndex;
+                     subStepIndicator = "a";
+                } else if (currentSectionId === 'panel-marca-subform') subStepIndicator = ".1";
+                else if (currentSectionId === 'panel-potencia-subform') subStepIndicator = ".2";
+                else if (currentSectionId === 'panel-modelo-temperatura-subform') subStepIndicator = ".3";
+                else if (currentSectionId === 'frecuencia-lluvias-subform-content') subStepIndicator = ".1";
+                else if (currentSectionId === 'foco-polvo-subform-content') subStepIndicator = ".2";
+
+                if (subStepIndicator.startsWith(".")) {
+                    let parentSectionFlowId = '';
+                    if (sectionInfo.sidebarId === 'sidebar-paneles') parentSectionFlowId = 'panel-marca-subform'; // Use first subform as representative
+                    else if (sectionInfo.sidebarId === 'sidebar-perdidas') parentSectionFlowId = 'frecuencia-lluvias-subform-content'; // Use first subform
+
+                    if (parentSectionFlowId) {
+                         const parentIndexInFlow = currentFlowOrder.indexOf(parentSectionFlowId);
+                         if (parentIndexInFlow !== -1) stepNum = baseStepForDataForm + 1 + parentIndexInFlow;
+                    }
+                }
+                currentStepText = `${userTypeDisplay}, Paso ${stepNum}${subStepIndicator} (${sectionInfo.generalCategory}), ${sectionInfo.specificName}`;
+            } else {
+                currentStepText = `${userTypeDisplay}, (${sectionInfo.generalCategory}), ${sectionInfo.specificName}`; // Fallback if not in defined flow order
             }
         }
+    } else if (currentSectionId === 'map-screen') {
+        currentStepText = 'Paso Inicial: Ubicación y Tipo de Usuario';
+        const defaultSidebar = document.getElementById('sidebar-datos');
+        if (defaultSidebar) defaultSidebar.classList.add('active');
+    } else {
+        console.warn(`[updateStepIndicator] Section ID '${currentSectionId}' not found in sectionInfoMap.`);
+        currentStepText = `${userTypeDisplay}: Paso Desconocido`;
     }
     stepIndicatorText.textContent = currentStepText;
 }
@@ -1809,7 +1965,6 @@ function showMapScreenFormSection(sectionIdToShow) {
 
 // --- Configuración de Event Listeners para Botones y Selects (EXISTENTE, MODIFICADA) ---
 
-// Contents of the setupNavigationButtons function with all modifications:
 function setupNavigationButtons() {
     // Get buttons - ensure these IDs exist in calculador.html
     const basicUserButton = document.getElementById('basic-user-button');
@@ -2014,6 +2169,22 @@ function setupNavigationButtons() {
         });
     }
 
+    // Listener for 'Atrás' button in 'data-meteorologicos-section'
+    document.getElementById('back-to-map-from-zona')?.addEventListener('click', () => {
+        showScreen('map-screen'); // Show the whole map screen container
+        // Determine which map sub-section to show based on user selections
+        if (userSelections.incomeLevel) { // If income was selected, go back there
+            showMapScreenFormSection('income-section');
+            updateStepIndicator('income-section');
+        } else if (userSelections.installationType) { // Else if installation type was selected, go there
+            showMapScreenFormSection('supply-section');
+            updateStepIndicator('supply-section');
+        } else { // Else go back to user type selection
+            showMapScreenFormSection('user-type-section');
+            updateStepIndicator('user-type-section');
+        }
+    });
+
     document.getElementById('next-to-energia')?.addEventListener('click', () => {
         const selectedZona = document.querySelector('input[name="zonaInstalacionNewScreen"]:checked');
         if (selectedZona) {
@@ -2021,54 +2192,99 @@ function setupNavigationButtons() {
             saveUserSelections();
             console.log('Zona de instalación seleccionada:', userSelections.selectedZonaInstalacion);
         } else {
+            // alert('Por favor, seleccione una zona de instalación.'); // Optional: User feedback
             console.warn('No se seleccionó zona de instalación.');
+            // return; // Optional: Prevent navigation if selection is mandatory
         }
 
-        if (userSelections.userType === 'basico' &&
+        // ** START: MODIFIED BLOCK for next-to-energia **
+        if (userSelections.userType === 'experto') {
+            showScreen('energia-section');
+            updateStepIndicator('energia-section');
+            initElectrodomesticosSection(); // This handles expert energy choices
+        } else if (userSelections.userType === 'basico' &&
             (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME')) {
             showScreen('consumo-factura-section');
             updateStepIndicator('consumo-factura-section');
-        } else {
-            // Existing logic:
+            // initConsumoFacturaSection(); // Call if there's an init for this section
+        } else { // Basic Residencial (or other default)
             showScreen('energia-section');
             updateStepIndicator('energia-section');
             initElectrodomesticosSection();
         }
+        // ** END: MODIFIED BLOCK for next-to-energia **
     });
 
     document.getElementById('back-to-data-meteorologicos-from-superficie')?.addEventListener('click', () => {
-        showScreen('data-meteorologicos-section');
-        updateStepIndicator('data-meteorologicos-section');
+        if (userSelections.userType === 'experto') {
+            if (userSelections.metodoIngresoConsumoEnergia === 'boletaMensual' ||
+                userSelections.installationType === 'Comercial' ||
+                userSelections.installationType === 'PYME') {
+                showScreen('consumo-factura-section');
+                updateStepIndicator('consumo-factura-section');
+            } else { // Expert Residencial who chose detalleHogar/Horas
+                showScreen('energia-section');
+                updateStepIndicator('energia-section');
+                initElectrodomesticosSection(); // Re-show energy choices
+            }
+        } else { // Should not be reached by basic if this is expert-only section
+            showScreen('data-meteorologicos-section');
+            updateStepIndicator('data-meteorologicos-section');
+        }
     });
 
     const nextFromSuperficieButton = document.getElementById('next-to-energia-from-superficie');
     if (nextFromSuperficieButton) {
         nextFromSuperficieButton.addEventListener('click', () => {
+            // Validate superficieRodea selection if necessary
+            // if (!userSelections.superficieRodea.valor) {
+            //     alert("Por favor, seleccione una opción de superficie.");
+            //     return;
+            // }
             showScreen('rugosidad-section');
             updateStepIndicator('rugosidad-section');
-            initRugosidadSection();
+            if (typeof initRugosidadSection === 'function') initRugosidadSection();
         });
     }
 
     document.getElementById('back-to-superficie-from-rugosidad')?.addEventListener('click', () => {
         showScreen('superficie-section');
         updateStepIndicator('superficie-section');
+        if (typeof initSuperficieSection === 'function') initSuperficieSection(); // Re-init if needed
     });
 
     document.getElementById('next-to-rotacion-from-rugosidad')?.addEventListener('click', () => {
+        // Validate rugosidadSuperficie selection if necessary
+        // if (!userSelections.rugosidadSuperficie.valor) {
+        //     alert("Por favor, seleccione una opción de rugosidad.");
+        //     return;
+        // }
         showScreen('rotacion-section');
         updateStepIndicator('rotacion-section');
-        initRotacionSection();
+        if (typeof initRotacionSection === 'function') initRotacionSection();
     });
 
     document.getElementById('back-to-rugosidad-from-rotacion')?.addEventListener('click', () => {
         showScreen('rugosidad-section');
         updateStepIndicator('rugosidad-section');
+        if (typeof initRugosidadSection === 'function') initRugosidadSection(); // Re-init
     });
 
     document.getElementById('next-to-paneles-from-rotacion')?.addEventListener('click', () => {
+        // Validate rotacionInstalacion selection if necessary
+        // if (!userSelections.rotacionInstalacion.valor) {
+        //     alert("Por favor, seleccione una opción de rotación.");
+        //     return;
+        // }
+        // If "Fijos", validate angle inputs
+        // if (userSelections.rotacionInstalacion.descripcion === "Fijos" &&
+        //     (userSelections.anguloInclinacion === null || userSelections.anguloOrientacion === null)) {
+        //     alert("Por favor, ingrese los ángulos de inclinación y orientación para la instalación fija.");
+        //     return;
+        // }
         showScreen('altura-instalacion-section');
         updateStepIndicator('altura-instalacion-section');
+        // No specific init for altura-instalacion as it's a simple input, but ensure value is restored
         const alturaInput = document.getElementById('altura-instalacion-input');
         if (alturaInput && userSelections.alturaInstalacion !== null) {
             alturaInput.value = userSelections.alturaInstalacion;
@@ -2080,35 +2296,56 @@ function setupNavigationButtons() {
     document.getElementById('back-to-rotacion-from-altura')?.addEventListener('click', () => {
         showScreen('rotacion-section');
         updateStepIndicator('rotacion-section');
+        if (typeof initRotacionSection === 'function') initRotacionSection(); // Re-init
     });
 
     document.getElementById('next-to-metodo-calculo-from-altura')?.addEventListener('click', () => {
+        // Validate alturaInstalacion if necessary
+        // if (userSelections.alturaInstalacion === null || userSelections.alturaInstalacion < 0) {
+        //     alert("Por favor, ingrese una altura válida para la instalación.");
+        //     return;
+        // }
         showScreen('metodo-calculo-section');
         updateStepIndicator('metodo-calculo-section');
-        initMetodoCalculoSection();
+        if (typeof initMetodoCalculoSection === 'function') initMetodoCalculoSection();
     });
 
     document.getElementById('back-to-altura-from-metodo')?.addEventListener('click', () => {
         showScreen('altura-instalacion-section');
         updateStepIndicator('altura-instalacion-section');
+        // No specific init for altura-instalacion
     });
 
     document.getElementById('next-to-modelo-metodo-from-metodo')?.addEventListener('click', () => {
+        // Validate metodoCalculoRadiacion if necessary
+        // if (!userSelections.metodoCalculoRadiacion) {
+        //     alert("Por favor, seleccione un método de cálculo.");
+        //     return;
+        // }
         showScreen('modelo-metodo-section');
         updateStepIndicator('modelo-metodo-section');
-        initModeloMetodoSection();
+        if (typeof initModeloMetodoSection === 'function') initModeloMetodoSection();
     });
 
     document.getElementById('back-to-metodo-calculo-from-modelo')?.addEventListener('click', () => {
         showScreen('metodo-calculo-section');
         updateStepIndicator('metodo-calculo-section');
+        if (typeof initMetodoCalculoSection === 'function') initMetodoCalculoSection(); // Re-init
     });
 
+    // ** START: MODIFIED BLOCK for next-to-paneles-from-modelo **
     document.getElementById('next-to-paneles-from-modelo')?.addEventListener('click', () => {
-        showScreen('energia-section');
-        updateStepIndicator('energia-section');
-        initElectrodomesticosSection();
+        // Validate modeloMetodoRadiacion if necessary
+        // if (!userSelections.modeloMetodoRadiacion) {
+        //     alert("Por favor, seleccione un modelo del método.");
+        //     return;
+        // }
+        // For Experts, this now goes to paneles-section (first sub-form)
+        showScreen('paneles-section');
+        initPanelesSectionExpert(); // Shows the first panel sub-form
+        updateStepIndicator('panel-marca-subform'); // Indicator for the first panel sub-form
     });
+    // ** END: MODIFIED BLOCK for next-to-paneles-from-modelo **
 
     // Navigation from last Paneles sub-form (Modelo Temperatura Panel) to Inversor section
     const nextFromPanelesToInversorBtn = document.getElementById('next-to-inversor-from-panels'); // CORRECTED ID
@@ -2192,8 +2429,6 @@ function setupNavigationButtons() {
                 updateStepIndicator('superficie-section');
                 if (typeof initSuperficieSection === 'function') {
                     initSuperficieSection();
-                } else {
-                    console.warn('initSuperficieSection function not yet defined.');
                 }
             } else { // Basic user (or default if userType not set, though it should be)
                 showScreen('analisis-economico-section');
@@ -2214,14 +2449,15 @@ function setupNavigationButtons() {
             if (userSelections.userType === 'experto') {
                 const metodo = userSelections.metodoIngresoConsumoEnergia;
                 if (metodo === 'detalleHogar' || metodo === 'detalleHogarHoras') {
-                    showScreen('superficie-section'); // New target
-                    updateStepIndicator('superficie-section'); // Update to new target's indicator
-                    if (typeof initSuperficieSection === 'function') { // Call init for new target
+                    showScreen('superficie-section');
+                    updateStepIndicator('superficie-section');
+                    if (typeof initSuperficieSection === 'function') {
                         initSuperficieSection();
-                    } else {
-                        console.warn('initSuperficieSection function not yet defined.');
                     }
                 } else if (metodo === 'boletaMensual') {
+                    // This case should ideally not be hit if 'boletaMensual' directly navigates to 'consumo-factura-section'
+                    // and 'next-from-consumo-factura' is the button that leads to 'superficie-section'.
+                    // However, if it can be reached, it might mean the user selected boleta but didn't proceed from there.
                     alert('Por favor, complete el ingreso de consumo por boleta en su sección correspondiente o elija otro método.');
                 } else {
                     alert('Por favor, seleccione un método para ingresar los datos de consumo antes de continuar.');
@@ -2254,17 +2490,28 @@ function setupNavigationButtons() {
         if (typeof initModeloTemperaturaPanelOptions === 'function') {
             initModeloTemperaturaPanelOptions(); // Re-initialize its content (placeholder)
         }
-        updateStepIndicator('paneles-modelo-temperatura'); // Step indicator for the last panel sub-form
+        updateStepIndicator('panel-modelo-temperatura-subform'); // Step indicator for the last panel sub-form
     });
 
     // --- Navigation within "Pérdidas" sub-forms ---
+
+    // Back from "Frecuencia Lluvias" to "Inversor"
+    document.getElementById('back-to-inversor-from-perdidas')?.addEventListener('click', () => {
+        if (frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'none'; // Hide current
+        showScreen('inversor-section');
+        updateStepIndicator('inversor-section');
+        if (typeof initInversorSection === 'function') {
+            initInversorSection();
+        }
+    });
+
     const nextToFocoPolvoBtn = document.getElementById('next-to-foco-polvo-from-frecuencia');
     if (nextToFocoPolvoBtn) {
         nextToFocoPolvoBtn.addEventListener('click', () => {
             if(frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'none';
             if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block';
             initFocoPolvoOptions();
-            updateStepIndicator('perdidas-foco-polvo');
+            updateStepIndicator('foco-polvo-subform-content');
         });
     }
 
@@ -2273,7 +2520,11 @@ function setupNavigationButtons() {
         backToFrecuenciaLluviasBtn.addEventListener('click', () => {
             if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'none';
             if(frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'block';
-            updateStepIndicator('perdidas-frecuencia-lluvias');
+            updateStepIndicator('frecuencia-lluvias-subform-content');
+            // Re-init frecuencia lluvias options if necessary, e.g., if they could change
+            if (typeof initFrecuenciaLluviasOptions === 'function') {
+                initFrecuenciaLluviasOptions();
+            }
         });
     }
 
@@ -2286,19 +2537,19 @@ function setupNavigationButtons() {
         });
     }
 
-    // Main "Back" button for perdidas-section (MODIFIED: navigates to Inversor section)
-    const backFromPerdidasBtn = document.getElementById('back-from-perdidas');
-    if (backFromPerdidasBtn) {
-        backFromPerdidasBtn.addEventListener('click', () => {
-            showScreen('inversor-section');
-            updateStepIndicator('inversor-section');
-            if (typeof initInversorSection === 'function') {
-                initInversorSection();
-            } else {
-                console.warn('initInversorSection function not yet defined.');
-            }
-        });
-    }
+    // Main "Back" button for perdidas-section (REMOVED as buttons are now in sub-forms)
+    // const backFromPerdidasBtn = document.getElementById('back-from-perdidas');
+    // if (backFromPerdidasBtn) {
+    //     backFromPerdidasBtn.addEventListener('click', () => {
+    //         showScreen('inversor-section');
+    //         updateStepIndicator('inversor-section');
+    //         if (typeof initInversorSection === 'function') {
+    //             initInversorSection();
+    //         } else {
+    //             console.warn('initInversorSection function not yet defined.');
+    //         }
+    //     });
+    // }
 
     // Back button on Analisis Economico page
     const backToPerdidasFromAnalisisBtn = document.querySelector('#analisis-economico-section .back-button');
@@ -2313,17 +2564,27 @@ function setupNavigationButtons() {
             if (frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'none';
             if (focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block'; // Show last sub-form
             initFocoPolvoOptions();
-            updateStepIndicator('perdidas-foco-polvo');
+            updateStepIndicator('foco-polvo-subform-content');
         });
     }
 
     // --- Start of Paneles Sub-Form Navigation Listeners ---
 
+    // Listener for "Back" from "Marca Panel" to "Modelo Método Radiación"
+    document.getElementById('back-from-panel-marca')?.addEventListener('click', () => {
+        if (panelMarcaSubform) panelMarcaSubform.style.display = 'none';
+        showScreen('modelo-metodo-section');
+        updateStepIndicator('modelo-metodo-section');
+        if (typeof initModeloMetodoSection === 'function') {
+            initModeloMetodoSection();
+        }
+    });
+
     // 1. From "Marca Panel" to "Potencia Deseada"
     document.getElementById('next-from-panel-marca')?.addEventListener('click', () => {
         if (panelMarcaSubform) panelMarcaSubform.style.display = 'none';
         if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'block';
-        updateStepIndicator('paneles-potencia');
+        updateStepIndicator('panel-potencia-subform');
         // Ensure potencia input shows persisted value
         if (potenciaPanelDeseadaInput && userSelections.potenciaPanelDeseada !== null) {
             potenciaPanelDeseadaInput.value = userSelections.potenciaPanelDeseada;
@@ -2336,7 +2597,7 @@ function setupNavigationButtons() {
     document.getElementById('back-to-panel-marca')?.addEventListener('click', () => {
         if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
         if (panelMarcaSubform) panelMarcaSubform.style.display = 'block';
-        updateStepIndicator('paneles-marca');
+        updateStepIndicator('panel-marca-subform');
         // initMarcaPanelOptions(); // Optional: Re-call if options could change; usually not for 'Back'
     });
 
@@ -2345,20 +2606,20 @@ function setupNavigationButtons() {
         if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
         if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
         initModeloTemperaturaPanelOptions(); // Call to populate/display placeholder
-        updateStepIndicator('paneles-modelo-temperatura');
+        updateStepIndicator('panel-modelo-temperatura-subform');
     });
 
     // 4. From "Modelo Temperatura Panel" back to "Potencia Deseada"
     // Assuming the back button on panel-modelo-temperatura-subform still has id="back-to-panel-cantidad"
     // as per HTML structure after "Cantidad" subform removal, where its next button was changed.
     // The HTML for panel-modelo-temperatura-subform is:
-    // <button type="button" id="back-to-panel-cantidad" class="back-button">Atrás</button>
+    // <button type="button" id="back-to-panel-potencia" class="back-button">Atrás</button> (ID was changed in HTML)
     // <button type="button" id="next-to-inversor-from-panels">Siguiente</button>
-    // So, we use 'back-to-panel-cantidad' as the selector.
-    document.getElementById('back-to-panel-cantidad')?.addEventListener('click', () => {
+    // So, we use 'back-to-panel-potencia' as the selector.
+    document.getElementById('back-to-panel-potencia')?.addEventListener('click', () => {
         if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'none';
         if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'block';
-        updateStepIndicator('paneles-potencia');
+        updateStepIndicator('panel-potencia-subform');
         // Ensure potencia input shows persisted value
         if (potenciaPanelDeseadaInput && userSelections.potenciaPanelDeseada !== null) {
             potenciaPanelDeseadaInput.value = userSelections.potenciaPanelDeseada;
