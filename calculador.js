@@ -561,13 +561,16 @@ async function initRotacionSection() {
     const container = document.getElementById('rotacion-options-container');
     console.log('[initRotacionSection] container:', container);
 
-    // Add DOM Element References
     const fijoAnglesContainer = document.getElementById('fijo-angles-container');
     const anguloInclinacionInput = document.getElementById('angulo-inclinacion-input');
     const anguloOrientacionInput = document.getElementById('angulo-orientacion-input');
 
-    if (!fijoAnglesContainer || !anguloInclinacionInput || !anguloOrientacionInput) {
-        console.error('[initRotacionSection] One or more conditional input elements not found (fijo-angles-container, angulo-inclinacion-input, angulo-orientacion-input).');
+    // Get references to the form group wrappers for more granular control
+    const inclinacionFormGroup = document.getElementById('form-group-inclinacion');
+    const orientacionFormGroup = document.getElementById('form-group-orientacion');
+
+    if (!fijoAnglesContainer || !anguloInclinacionInput || !anguloOrientacionInput || !inclinacionFormGroup || !orientacionFormGroup) {
+        console.error('[initRotacionSection] One or more conditional input elements or their form groups not found.');
     }
 
     if (!container) {
@@ -576,30 +579,63 @@ async function initRotacionSection() {
     }
     container.innerHTML = '';
 
-    // Define toggleFijoFields Helper Function
-    function toggleFijoFields(show) {
-        if (!fijoAnglesContainer || !anguloInclinacionInput || !anguloOrientacionInput) {
-            console.warn('[initRotacionSection] toggleFijoFields: conditional elements not found, cannot toggle.');
+    // Renamed and enhanced helper function
+    function updateAngleFieldsVisibilityAndData(selectedText) {
+        console.log('[initRotacionSection] updateAngleFieldsVisibilityAndData received raw selectedText: "' + selectedText + '" (length: ' + (selectedText ? selectedText.length : 0) + ')');
+        const cleanSelectedText = selectedText ? selectedText.trim() : "";
+        console.log('[initRotacionSection] updateAngleFieldsVisibilityAndData using cleanSelectedText: "' + cleanSelectedText + '" (length: ' + cleanSelectedText.length + ')');
+
+        if (!fijoAnglesContainer || !inclinacionFormGroup || !orientacionFormGroup || !anguloInclinacionInput || !anguloOrientacionInput) {
+            console.warn('[initRotacionSection] updateAngleFieldsVisibilityAndData: conditional elements not found.');
             return;
         }
-        if (show) {
+
+        const isFijos = (cleanSelectedText === "Fijos");
+        const isInclinacionFijaVertical = (cleanSelectedText === "Inclinación fija, rotación sobre eje vertical");
+        console.log('[initRotacionSection] Condition check - isFijos:', isFijos, 'isInclinacionFijaVertical:', isInclinacionFijaVertical);
+
+        if (isFijos) {
             fijoAnglesContainer.style.display = 'block';
-            if (userSelections.anguloInclinacion !== null) {
-                anguloInclinacionInput.value = userSelections.anguloInclinacion;
+            inclinacionFormGroup.style.display = 'block';
+            orientacionFormGroup.style.display = 'block';
+            if (userSelections.anguloInclinacion !== null) anguloInclinacionInput.value = userSelections.anguloInclinacion; else anguloInclinacionInput.value = '';
+            if (userSelections.anguloOrientacion !== null) anguloOrientacionInput.value = userSelections.anguloOrientacion; else anguloOrientacionInput.value = '';
+            console.log('[initRotacionSection] "Fijos" selected. Both angle fields shown.');
+        } else if (isInclinacionFijaVertical) {
+            fijoAnglesContainer.style.display = 'block';
+            inclinacionFormGroup.style.display = 'block';
+            orientacionFormGroup.style.display = 'none'; // Hide orientation
+            if (userSelections.anguloInclinacion !== null) anguloInclinacionInput.value = userSelections.anguloInclinacion; else anguloInclinacionInput.value = '';
+
+            // Clear orientation data as it's not applicable
+            if (userSelections.anguloOrientacion !== null) {
+                userSelections.anguloOrientacion = null;
+                anguloOrientacionInput.value = '';
+                // saveUserSelections(); // Will be saved by the main change listener
+                console.log('[initRotacionSection] "Inclinación fija, rotación sobre eje vertical" selected. Orientation field hidden and data cleared.');
             } else {
-                anguloInclinacionInput.value = ''; // Ensure clear if null
+                 console.log('[initRotacionSection] "Inclinación fija, rotación sobre eje vertical" selected. Orientation field hidden.');
+            }
+        } else { // All other options
+            fijoAnglesContainer.style.display = 'none';
+            // Clear both angle data if changing from a state where they might have been set
+            let changed = false;
+            if (userSelections.anguloInclinacion !== null) {
+                userSelections.anguloInclinacion = null;
+                anguloInclinacionInput.value = '';
+                changed = true;
             }
             if (userSelections.anguloOrientacion !== null) {
-                anguloOrientacionInput.value = userSelections.anguloOrientacion;
-            } else {
-                anguloOrientacionInput.value = ''; // Ensure clear if null
+                userSelections.anguloOrientacion = null;
+                anguloOrientacionInput.value = '';
+                changed = true;
             }
-            console.log('[initRotacionSection] "Fijos" fields shown. Inclinacion:', anguloInclinacionInput.value, 'Orientacion:', anguloOrientacionInput.value);
-        } else {
-            fijoAnglesContainer.style.display = 'none';
-            console.log('[initRotacionSection] "Fijos" fields hidden.');
-            // Note: Clearing of userSelections.anguloInclinacion/Orientacion and input values
-            // is now handled in the main select's change event when a non-"Fijos" option is chosen.
+            if (changed) {
+                // saveUserSelections(); // Will be saved by the main change listener
+                console.log('[initRotacionSection] Non-angle rotation selected. Angle fields hidden and data cleared.');
+            } else {
+                 console.log('[initRotacionSection] Non-angle rotation selected. Angle fields hidden.');
+            }
         }
     }
 
@@ -619,7 +655,7 @@ async function initRotacionSection() {
 
         if (!Array.isArray(data)) {
             console.error('[initRotacionSection] Data is not an array:', data);
-            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para rotación.</p>';
+            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto.</p>';
             return;
         }
 
@@ -633,65 +669,46 @@ async function initRotacionSection() {
         placeholderOption.disabled = true;
         selectElement.appendChild(placeholderOption);
 
-        let isFijosActuallyPreselected = false;
-
         if (data.length === 0) {
             console.log('[initRotacionSection] No options data received from API.');
         } else {
-            console.log('[initRotacionSection] Processing item 0:', data[0]);
             data.forEach((item) => {
                 const optionElement = document.createElement('option');
-                optionElement.value = item.valor;
-                optionElement.textContent = item.descripcion;
-                optionElement.dataset.descripcion = item.descripcion;
+                optionElement.value = item.valor; // Store 'valor' in value
+                optionElement.textContent = item.descripcion; // Display 'descripcion'
+                // optionElement.dataset.descripcion = item.descripcion; // Not strictly needed if textContent is descripcion
                 console.log(`[initRotacionSection] Adding option: Valor='${item.valor}', Descripcion='${item.descripcion}'`);
 
-                // Pre-select based on userSelections.rotacionInstalacion.descripcion
                 if (userSelections.rotacionInstalacion && userSelections.rotacionInstalacion.descripcion === item.descripcion) {
                     optionElement.selected = true;
                     placeholderOption.selected = false;
                     console.log('[initRotacionSection] pre-selecting option by description:', item.descripcion);
-                    if (item.descripcion === "Fijos") { // Corrected "Fijos"
-                        isFijosActuallyPreselected = true;
-                    }
                 }
                 selectElement.appendChild(optionElement);
             });
         }
 
-        if (selectElement.selectedIndex === -1 || selectElement.options[selectElement.selectedIndex].disabled) {
-             placeholderOption.selected = true; // Ensure placeholder is selected if nothing else was
+        if (selectElement.selectedIndex === -1 || (selectElement.options[selectElement.selectedIndex] && selectElement.options[selectElement.selectedIndex].disabled)) {
+             placeholderOption.selected = true;
         }
 
         selectElement.addEventListener('change', (event) => {
             const selectedOption = event.target.options[event.target.selectedIndex];
-            const valor = selectedOption.value;
-            const descripcion = selectedOption.textContent;
+            const valor = selectedOption.value; // This is item.valor
+            const descripcion = selectedOption.textContent; // This is item.descripcion
 
-            if (valor && valor !== '') {
+            if (valor && valor !== '') { // Not the placeholder
                 userSelections.rotacionInstalacion = {
                     descripcion: descripcion,
                     valor: parseFloat(valor)
                 };
-            } else { // Placeholder selected
+            } else {
                 userSelections.rotacionInstalacion = { descripcion: null, valor: null };
             }
+            // Call visibility update BEFORE saving, so angle data is nulled if needed
+            updateAngleFieldsVisibilityAndData(descripcion);
             saveUserSelections();
-            console.log('[initRotacionSection] Rotación de instalación seleccionada (select):', userSelections.rotacionInstalacion);
-
-            if (descripcion === "Fijos") { // Corrected "Fijos"
-                toggleFijoFields(true);
-            } else {
-                toggleFijoFields(false);
-                if (userSelections.anguloInclinacion !== null || userSelections.anguloOrientacion !== null) {
-                    userSelections.anguloInclinacion = null;
-                    userSelections.anguloOrientacion = null;
-                    if(anguloInclinacionInput) anguloInclinacionInput.value = '';
-                    if(anguloOrientacionInput) anguloOrientacionInput.value = '';
-                    saveUserSelections();
-                    console.log('[initRotacionSection] Angle data cleared due to non-"Fijos" selection.');
-                }
-            }
+            console.log('[initRotacionSection] Rotación de instalación seleccionada:', userSelections.rotacionInstalacion);
         });
 
         container.appendChild(selectElement);
@@ -699,10 +716,10 @@ async function initRotacionSection() {
 
         // Initial visibility check based on the actual selected option after population
         const finalSelectedOptionAfterPopulation = selectElement.options[selectElement.selectedIndex];
-        if (finalSelectedOptionAfterPopulation && finalSelectedOptionAfterPopulation.textContent === "Fijos") { // Corrected "Fijos"
-            toggleFijoFields(true);
+        if (finalSelectedOptionAfterPopulation) {
+            updateAngleFieldsVisibilityAndData(finalSelectedOptionAfterPopulation.textContent);
         } else {
-            toggleFijoFields(false);
+            updateAngleFieldsVisibilityAndData(null); // Should hide if no valid selection
         }
 
         if (anguloInclinacionInput) {

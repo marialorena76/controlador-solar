@@ -611,11 +611,11 @@
                     <!-- Container for conditional "Fijo" angle inputs -->
                     <div id="fijo-angles-container" style="display:none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px dashed #ccc;">
                         <h3 style="font-size: 1.1em; color: #555; margin-bottom: 1rem;">Detalles para Instalación Fija:</h3>
-                        <div class="form-group">
+                        <div class="form-group" id="form-group-inclinacion">
                             <label for="angulo-inclinacion-input">Ángulo de inclinación del panel respecto de la horizontal (°):</label>
                             <input type="number" id="angulo-inclinacion-input" name="anguloInclinacion" class="form-control" step="any" placeholder="Ej: 30">
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" id="form-group-orientacion">
                             <label for="angulo-orientacion-input">Ángulo de orientación respecto del norte (° Este positivo):</label>
                             <input type="number" id="angulo-orientacion-input" name="anguloOrientacion" class="form-control" step="any" min="-90" max="90" placeholder="Ej: 0 (Norte), -45 (Noreste)">
                              <small style="font-size: 0.85em; color: #666;">(Valores entre -90 para Este, 0 para Norte, y 90 para Oeste)</small>
