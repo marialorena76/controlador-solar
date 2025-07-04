@@ -811,81 +811,28 @@ async function initMetodoCalculoSection() {
             }
             saveUserSelections();
             console.log('Método de cálculo seleccionado:', userSelections.metodoCalculoRadiacion);
-        });
 
-        container.appendChild(selectElement);
+            console.log('[initMetodoCalculoSection] Método de cálculo changed, resetting and re-initializing modelo del método.');
+            userSelections.modeloMetodoRadiacion = null; // Clear previous model selection
 
-    } catch (error) {
-        console.error('[METODO CALCULO OPTIONS LOAD ERROR] Error fetching or processing método de cálculo options:', error);
-        if (error.message) {
-            console.error('[METODO CALCULO OPTIONS LOAD ERROR] Message:', error.message);
-        }
-        alert('Error al cargar las opciones de método de cálculo. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
-        if (container) {
-            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de método de cálculo. Intente recargar o contacte a soporte.</p>';
-        }
-    }
-}
-
-// --- Nueva función para inicializar la sección de Método de Cálculo ---
-async function initMetodoCalculoSection() {
-    const container = document.getElementById('metodo-calculo-options-container');
-    if (!container) {
-        console.error("Contenedor 'metodo-calculo-options-container' no encontrado.");
-        return;
-    }
-    container.innerHTML = ''; // Limpiar opciones anteriores
-
-    const selectElement = document.createElement('select');
-    selectElement.id = 'metodo-calculo-select';
-    selectElement.className = 'form-control';
-
-    const placeholderOption = document.createElement('option');
-    placeholderOption.value = '';
-    placeholderOption.textContent = 'Seleccione un método...';
-    placeholderOption.disabled = true;
-    placeholderOption.selected = true;
-    selectElement.appendChild(placeholderOption);
-
-    try {
-        const response = await fetch('http://127.0.0.1:5000/api/metodo_calculo_options');
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.json(); // Expected: ["Método A", "Método B"]
-
-        if (!Array.isArray(data)) {
-            console.error('[METODO CALCULO OPTIONS LOAD ERROR] Data received is not an array:', data);
-            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para método de cálculo.</p>';
-            return;
-        }
-
-        if (data.length === 0) {
-            console.log('[METODO CALCULO OPTIONS LOAD] No hay opciones de método de cálculo disponibles.');
-            // selectElement will only have the placeholder.
-        } else {
-            data.forEach(optionText => { // data is an array of strings
-                const optionElement = document.createElement('option');
-                optionElement.value = optionText;
-                optionElement.textContent = optionText;
-
-                if (userSelections.metodoCalculoRadiacion === optionText) {
-                    optionElement.selected = true;
-                    placeholderOption.selected = false;
+            // Attempt to clear existing options in child dropdown explicitly
+            const modeloMetodoContainer = document.getElementById('modelo-metodo-options-container');
+            if (modeloMetodoContainer) {
+                const modeloSelect = modeloMetodoContainer.querySelector('select'); // More robust way to find it
+                if (modeloSelect) {
+                    modeloSelect.innerHTML = ''; // Clear its options
+                    console.log('[initMetodoCalculoSection] Cleared options for modelo-metodo-select.');
                 }
-                selectElement.appendChild(optionElement);
-            });
-        }
-
-        selectElement.addEventListener('change', (event) => {
-            const selectedValue = event.target.value;
-            if (selectedValue && selectedValue !== '') {
-                userSelections.metodoCalculoRadiacion = selectedValue;
-            } else {
-                userSelections.metodoCalculoRadiacion = null;
             }
-            saveUserSelections();
-            console.log('Método de cálculo seleccionado:', userSelections.metodoCalculoRadiacion);
+
+            saveUserSelections(); // Save the nulled modeloMetodoRadiacion
+
+            // Re-initialize the modeloMetodoSection to reflect filtered options
+            if (typeof initModeloMetodoSection === 'function') {
+                initModeloMetodoSection();
+            } else {
+                console.error('[initMetodoCalculoSection] initModeloMetodoSection function is not defined and cannot be called.');
+            }
         });
 
         container.appendChild(selectElement);
@@ -904,52 +851,102 @@ async function initMetodoCalculoSection() {
 
 // --- Nueva función para inicializar la sección de Modelo del Método ---
 async function initModeloMetodoSection() {
+    console.log('[initModeloMetodoSection] called');
     const container = document.getElementById('modelo-metodo-options-container');
+    console.log('[initModeloMetodoSection] container:', container);
+
     if (!container) {
-        console.error("Contenedor 'modelo-metodo-options-container' no encontrado.");
+        console.error("[initModeloMetodoSection] Contenedor 'modelo-metodo-options-container' no encontrado.");
         return;
     }
-    container.innerHTML = ''; // Limpiar opciones anteriores
+    container.innerHTML = '';
 
-    const selectElement = document.createElement('select');
-    selectElement.id = 'modelo-metodo-select';
-    selectElement.className = 'form-control';
+    const metodoCalculoSeleccionado = userSelections.metodoCalculoRadiacion;
+    console.log('[initModeloMetodoSection] Parent metodoCalculoSeleccionado:', metodoCalculoSeleccionado);
 
-    const placeholderOption = document.createElement('option');
-    placeholderOption.value = '';
-    placeholderOption.textContent = 'Seleccione un modelo...';
-    placeholderOption.disabled = true;
-    placeholderOption.selected = true;
-    selectElement.appendChild(placeholderOption);
+    const apiUrl = 'http://127.0.0.1:5000/api/modelo_metodo_options';
+    console.log('[initModeloMetodoSection] fetching from:', apiUrl);
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/modelo_metodo_options');
+        const response = await fetch(apiUrl);
+        console.log('[initModeloMetodoSection] response status:', response.status);
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[initModeloMetodoSection] Response not OK. Status:', response.status, 'Text:', errorText);
             throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
-        const data = await response.json(); // Expected: ["Modelo X", "Modelo Y"]
+        const allModelOptions = await response.json();
+        console.log('[initModeloMetodoSection] allModelOptions received:', allModelOptions);
 
-        if (!Array.isArray(data)) {
-            console.error('[MODELO METODO OPTIONS LOAD ERROR] Data received is not an array:', data);
-            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para modelo del método.</p>';
+        if (!Array.isArray(allModelOptions)) {
+            console.error('[initModeloMetodoSection] Data is not an array:', allModelOptions);
+            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto.</p>';
             return;
         }
 
-        if (data.length === 0) {
-            console.log('[MODELO METODO OPTIONS LOAD] No hay opciones de modelo del método disponibles.');
-            // selectElement will only have the placeholder.
+        let filteredData = [];
+        let autoSelectModel = null;
+
+        if (metodoCalculoSeleccionado === "Cielo Isotrópico") {
+            console.log('[initModeloMetodoSection] Filtering for "Cielo Isotrópico"');
+            filteredData = allModelOptions.filter(optText => optText === "Método Liu-Jordan");
+            if (filteredData.length > 0) {
+                autoSelectModel = "Método Liu-Jordan";
+                userSelections.modeloMetodoRadiacion = autoSelectModel; // Auto-select and save
+                // saveUserSelections(); // Will be saved after populating or on change
+                console.log('[initModeloMetodoSection] Auto-selecting "Método Liu-Jordan" and updated userSelections.');
+            } else {
+                 console.warn('[initModeloMetodoSection] "Método Liu-Jordan" not found in API options for "Cielo Isotrópico".');
+                 userSelections.modeloMetodoRadiacion = null; // Ensure it's null if the expected option isn't there
+            }
+        } else { // Assumed "Cielo Anisotrópico" or any other selection
+            console.log('[initModeloMetodoSection] Filtering for other methods (excluding "Método Liu-Jordan")');
+            filteredData = allModelOptions.filter(optText => optText !== "Método Liu-Jordan");
+            // If previously "Método Liu-Jordan" was selected, it's no longer valid.
+            if (userSelections.modeloMetodoRadiacion === "Método Liu-Jordan") {
+                userSelections.modeloMetodoRadiacion = null;
+                console.log('[initModeloMetodoSection] Cleared modeloMetodoRadiacion as "Método Liu-Jordan" is not valid for current parent selection.');
+            }
+        }
+        // Ensure saveUserSelections is called if modeloMetodoRadiacion was changed due to filtering logic
+        saveUserSelections();
+        console.log('[initModeloMetodoSection] Filtered data for dropdown:', filteredData);
+
+        const selectElement = document.createElement('select');
+        selectElement.id = 'modelo-metodo-select';
+        selectElement.className = 'form-control';
+
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.textContent = 'Seleccione un modelo...';
+        placeholderOption.disabled = true;
+        selectElement.appendChild(placeholderOption);
+
+        if (filteredData.length === 0) {
+            console.log('[initModeloMetodoSection] No options available after filtering.');
         } else {
-            data.forEach(optionText => { // data is an array of strings
+            filteredData.forEach((optionText) => {
                 const optionElement = document.createElement('option');
-                optionElement.value = optionText;
+                optionElement.value = optionText; // Value and text are the same
                 optionElement.textContent = optionText;
+                console.log(`[initModeloMetodoSection] Adding option: '${optionText}'`);
 
                 if (userSelections.modeloMetodoRadiacion === optionText) {
                     optionElement.selected = true;
                     placeholderOption.selected = false;
+                    console.log('[initModeloMetodoSection] pre-selecting option:', optionText);
                 }
                 selectElement.appendChild(optionElement);
             });
+        }
+
+        if (selectElement.selectedIndex === -1 || (selectElement.options[selectElement.selectedIndex] && selectElement.options[selectElement.selectedIndex].disabled)) {
+            placeholderOption.selected = true;
+            // If placeholder is selected, ensure userSelection reflects no choice, unless autoSelectModel was set
+            if (!autoSelectModel) {
+                 userSelections.modeloMetodoRadiacion = null;
+                 // saveUserSelections(); // Already saved after filtering
+            }
         }
 
         selectElement.addEventListener('change', (event) => {
@@ -960,94 +957,20 @@ async function initModeloMetodoSection() {
                 userSelections.modeloMetodoRadiacion = null;
             }
             saveUserSelections();
-            console.log('Modelo del método seleccionado:', userSelections.modeloMetodoRadiacion);
+            console.log('[initModeloMetodoSection] Modelo del método seleccionado:', userSelections.modeloMetodoRadiacion);
         });
 
         container.appendChild(selectElement);
+        console.log('[initModeloMetodoSection] select element appended.');
 
     } catch (error) {
-        console.error('[MODELO METODO OPTIONS LOAD ERROR] Error fetching or processing modelo del método options:', error);
+        console.error('[initModeloMetodoSection] CATCH block error:', error);
         if (error.message) {
-            console.error('[MODELO METODO OPTIONS LOAD ERROR] Message:', error.message);
+            console.error('[initModeloMetodoSection] CATCH error message:', error.message);
         }
-        alert('Error al cargar las opciones de modelo del método. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
+        alert('Error al cargar las opciones de modelo del método. Intente más tarde.');
         if (container) {
-            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de modelo del método. Intente recargar o contacte a soporte.</p>';
-        }
-    }
-}
-
-// --- Nueva función para inicializar la sección de Modelo del Método ---
-async function initModeloMetodoSection() {
-    const container = document.getElementById('modelo-metodo-options-container');
-    if (!container) {
-        console.error("Contenedor 'modelo-metodo-options-container' no encontrado.");
-        return;
-    }
-    container.innerHTML = ''; // Limpiar opciones anteriores
-
-    const selectElement = document.createElement('select');
-    selectElement.id = 'modelo-metodo-select';
-    selectElement.className = 'form-control';
-
-    const placeholderOption = document.createElement('option');
-    placeholderOption.value = '';
-    placeholderOption.textContent = 'Seleccione un modelo...';
-    placeholderOption.disabled = true;
-    placeholderOption.selected = true;
-    selectElement.appendChild(placeholderOption);
-
-    try {
-        const response = await fetch('http://127.0.0.1:5000/api/modelo_metodo_options');
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.json(); // Expected: ["Modelo X", "Modelo Y"]
-
-        if (!Array.isArray(data)) {
-            console.error('[MODELO METODO OPTIONS LOAD ERROR] Data received is not an array:', data);
-            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para modelo del método.</p>';
-            return;
-        }
-
-        if (data.length === 0) {
-            console.log('[MODELO METODO OPTIONS LOAD] No hay opciones de modelo del método disponibles.');
-            // selectElement will only have the placeholder.
-        } else {
-            data.forEach(optionText => { // data is an array of strings
-                const optionElement = document.createElement('option');
-                optionElement.value = optionText;
-                optionElement.textContent = optionText;
-
-                if (userSelections.modeloMetodoRadiacion === optionText) {
-                    optionElement.selected = true;
-                    placeholderOption.selected = false;
-                }
-                selectElement.appendChild(optionElement);
-            });
-        }
-
-        selectElement.addEventListener('change', (event) => {
-            const selectedValue = event.target.value;
-            if (selectedValue && selectedValue !== '') {
-                userSelections.modeloMetodoRadiacion = selectedValue;
-            } else {
-                userSelections.modeloMetodoRadiacion = null;
-            }
-            saveUserSelections();
-            console.log('Modelo del método seleccionado:', userSelections.modeloMetodoRadiacion);
-        });
-
-        container.appendChild(selectElement);
-
-    } catch (error) {
-        console.error('[MODELO METODO OPTIONS LOAD ERROR] Error fetching or processing modelo del método options:', error);
-        if (error.message) {
-            console.error('[MODELO METODO OPTIONS LOAD ERROR] Message:', error.message);
-        }
-        alert('Error al cargar las opciones de modelo del método. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
-        if (container) {
-            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de modelo del método. Intente recargar o contacte a soporte.</p>';
+            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones.</p>';
         }
     }
 }
