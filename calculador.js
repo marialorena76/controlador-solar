@@ -581,9 +581,7 @@ async function initRotacionSection() {
 
     // Renamed and enhanced helper function
     function updateAngleFieldsVisibilityAndData(selectedText) {
-        console.log('[initRotacionSection] updateAngleFieldsVisibilityAndData received raw selectedText: "' + selectedText + '" (length: ' + (selectedText ? selectedText.length : 0) + ')');
         const cleanSelectedText = selectedText ? selectedText.trim() : "";
-        console.log('[initRotacionSection] updateAngleFieldsVisibilityAndData using cleanSelectedText: "' + cleanSelectedText + '" (length: ' + cleanSelectedText.length + ')');
 
         if (!fijoAnglesContainer || !inclinacionFormGroup || !orientacionFormGroup || !anguloInclinacionInput || !anguloOrientacionInput) {
             console.warn('[initRotacionSection] updateAngleFieldsVisibilityAndData: conditional elements not found.');
@@ -591,8 +589,7 @@ async function initRotacionSection() {
         }
 
         const isFijos = (cleanSelectedText === "Fijos");
-        const isInclinacionFijaVertical = (cleanSelectedText === "Inclinación fija, rotación sobre eje vertical");
-        console.log('[initRotacionSection] Condition check - isFijos:', isFijos, 'isInclinacionFijaVertical:', isInclinacionFijaVertical);
+        const isInclinacionFijaVertical = (cleanSelectedText === "Inclinación fija, rotación sobre un eje vertical");
 
         if (isFijos) {
             fijoAnglesContainer.style.display = 'block';
@@ -600,7 +597,7 @@ async function initRotacionSection() {
             orientacionFormGroup.style.display = 'block';
             if (userSelections.anguloInclinacion !== null) anguloInclinacionInput.value = userSelections.anguloInclinacion; else anguloInclinacionInput.value = '';
             if (userSelections.anguloOrientacion !== null) anguloOrientacionInput.value = userSelections.anguloOrientacion; else anguloOrientacionInput.value = '';
-            console.log('[initRotacionSection] "Fijos" selected. Both angle fields shown.');
+            // console.log('[initRotacionSection] "Fijos" selected. Both angle fields shown.');
         } else if (isInclinacionFijaVertical) {
             fijoAnglesContainer.style.display = 'block';
             inclinacionFormGroup.style.display = 'block';
@@ -611,10 +608,9 @@ async function initRotacionSection() {
             if (userSelections.anguloOrientacion !== null) {
                 userSelections.anguloOrientacion = null;
                 anguloOrientacionInput.value = '';
-                // saveUserSelections(); // Will be saved by the main change listener
-                console.log('[initRotacionSection] "Inclinación fija, rotación sobre eje vertical" selected. Orientation field hidden and data cleared.');
+                // console.log('[initRotacionSection] "Inclinación fija, rotación sobre eje vertical" selected. Orientation field hidden and data cleared.');
             } else {
-                 console.log('[initRotacionSection] "Inclinación fija, rotación sobre eje vertical" selected. Orientation field hidden.');
+                // console.log('[initRotacionSection] "Inclinación fija, rotación sobre eje vertical" selected. Orientation field hidden.');
             }
         } else { // All other options
             fijoAnglesContainer.style.display = 'none';
@@ -631,10 +627,9 @@ async function initRotacionSection() {
                 changed = true;
             }
             if (changed) {
-                // saveUserSelections(); // Will be saved by the main change listener
-                console.log('[initRotacionSection] Non-angle rotation selected. Angle fields hidden and data cleared.');
+                // console.log('[initRotacionSection] Non-angle rotation selected. Angle fields hidden and data cleared.');
             } else {
-                 console.log('[initRotacionSection] Non-angle rotation selected. Angle fields hidden.');
+                // console.log('[initRotacionSection] Non-angle rotation selected. Angle fields hidden.');
             }
         }
     }
