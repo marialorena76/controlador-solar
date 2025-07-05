@@ -736,6 +736,162 @@ def get_frecuencia_lluvias_options():
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor al obtener opciones de frecuencia lluvias: {str(e)}"}), 500
 
+# --- NUEVA RUTA: Para verificar la ciudad ---
+@app.route('/api/verificar_ciudad', methods=['POST'])
+def verificar_ciudad():
+    try:
+        data = request.get_json()
+        if not data or 'ciudad' not in data:
+            return jsonify({"error": "No se proporcionó el nombre de la ciudad."}), 400
+
+        ciudad_recibida = data['ciudad']
+        # Normalización simple: a minúsculas. Se pueden añadir más reglas (quitar acentos, etc.)
+        ciudad_recibida_normalizada = str(ciudad_recibida).strip().lower()
+
+        print(f"DEBUG: Solicitud a /api/verificar_ciudad. Ciudad recibida normalizada: '{ciudad_recibida_normalizada}'")
+
+        # Construir la ruta completa al archivo Excel
+        # __file__ es la ruta del script actual (backend.py)
+        # os.path.dirname(__file__) es el directorio 'backend'
+        # os.path.join(...) construye la ruta de forma segura
+        excel_path_completa = os.path.join(os.path.dirname(__file__), EXCEL_FILE_PATH)
+        
+        if not os.path.exists(excel_path_completa):
+            print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO en la ruta esperada: {excel_path_completa}")
+            # Intentar una ruta alternativa si EXCEL_FILE_PATH ya es solo el nombre del archivo y está en 'backend/'
+            if not os.path.dirname(EXCEL_FILE_PATH): # Si EXCEL_FILE_PATH es solo un nombre de archivo
+                alt_excel_path = os.path.join(os.path.dirname(__file__), EXCEL_FILE_PATH)
+                if os.path.exists(alt_excel_path):
+                    excel_path_completa = alt_excel_path
+                    print(f"DEBUG: Usando ruta alternativa para Excel: {excel_path_completa}")
+                else: # Si EXCEL_FILE_PATH tiene una ruta, y esa no existe, probamos solo el nombre en el dir actual
+                    alt_excel_path_2 = EXCEL_FILE_PATH 
+                    if os.path.exists(alt_excel_path_2) and os.path.dirname(alt_excel_path_2) == os.path.dirname(__file__):
+                         excel_path_completa = alt_excel_path_2
+                         print(f"DEBUG: Usando ruta alternativa 2 (nombre archivo en dir backend) para Excel: {excel_path_completa}")
+                    else:
+                        print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO en {excel_path_completa} ni en {alt_excel_path} ni como {alt_excel_path_2} en el directorio del backend.")
+                        return jsonify({"error": f"Archivo Excel de configuración no encontrado en el servidor. Ruta intentada: {excel_path_completa}"}), 500
+            else: # Si EXCEL_FILE_PATH ya tenía una ruta pero no se encontró
+                 print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO en la ruta especificada en EXCEL_FILE_PATH: {excel_path_completa}")
+                 return jsonify({"error": f"Archivo Excel de configuración no encontrado en el servidor (ruta desde var). Ruta intentada: {excel_path_completa}"}), 500
+
+
+        df_ciudades = pd.read_excel(excel_path_completa, sheet_name='Ciudades', engine='openpyxl')
+        print(f"DEBUG: Hoja 'Ciudades' leída desde: {excel_path_completa}")
+
+        # Asumir que la columna con nombres de ciudades se llama 'Nombre Ciudad' o 'Localidades'.
+        # Necesitas confirmar el nombre exacto de la columna en tu archivo Excel.
+        # Intentaremos con algunos nombres comunes.
+        columna_ciudades_excel = None
+        possible_column_names = ['Ciudad', 'Localidad', 'Nombre', 'Ciudades', 'NOMBRE CIUDAD', 'Localidades'] # Añade más si es necesario
+        
+        for col_name_candidate in possible_column_names:
+            if col_name_candidate in df_ciudades.columns:
+                columna_ciudades_excel = col_name_candidate
+                break
+        
+        if columna_ciudades_excel is None:
+            print(f"ERROR: No se encontró una columna de ciudades esperada en la hoja 'Ciudades'. Columnas disponibles: {list(df_ciudades.columns)}")
+            return jsonify({"error": "No se pudo identificar la columna de ciudades en el archivo Excel."}), 500
+            
+        print(f"DEBUG: Usando columna '{columna_ciudades_excel}' para la lista de ciudades.")
+
+        # Normalizar las ciudades del Excel y verificar existencia
+        ciudades_en_excel_normalizadas = df_ciudades[columna_ciudades_excel].astype(str).str.strip().str.lower().tolist()
+        
+        ciudad_encontrada = ciudad_recibida_normalizada in ciudades_en_excel_normalizadas
+
+        if ciudad_encontrada:
+            print(f"DEBUG: Ciudad '{ciudad_recibida_normalizada}' ENCONTRADA en la lista del Excel.")
+        else:
+            print(f"DEBUG: Ciudad '{ciudad_recibida_normalizada}' NO ENCONTRADA en la lista del Excel.")
+            # Opcional: Loguear algunas ciudades del Excel para depuración si no se encuentra
+            # print(f"DEBUG: Primeras ciudades en Excel (normalizadas): {ciudades_en_excel_normalizadas[:5]}")
+
+
+        return jsonify({
+            "ciudad_encontrada": ciudad_encontrada,
+            "ciudad_buscada": ciudad_recibida_normalizada
+        })
+
+    except FileNotFoundError:
+        # Esto podría ser redundante si el chequeo de os.path.exists ya lo cubrió, pero es una salvaguarda.
+        print(f"ERROR CRITICO (catch FileNotFoundError): Archivo Excel no encontrado. EXCEL_FILE_PATH='{EXCEL_FILE_PATH}', calculada='{excel_path_completa if 'excel_path_completa' in locals() else 'no_calculada'}'")
+        return jsonify({"error": "Archivo Excel de configuración no encontrado en el servidor."}), 500
+    except KeyError as e:
+        # Esto puede ocurrir si la hoja 'Ciudades' no existe o la columna esperada no está.
+        print(f"ERROR en /api/verificar_ciudad: Hoja 'Ciudades' o columna relevante no encontrada. Error: {e}")
+        return jsonify({"error": f"Error de clave al leer la hoja de cálculo (¿nombre de hoja o columna incorrecto?): {e}"}), 500
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/verificar_ciudad: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno del servidor al verificar la ciudad: {str(e)}"}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+# --- NUEVO ENDPOINT PARA GEOCODIFICACIÓN ---
+from geopy.geocoders import Nominatim
+# Considerar añadir 'import openpyxl' si no está ya importado globalmente y es necesario para la escritura más adelante.
+# import openpyxl 
+
+@app.route('/api/geocode', methods=['POST'])
+def geocode_address():
+    try:
+        data = request.get_json()
+        if not data or 'direccion' not in data:
+            return jsonify({"success": False, "error": "No se proporcionó la dirección."}), 400
+
+        direccion_texto = data['direccion']
+        print(f"DEBUG: Recibida solicitud a /api/geocode con dirección: '{direccion_texto}'")
+
+        geolocator = Nominatim(user_agent="calculador_solar_app_v1", timeout=10)
+        location = geolocator.geocode(direccion_texto, addressdetails=True) # addressdetails=True es crucial
+
+        if location:
+            print(f"DEBUG: Dirección encontrada por Nominatim: {location.address}")
+            print(f"DEBUG: Raw data de Nominatim: {location.raw}")
+
+            lat = location.latitude
+            lng = location.longitude
+            direccion_formateada = location.address
+            
+            ciudad_identificada = "No identificada"
+            raw_address_components = location.raw.get('address', {})
+
+            # Prioridad para extraer ciudad/localidad
+            if 'city' in raw_address_components:
+                ciudad_identificada = raw_address_components['city']
+            elif 'town' in raw_address_components:
+                ciudad_identificada = raw_address_components['town']
+            elif 'village' in raw_address_components:
+                ciudad_identificada = raw_address_components['village']
+            elif 'county' in raw_address_components: # A veces el partido/county puede ser relevante si no hay ciudad
+                ciudad_identificada = raw_address_components['county']
+            # Podríamos añadir una lógica más sofisticada aquí si la ciudad viene en el 'display_name' o 'address'
+            # y no en un componente específico. Por ejemplo, si el usuario ingresa "Calle Falsa 123, Springfield"
+            # y Nominatim no lo desglosa bien, podríamos intentar parsear la entrada original.
+            # Por ahora, nos basamos en los componentes de 'raw.address'.
+
+            print(f"DEBUG: Ciudad identificada por el backend desde Nominatim: '{ciudad_identificada}'")
+
+            return jsonify({
+                "success": True,
+                "lat": lat,
+                "lng": lng,
+                "direccion_formateada": direccion_formateada,
+                "ciudad": ciudad_identificada,
+                "raw_address_components": raw_address_components # Para depuración en frontend si es necesario
+            })
+        else:
+            print(f"WARN: Dirección '{direccion_texto}' no encontrada por Nominatim.")
+            return jsonify({"success": False, "error": "Dirección no encontrada por el servicio de geocodificación."}), 404
+
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/geocode: {e}")
+        print(traceback.format_exc())
+        return jsonify({"success": False, "error": f"Error interno del servidor durante la geocodificación: {str(e)}"}), 500
