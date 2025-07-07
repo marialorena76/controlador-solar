@@ -1059,7 +1059,7 @@ footer {
 /* Styling for items within the accordion if needed, e.g., appliance rows */
 .acordeon-items .form-group-energia {
   /* Example: Adjust margin or padding if necessary for items within accordion */
-  margin-bottom: 8px;
+  margin-bottom: 8px; 
 }
 
 .acordeon-items .form-group-energia:last-child {
