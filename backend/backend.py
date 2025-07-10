@@ -501,14 +501,21 @@ def get_metodo_calculo_options():
                 break
 
             valor_celda = df_tablas.iloc[r_idx, col_idx]
+            texto_opcion = str(valor_celda).strip()
 
-            if pd.isna(valor_celda) or str(valor_celda).strip() == "":
+            if pd.isna(valor_celda) or texto_opcion == "":
                 print(f"DEBUG: Fila {r_idx+1}, Columna I omitida por valor NaN o vacío para método de cálculo.")
                 continue
 
-            metodo_options_lista.append(str(valor_celda).strip())
+            # Si el valor leído del Excel es "Modelo Liu-Jordan" (y se espera que sea un método de cálculo),
+            # lo reemplazamos por "Cielo Isotrópico" para el frontend.
+            if texto_opcion == "Modelo Liu-Jordan":
+                metodo_options_lista.append("Cielo Isotrópico")
+                print(f"DEBUG: Reemplazado '{texto_opcion}' con 'Cielo Isotrópico' para el frontend.")
+            else:
+                metodo_options_lista.append(texto_opcion)
 
-        print(f"DEBUG: Total opciones de método de cálculo leídas de 'Tablas' I{fila_inicio_idx+1}:I{fila_fin_idx+1}: {len(metodo_options_lista)}")
+        print(f"DEBUG: Total opciones de método de cálculo (post-procesamiento) leídas de 'Tablas' I{fila_inicio_idx+1}:I{fila_fin_idx+1}: {len(metodo_options_lista)}")
         return jsonify(metodo_options_lista)
 
     except FileNotFoundError:

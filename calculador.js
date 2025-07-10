@@ -773,6 +773,7 @@ async function initMetodoCalculoSection() {
             throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
         const data = await response.json(); // Expected: ["Método A", "Método B"]
+        console.log('Opciones para Método de Cálculo RECIBIDAS del API:', data); // DEBUGGING LOG
 
         if (!Array.isArray(data)) {
             console.error('[METODO CALCULO OPTIONS LOAD ERROR] Data received is not an array:', data);
@@ -857,7 +858,7 @@ async function initModeloMetodoSection() {
     container.innerHTML = '';
 
     const metodoCalculoSeleccionado = userSelections.metodoCalculoRadiacion;
-    console.log('[initModeloMetodoSection] Parent metodoCalculoSeleccionado:', metodoCalculoSeleccionado);
+    console.log('[initModeloMetodoSection] Parent metodoCalculoSeleccionado (valor usado para filtrar):', metodoCalculoSeleccionado); // DEBUGGING LOG
 
     const apiUrl = 'http://127.0.0.1:5000/api/modelo_metodo_options';
     console.log('[initModeloMetodoSection] fetching from:', apiUrl);
@@ -871,7 +872,7 @@ async function initModeloMetodoSection() {
             throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
         const allModelOptions = await response.json();
-        console.log('[initModeloMetodoSection] allModelOptions received:', allModelOptions);
+        console.log('[initModeloMetodoSection] allModelOptions received from API:', allModelOptions); // DEBUGGING LOG
 
         if (!Array.isArray(allModelOptions)) {
             console.error('[initModeloMetodoSection] Data is not an array:', allModelOptions);
@@ -887,15 +888,18 @@ async function initModeloMetodoSection() {
             filteredData = allModelOptions.filter(optText => optText === "Método Liu-Jordan");
             if (filteredData.length > 0) {
                 autoSelectModel = "Método Liu-Jordan";
-                userSelections.modeloMetodoRadiacion = autoSelectModel; // Auto-select and save
-                // saveUserSelections(); // Will be saved after populating or on change
-                console.log('[initModeloMetodoSection] Auto-selecting "Método Liu-Jordan" and updated userSelections.');
+                console.log('[initModeloMetodoSection] "Método Liu-Jordan" encontrado en API y auto-seleccionado para Cielo Isotrópico.');
             } else {
-                 console.warn('[initModeloMetodoSection] "Método Liu-Jordan" not found in API options for "Cielo Isotrópico".');
-                 userSelections.modeloMetodoRadiacion = null; // Ensure it's null if the expected option isn't there
+                 // Si "Método Liu-Jordan" NO vino de la API de modelos, pero el método es "Cielo Isotrópico",
+                 // lo forzamos como la única opción.
+                 console.warn('[initModeloMetodoSection] "Método Liu-Jordan" NO fue encontrado en las opciones de la API de modelos para "Cielo Isotrópico".');
+                 console.log('[initModeloMetodoSection] Forzando "Método Liu-Jordan" como única opción de modelo.');
+                 filteredData = ["Método Liu-Jordan"]; // Forzar la opción
+                 autoSelectModel = "Método Liu-Jordan";
             }
+            userSelections.modeloMetodoRadiacion = autoSelectModel; // Auto-select and save
         } else { // Assumed "Cielo Anisotrópico" or any other selection
-            console.log('[initModeloMetodoSection] Filtering for other methods (excluding "Método Liu-Jordan")');
+            console.log('[initModeloMetodoSection] Filtering for other methods (excluding "Método Liu-Jordan" o si el método no es Cielo Isotrópico)');
             filteredData = allModelOptions.filter(optText => optText !== "Método Liu-Jordan");
             // If previously "Método Liu-Jordan" was selected, it's no longer valid.
             if (userSelections.modeloMetodoRadiacion === "Método Liu-Jordan") {
