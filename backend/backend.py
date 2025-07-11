@@ -483,33 +483,46 @@ def get_metodo_calculo_options():
         print("DEBUG: Hoja 'Tablas' leída para opciones de método de cálculo.")
 
         col_idx = 8  # Columna I
-        # Filas Excel 18 a 19 -> iloc 17 a 18
-        fila_inicio_idx = 17 # Fila 18 en Excel
-        fila_fin_idx = 18    # Fila 19 en Excel
+        # Filas Excel 18 (Anisotrópico) y 19 (Isotrópico)
+        col_idx = 8  # Columna I
+        fila_anisotropico_idx = 17 # Celda I18 para "Cielo Anisotrópico"
+        fila_isotropico_idx = 18   # Celda I19 para "Cielo Isotrópico" (que actualmente podría tener "Modelo Liu-Jordan")
 
-        metodo_options_lista = []
+        opciones_finales = []
         max_filas_df = df_tablas.shape[0]
         max_cols_df = df_tablas.shape[1]
 
-        if col_idx >= max_cols_df:
-            print(f"WARN: Columna I ({col_idx}) fuera de límites (hoja 'Tablas' tiene {max_cols_df} columnas).")
-            return jsonify({"error": "Definición de columna para método de cálculo fuera de los límites de la hoja."}), 500
+        # Leer Cielo Anisotrópico (asumimos que I18 es correcto o deseado "Cielo Anisotrópico")
+        if fila_anisotropico_idx < max_filas_df and col_idx < max_cols_df:
+            valor_anisotropico_excel = str(df_tablas.iloc[fila_anisotropico_idx, col_idx]).strip()
+            if valor_anisotropico_excel and not pd.isna(df_tablas.iloc[fila_anisotropico_idx, col_idx]):
+                # Usar el valor del Excel si es "Cielo Anisotrópico", sino usar el default.
+                if valor_anisotropico_excel.lower() == "cielo anisotrópico":
+                    opciones_finales.append(valor_anisotropico_excel)
+                else:
+                    opciones_finales.append("Cielo Anisotrópico")
+                    print(f"INFO: Celda I{fila_anisotropico_idx+1} contiene '{valor_anisotropico_excel}', usando 'Cielo Anisotrópico' por defecto.")
+            else:
+                opciones_finales.append("Cielo Anisotrópico") # Fallback si está vacío
+                print(f"WARN: Celda I{fila_anisotropico_idx+1} vacía para Cielo Anisotrópico, usando valor por defecto.")
+        else:
+            opciones_finales.append("Cielo Anisotrópico") # Fallback si la celda no existe
+            print(f"WARN: Celda I{fila_anisotropico_idx+1} fuera de rango, usando valor por defecto para Cielo Anisotrópico.")
 
-        for r_idx in range(fila_inicio_idx, fila_fin_idx + 1): # +1 para incluir fila_fin_idx
-            if r_idx >= max_filas_df:
-                print(f"WARN: Fila {r_idx+1} para método de cálculo fuera de límites (hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida.")
-                break
+        # Forzar "Cielo Isotrópico" como la segunda opción.
+        opcion_isotropico_deseada = "Cielo Isotrópico"
+        opciones_finales.append(opcion_isotropico_deseada)
+        
+        # Loguear lo que se leyó de I19 para informar al usuario si difiere y recomendar corrección del Excel.
+        if fila_isotropico_idx < max_filas_df and col_idx < max_cols_df:
+            valor_celda_I19 = str(df_tablas.iloc[fila_isotropico_idx, col_idx]).strip()
+            if valor_celda_I19.lower() != opcion_isotropico_deseada.lower() and valor_celda_I19: # No loguear si está vacía
+                print(f"INFO: Celda I{fila_isotropico_idx+1} del Excel contiene '{valor_celda_I19}'. La API devolverá '{opcion_isotropico_deseada}' para consistencia. Se recomienda corregir el Excel.")
+        else:
+             print(f"WARN: Celda I{fila_isotropico_idx+1} (esperada para Cielo Isotrópico) fuera de rango. Se usará '{opcion_isotropico_deseada}'.")
 
-            valor_celda = df_tablas.iloc[r_idx, col_idx]
-
-            if pd.isna(valor_celda) or str(valor_celda).strip() == "":
-                print(f"DEBUG: Fila {r_idx+1}, Columna I omitida por valor NaN o vacío para método de cálculo.")
-                continue
-
-            metodo_options_lista.append(str(valor_celda).strip())
-
-        print(f"DEBUG: Total opciones de método de cálculo leídas de 'Tablas' I{fila_inicio_idx+1}:I{fila_fin_idx+1}: {len(metodo_options_lista)}")
-        return jsonify(metodo_options_lista)
+        print(f"DEBUG: Opciones de método de cálculo finales enviadas al frontend: {opciones_finales}")
+        return jsonify(opciones_finales)
 
     except FileNotFoundError:
         print(f"ERROR en /api/metodo_calculo_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
@@ -736,162 +749,126 @@ def get_frecuencia_lluvias_options():
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor al obtener opciones de frecuencia lluvias: {str(e)}"}), 500
 
-# --- NUEVA RUTA: Para verificar la ciudad ---
-@app.route('/api/verificar_ciudad', methods=['POST'])
-def verificar_ciudad():
+# --- Función de Normalización de Texto ---
+def normalizar_texto(texto):
+    if texto is None:
+        return ""
+    texto = texto.lower().strip()
+    # Reemplazos para vocales acentuadas y diéresis comunes en español
+    reemplazos = {
+        'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
+        'ä': 'a', 'ë': 'e', 'ï': 'i', 'ö': 'o', 'ü': 'u', # Considerar si 'ü' debe ser 'u' o 'ue'
+        'à': 'a', 'è': 'e', 'ì': 'i', 'ò': 'o', 'ù': 'u'  # Acentos graves, menos comunes en español pero por si acaso
+        # Podrían añadirse más reemplazos si es necesario (ej. ñ -> n, aunque esto es debatible)
+    }
+    for acentuada, sin_acento in reemplazos.items():
+        texto = texto.replace(acentuada, sin_acento)
+    return texto
+
+# --- NUEVA RUTA: Para buscar ciudad y obtener código ---
+@app.route('/api/buscar_ciudad', methods=['POST'])
+def buscar_ciudad():
+    data = request.json
+    ciudad_buscada = data.get('ciudad')
+
+    if not ciudad_buscada:
+        return jsonify({"error": "Nombre de ciudad no proporcionado."}), 400
+
     try:
-        data = request.get_json()
-        if not data or 'ciudad' not in data:
-            return jsonify({"error": "No se proporcionó el nombre de la ciudad."}), 400
+        print(f"DEBUG: Solicitud a /api/buscar_ciudad para: {ciudad_buscada}")
+        # Leer la hoja 'Ciudades', columnas A (código) y B (nombre)
+        # Column A is index 0, Column B is index 1
+        # Filas Excel 2 a 1990 -> iloc 1 a 1989
+        df_ciudades = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Ciudades', usecols="A,B", header=None, skiprows=1, names=['codigo', 'ciudad_nombre'], engine='openpyxl')
+        print(f"DEBUG: Hoja 'Ciudades' leída. Total filas: {len(df_ciudades)}")
 
-        ciudad_recibida = data['ciudad']
-        # Normalización simple: a minúsculas. Se pueden añadir más reglas (quitar acentos, etc.)
-        ciudad_recibida_normalizada = str(ciudad_recibida).strip().lower()
-
-        print(f"DEBUG: Solicitud a /api/verificar_ciudad. Ciudad recibida normalizada: '{ciudad_recibida_normalizada}'")
-
-        # Construir la ruta completa al archivo Excel
-        # __file__ es la ruta del script actual (backend.py)
-        # os.path.dirname(__file__) es el directorio 'backend'
-        # os.path.join(...) construye la ruta de forma segura
-        excel_path_completa = os.path.join(os.path.dirname(__file__), EXCEL_FILE_PATH)
+        ciudad_buscada_normalizada = normalizar_texto(ciudad_buscada)
         
-        if not os.path.exists(excel_path_completa):
-            print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO en la ruta esperada: {excel_path_completa}")
-            # Intentar una ruta alternativa si EXCEL_FILE_PATH ya es solo el nombre del archivo y está en 'backend/'
-            if not os.path.dirname(EXCEL_FILE_PATH): # Si EXCEL_FILE_PATH es solo un nombre de archivo
-                alt_excel_path = os.path.join(os.path.dirname(__file__), EXCEL_FILE_PATH)
-                if os.path.exists(alt_excel_path):
-                    excel_path_completa = alt_excel_path
-                    print(f"DEBUG: Usando ruta alternativa para Excel: {excel_path_completa}")
-                else: # Si EXCEL_FILE_PATH tiene una ruta, y esa no existe, probamos solo el nombre en el dir actual
-                    alt_excel_path_2 = EXCEL_FILE_PATH 
-                    if os.path.exists(alt_excel_path_2) and os.path.dirname(alt_excel_path_2) == os.path.dirname(__file__):
-                         excel_path_completa = alt_excel_path_2
-                         print(f"DEBUG: Usando ruta alternativa 2 (nombre archivo en dir backend) para Excel: {excel_path_completa}")
-                    else:
-                        print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO en {excel_path_completa} ni en {alt_excel_path} ni como {alt_excel_path_2} en el directorio del backend.")
-                        return jsonify({"error": f"Archivo Excel de configuración no encontrado en el servidor. Ruta intentada: {excel_path_completa}"}), 500
-            else: # Si EXCEL_FILE_PATH ya tenía una ruta pero no se encontró
-                 print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO en la ruta especificada en EXCEL_FILE_PATH: {excel_path_completa}")
-                 return jsonify({"error": f"Archivo Excel de configuración no encontrado en el servidor (ruta desde var). Ruta intentada: {excel_path_completa}"}), 500
-
-
-        df_ciudades = pd.read_excel(excel_path_completa, sheet_name='Ciudades', engine='openpyxl')
-        print(f"DEBUG: Hoja 'Ciudades' leída desde: {excel_path_completa}")
-
-        # Asumir que la columna con nombres de ciudades se llama 'Nombre Ciudad' o 'Localidades'.
-        # Necesitas confirmar el nombre exacto de la columna en tu archivo Excel.
-        # Intentaremos con algunos nombres comunes.
-        columna_ciudades_excel = None
-        possible_column_names = ['Ciudad', 'Localidad', 'Nombre', 'Ciudades', 'NOMBRE CIUDAD', 'Localidades'] # Añade más si es necesario
-        
-        for col_name_candidate in possible_column_names:
-            if col_name_candidate in df_ciudades.columns:
-                columna_ciudades_excel = col_name_candidate
-                break
-        
-        if columna_ciudades_excel is None:
-            print(f"ERROR: No se encontró una columna de ciudades esperada en la hoja 'Ciudades'. Columnas disponibles: {list(df_ciudades.columns)}")
-            return jsonify({"error": "No se pudo identificar la columna de ciudades en el archivo Excel."}), 500
+        # Iterar para encontrar la ciudad
+        for index, row in df_ciudades.iterrows():
+            nombre_excel_original = str(row['ciudad_nombre'])
+            nombre_excel_normalizado = normalizar_texto(nombre_excel_original)
             
-        print(f"DEBUG: Usando columna '{columna_ciudades_excel}' para la lista de ciudades.")
+            # Log para depuración si se encuentra una ciudad que contenga la buscada (antes de la igualdad exacta)
+            # Esto ayuda a ver si la normalización funciona o si hay otras diferencias.
+            # if ciudad_buscada_normalizada in nombre_excel_normalizado or nombre_excel_normalizado in ciudad_buscada_normalizada :
+            #     print(f"DEBUG Excel check: Original='{nombre_excel_original}', NormalizadoExcel='{nombre_excel_normalizado}', BuscadoNormalizado='{ciudad_buscada_normalizada}'")
 
-        # Normalizar las ciudades del Excel y verificar existencia
-        ciudades_en_excel_normalizadas = df_ciudades[columna_ciudades_excel].astype(str).str.strip().str.lower().tolist()
-        
-        ciudad_encontrada = ciudad_recibida_normalizada in ciudades_en_excel_normalizadas
+            if nombre_excel_normalizado == ciudad_buscada_normalizada:
+                codigo_encontrado = row['codigo']
+                print(f"DEBUG: Ciudad '{ciudad_buscada}' (normalizada como '{ciudad_buscada_normalizada}') encontrada. Código: {codigo_encontrado}. Original Excel: '{nombre_excel_original}'")
+                return jsonify({"codigo_ciudad": codigo_encontrado, "message": "Ciudad encontrada."}), 200
 
-        if ciudad_encontrada:
-            print(f"DEBUG: Ciudad '{ciudad_recibida_normalizada}' ENCONTRADA en la lista del Excel.")
-        else:
-            print(f"DEBUG: Ciudad '{ciudad_recibida_normalizada}' NO ENCONTRADA en la lista del Excel.")
-            # Opcional: Loguear algunas ciudades del Excel para depuración si no se encuentra
-            # print(f"DEBUG: Primeras ciudades en Excel (normalizadas): {ciudades_en_excel_normalizadas[:5]}")
-
-
-        return jsonify({
-            "ciudad_encontrada": ciudad_encontrada,
-            "ciudad_buscada": ciudad_recibida_normalizada
-        })
+        print(f"WARN: Ciudad '{ciudad_buscada}' (normalizada como '{ciudad_buscada_normalizada}') no encontrada en la hoja 'Ciudades'.")
+        # Devolver 200 OK, pero con codigo_ciudad: null para indicar que no se encontró
+        return jsonify({"codigo_ciudad": None, "message": f"Ciudad '{ciudad_buscada}' no encontrada."}), 200
 
     except FileNotFoundError:
-        # Esto podría ser redundante si el chequeo de os.path.exists ya lo cubrió, pero es una salvaguarda.
-        print(f"ERROR CRITICO (catch FileNotFoundError): Archivo Excel no encontrado. EXCEL_FILE_PATH='{EXCEL_FILE_PATH}', calculada='{excel_path_completa if 'excel_path_completa' in locals() else 'no_calculada'}'")
-        return jsonify({"error": "Archivo Excel de configuración no encontrado en el servidor."}), 500
+        print(f"ERROR en /api/buscar_ciudad: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 500
     except KeyError as e:
-        # Esto puede ocurrir si la hoja 'Ciudades' no existe o la columna esperada no está.
-        print(f"ERROR en /api/verificar_ciudad: Hoja 'Ciudades' o columna relevante no encontrada. Error: {e}")
-        return jsonify({"error": f"Error de clave al leer la hoja de cálculo (¿nombre de hoja o columna incorrecto?): {e}"}), 500
+        print(f"ERROR en /api/buscar_ciudad: Hoja 'Ciudades' o columnas A/B no encontradas? Error: {e}")
+        return jsonify({"error": f"Error de clave al leer la hoja de cálculo para ciudades: {e}"}), 500
     except Exception as e:
         import traceback
-        print(f"ERROR GENERAL en /api/verificar_ciudad: {e}")
+        print(f"ERROR GENERAL en /api/buscar_ciudad: {e}")
         print(traceback.format_exc())
-        return jsonify({"error": f"Error interno del servidor al verificar la ciudad: {str(e)}"}), 500
+        return jsonify({"error": f"Error interno del servidor al buscar ciudad: {str(e)}"}), 500
 
+# --- NUEVA RUTA: Para escribir un dato en una celda específica del Excel ---
+@app.route('/api/escribir_dato_excel', methods=['POST'])
+def escribir_dato_excel():
+    data = request.json
+    dato_a_escribir = data.get('dato')
+    hoja_destino = data.get('hoja')
+    celda_destino = data.get('celda') # Ej: "B7"
+
+    if dato_a_escribir is None or not hoja_destino or not celda_destino: # None check for dato_a_escribir
+        return jsonify({"error": "Faltan datos: 'dato', 'hoja' o 'celda' no proporcionados."}), 400
+
+    try:
+        print(f"DEBUG: Solicitud a /api/escribir_dato_excel. Dato: {dato_a_escribir}, Hoja: {hoja_destino}, Celda: {celda_destino}")
+        
+        # Usar openpyxl para leer y escribir para preservar el archivo existente tanto como sea posible
+        import openpyxl
+        
+        # Verificar si el archivo existe
+        if not os.path.exists(EXCEL_FILE_PATH):
+            print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO para escritura: {EXCEL_FILE_PATH}")
+            return jsonify({"error": f"Archivo Excel '{EXCEL_FILE_PATH}' no encontrado en el servidor."}), 500
+
+        workbook = openpyxl.load_workbook(EXCEL_FILE_PATH)
+        
+        if hoja_destino not in workbook.sheetnames:
+            print(f"ERROR: Hoja '{hoja_destino}' no encontrada en el archivo Excel.")
+            return jsonify({"error": f"Hoja '{hoja_destino}' no encontrada."}), 400
+            
+        sheet = workbook[hoja_destino]
+        
+        # Validar la celda (simple validación de formato, openpyxl maneja errores de celda inválida)
+        if not isinstance(celda_destino, str) or not celda_destino:
+             print(f"ERROR: Formato de celda inválido: {celda_destino}")
+             return jsonify({"error": "Formato de celda inválido."}), 400
+
+        sheet[celda_destino] = dato_a_escribir
+        
+        workbook.save(EXCEL_FILE_PATH)
+        print(f"DEBUG: Dato '{dato_a_escribir}' escrito en Hoja '{hoja_destino}', Celda '{celda_destino}' exitosamente.")
+        
+        return jsonify({"message": f"Dato '{dato_a_escribir}' escrito correctamente en {hoja_destino}!{celda_destino}."})
+
+    except FileNotFoundError: # Aunque ya chequeamos arriba, por si acaso durante el load_workbook
+        print(f"ERROR en /api/escribir_dato_excel: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel de configuración no encontrado durante la operación."}), 500
+    except KeyError as e: # Podría ser por hoja_destino si el chequeo inicial falla de alguna forma
+        print(f"ERROR en /api/escribir_dato_excel: Hoja '{hoja_destino}' no encontrada? Error: {e}")
+        return jsonify({"error": f"Error de clave, Hoja '{hoja_destino}' no encontrada: {e}"}), 400
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/escribir_dato_excel: {e}")
+        print(traceback.format_exc())
+        # Evitar exponer detalles internos en el mensaje de error al cliente
+        return jsonify({"error": "Error interno del servidor al intentar escribir en el archivo Excel."}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-# --- NUEVO ENDPOINT PARA GEOCODIFICACIÓN ---
-from geopy.geocoders import Nominatim
-# Considerar añadir 'import openpyxl' si no está ya importado globalmente y es necesario para la escritura más adelante.
-# import openpyxl 
-
-@app.route('/api/geocode', methods=['POST'])
-def geocode_address():
-    try:
-        data = request.get_json()
-        if not data or 'direccion' not in data:
-            return jsonify({"success": False, "error": "No se proporcionó la dirección."}), 400
-
-        direccion_texto = data['direccion']
-        print(f"DEBUG: Recibida solicitud a /api/geocode con dirección: '{direccion_texto}'")
-
-        geolocator = Nominatim(user_agent="calculador_solar_app_v1", timeout=10)
-        location = geolocator.geocode(direccion_texto, addressdetails=True) # addressdetails=True es crucial
-
-        if location:
-            print(f"DEBUG: Dirección encontrada por Nominatim: {location.address}")
-            print(f"DEBUG: Raw data de Nominatim: {location.raw}")
-
-            lat = location.latitude
-            lng = location.longitude
-            direccion_formateada = location.address
-            
-            ciudad_identificada = "No identificada"
-            raw_address_components = location.raw.get('address', {})
-
-            # Prioridad para extraer ciudad/localidad
-            if 'city' in raw_address_components:
-                ciudad_identificada = raw_address_components['city']
-            elif 'town' in raw_address_components:
-                ciudad_identificada = raw_address_components['town']
-            elif 'village' in raw_address_components:
-                ciudad_identificada = raw_address_components['village']
-            elif 'county' in raw_address_components: # A veces el partido/county puede ser relevante si no hay ciudad
-                ciudad_identificada = raw_address_components['county']
-            # Podríamos añadir una lógica más sofisticada aquí si la ciudad viene en el 'display_name' o 'address'
-            # y no en un componente específico. Por ejemplo, si el usuario ingresa "Calle Falsa 123, Springfield"
-            # y Nominatim no lo desglosa bien, podríamos intentar parsear la entrada original.
-            # Por ahora, nos basamos en los componentes de 'raw.address'.
-
-            print(f"DEBUG: Ciudad identificada por el backend desde Nominatim: '{ciudad_identificada}'")
-
-            return jsonify({
-                "success": True,
-                "lat": lat,
-                "lng": lng,
-                "direccion_formateada": direccion_formateada,
-                "ciudad": ciudad_identificada,
-                "raw_address_components": raw_address_components # Para depuración en frontend si es necesario
-            })
-        else:
-            print(f"WARN: Dirección '{direccion_texto}' no encontrada por Nominatim.")
-            return jsonify({"success": False, "error": "Dirección no encontrada por el servicio de geocodificación."}), 404
-
-    except Exception as e:
-        import traceback
-        print(f"ERROR GENERAL en /api/geocode: {e}")
-        print(traceback.format_exc())
-        return jsonify({"success": False, "error": f"Error interno del servidor durante la geocodificación: {str(e)}"}), 500

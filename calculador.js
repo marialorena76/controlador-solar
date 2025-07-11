@@ -91,8 +91,8 @@ const sectionInfoMap = {
 };
 
 // Elementos principales del DOM
-const latitudDisplay = document.getElementById('latitud-display');
-const longitudDisplay = document.getElementById('longitud-display');
+// const latitudDisplay = document.getElementById('latitud-display'); // Eliminado
+// const longitudDisplay = document.getElementById('longitud-display'); // Eliminado
 const mapScreen = document.getElementById('map-screen');
 const dataFormScreen = document.getElementById('data-form-screen');
 const dataMeteorologicosSection = document.getElementById('data-meteorologicos-section');
@@ -587,7 +587,7 @@ async function initRotacionSection() {
             console.warn('[initRotacionSection] updateAngleFieldsVisibilityAndData: conditional elements not found.');
             return;
         }
-        
+
         const isFijos = (cleanSelectedText === "Fijos");
         const isInclinacionFijaVertical = (cleanSelectedText === "Inclinación fija, rotación sobre un eje vertical");
 
@@ -957,6 +957,31 @@ async function initModeloMetodoSection() {
 
         container.appendChild(selectElement);
         console.log('[initModeloMetodoSection] select element appended.');
+
+        // Ajuste para asegurar la selección visual y consistencia de userSelections
+        if (autoSelectModel && filteredData.includes(autoSelectModel)) {
+            selectElement.value = autoSelectModel; 
+            console.log(`[initModeloMetodoSection] Explicitly set select value to: ${autoSelectModel}`);
+        }
+        
+        // Sincronizar userSelections con el valor final del select
+        // (esto es importante si selectElement.value cambió o si el placeholder quedó seleccionado)
+        const finalSelectedValue = selectElement.value;
+        if (finalSelectedValue && finalSelectedValue !== "") {
+            if (userSelections.modeloMetodoRadiacion !== finalSelectedValue) {
+                userSelections.modeloMetodoRadiacion = finalSelectedValue;
+                // saveUserSelections(); // Se guarda al final de la función o en el listener de 'change'
+            }
+        } else { 
+            if (userSelections.modeloMetodoRadiacion !== null) {
+                userSelections.modeloMetodoRadiacion = null;
+                // saveUserSelections(); 
+            }
+        }
+        // La llamada a saveUserSelections() ya se hace al principio después de la lógica de filtrado
+        // y también en el event listener 'change' del select. No es estrictamente necesario aquí
+        // a menos que el valor de selectElement.value haya sido forzado y sea diferente
+        // de lo que userSelections ya tenía por autoSelectModel.
 
     } catch (error) {
         console.error('[initModeloMetodoSection] CATCH block error:', error);
@@ -1640,6 +1665,38 @@ function calcularConsumo() {
     if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = userSelections.totalAnnualConsumption.toFixed(2);
 }
 
+// --- Nueva función para escribir el código de ciudad en Excel ---
+async function escribirCodigoCiudadEnExcel(codigoCiudad) {
+    if (!codigoCiudad) {
+        console.warn('No se proporcionó código de ciudad para escribir en Excel.');
+        return;
+    }
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/escribir_dato_excel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                dato: codigoCiudad,
+                hoja: 'Datos de Entrada', // Nombre de la hoja
+                celda: 'B7' // Celda específica
+            }),
+        });
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Respuesta del backend (escribir_dato_excel):', data.message);
+        } else {
+            const errorData = await response.json();
+            console.error('Error al escribir dato en Excel (backend):', response.status, errorData.error);
+            alert(`Error al actualizar el archivo de datos: ${errorData.error}`);
+        }
+    } catch (error) {
+        console.error('Error en la solicitud fetch para escribir_dato_excel:', error);
+        alert('Error de conexión al intentar actualizar el archivo de datos.');
+    }
+}
+
 
 // --- Lógica del Mapa (EXISTENTE, CON PEQUEÑAS MEJORAS) ---
 
@@ -1654,127 +1711,134 @@ function initMap() {
     }).addTo(map);
 
     marker = L.marker(userLocation).addTo(map);
-    if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6);
-    if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6);
+    // if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6); // Eliminado
+    // if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6); // Eliminado
 
     map.on('click', function(e) {
         userLocation.lat = e.latlng.lat;
         userLocation.lng = e.latlng.lng;
         marker.setLatLng(userLocation);
-        if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6);
-        if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6);
+        // if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6); // Eliminado
+        // if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6); // Eliminado
         userSelections.location = userLocation; // Guardar la ubicación en userSelections
         saveUserSelections(); // Guardar las selecciones en localStorage
     });
 
-    // --- INICIO: Modificación para Geocodificación vía Backend ---
-    const geocoderContainer = document.getElementById('geocoder-container');
-    if (geocoderContainer) {
-        geocoderContainer.innerHTML = ''; // Limpiar contenido anterior
-
-        const direccionInput = document.createElement('input');
-        direccionInput.type = 'text';
-        direccionInput.id = 'direccion-input';
-        direccionInput.placeholder = 'Ingrese dirección completa (ej: Calle Falsa 123, Springfield)';
-        direccionInput.style.width = 'calc(100% - 80px)'; // Ajustar ancho para dejar espacio al botón
-        direccionInput.style.padding = '8px';
-        direccionInput.style.marginRight = '5px';
-        direccionInput.style.border = '1px solid #ccc';
-        direccionInput.style.borderRadius = '4px';
-
-
-        const buscarBtn = document.createElement('button');
-        buscarBtn.id = 'buscar-direccion-btn';
-        buscarBtn.textContent = 'Buscar';
-        buscarBtn.style.padding = '8px 12px';
-        buscarBtn.style.border = '1px solid #ccc';
-        buscarBtn.style.borderRadius = '4px';
-        buscarBtn.style.cursor = 'pointer';
-
-
-        geocoderContainer.appendChild(direccionInput);
-        geocoderContainer.appendChild(buscarBtn);
-
-        buscarBtn.addEventListener('click', handleBuscarDireccion);
-        direccionInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                handleBuscarDireccion();
-            }
-        });
-
-    } else {
-        console.error('Contenedor para geocodificador personalizado (geocoder-container) no encontrado.');
-    }
-    // --- FIN: Modificación para Geocodificación vía Backend ---
-}
-
-// --- NUEVAS FUNCIONES PARA GEOCODIFICACIÓN VÍA BACKEND ---
-function handleBuscarDireccion() {
-    const direccionInput = document.getElementById('direccion-input');
-    const direccionTexto = direccionInput.value.trim();
-
-    if (direccionTexto) {
-        console.log(`[[DEBUG]] Buscando dirección: ${direccionTexto}`);
-        geocodeDireccionEnBackend(direccionTexto);
-    } else {
-        alert('Por favor, ingrese una dirección para buscar.');
-    }
-}
-
-async function geocodeDireccionEnBackend(direccionTexto) {
-    try {
-        const response = await fetch('/api/geocode', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ direccion: direccionTexto }),
-        });
-
-        const resultado = await response.json();
-        console.log('[[DEBUG]] Respuesta del backend (geocode):', resultado);
-
-        if (resultado.success && resultado.lat && resultado.lng) {
-            userLocation.lat = resultado.lat;
-            userLocation.lng = resultado.lng;
+    // Asegúrate de que el geocodificador esté importado correctamente en tu HTML
+    // <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    const geocoderControlInstance = L.Control.geocoder({
+        placeholder: 'Ej: Buchardo 3232, Olavarría', // Nuevo placeholder
+        errorMessage: 'No se encontró la dirección.',
+        defaultMarkGeocode: false 
+    }).on('markgeocode', async function(e) { 
+        console.log('Geocode event:', e);
+        if (e.geocode && e.geocode.center) {
+            userLocation.lat = e.geocode.center.lat;
+            userLocation.lng = e.geocode.center.lng;
 
             if (marker) {
                 marker.setLatLng(userLocation);
             } else {
                 marker = L.marker(userLocation).addTo(map);
             }
-            map.setView(userLocation, 15); // Zoom más cercano para dirección específica
+            map.setView(userLocation, 13);
 
-            if (latitudDisplay) latitudDisplay.textContent = userLocation.lat.toFixed(6); // Usar textContent para spans
-            if (longitudDisplay) longitudDisplay.textContent = userLocation.lng.toFixed(6); // Usar textContent para spans
+            // if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6); // Eliminado
+            // if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6); // Eliminado
+            userSelections.location = userLocation;
             
-            userSelections.location = { ...userLocation }; // Actualizar userSelections
-            saveUserSelections();
+            let city = null;
+            const addressProperties = e.geocode.properties && e.geocode.properties.address ? e.geocode.properties.address : {};
 
-            const ciudadDetectada = resultado.ciudad || 'No identificada';
-            const direccionFormateada = resultado.direccion_formateada || 'No disponible';
-            
-            console.log(`[[DEBUG]] Ciudad detectada por backend: ${ciudadDetectada}, Dirección formateada: ${direccionFormateada}`);
-            alert(`Dirección encontrada: ${direccionFormateada}\nCiudad detectada: ${ciudadDetectada}`);
+            console.log('Geocode e.geocode.name:', e.geocode.name); // Log para comparar
+            console.log('Geocode properties.address:', addressProperties); // Log detallado de las propiedades
 
-            // Una vez que la geocodificación funcione bien, DESCOMENTAR la siguiente línea:
-            // if (ciudadDetectada !== 'No identificada') {
-            //     verificarCiudadEnBackend(ciudadDetectada);
-            // } else {
-            //     console.warn("No se pudo identificar una ciudad clara desde el geocoding para verificar.");
-            //     alert("No se pudo identificar una ciudad clara para la dirección ingresada.");
-            // }
+            if (addressProperties.city) {
+                city = addressProperties.city;
+            } else if (addressProperties.town) {
+                city = addressProperties.town;
+            } else if (addressProperties.village) {
+                city = addressProperties.village;
+            } else if (addressProperties.hamlet) {
+                city = addressProperties.hamlet;
+            } else {
+                // Fallback MUY simple si no se encuentra en las propiedades anteriores:
+                // Tomar el primer elemento antes de una coma si e.geocode.name existe.
+                if (e.geocode.name) {
+                    const parts = e.geocode.name.split(',');
+                    if (parts.length > 0) {
+                        city = parts[0].trim(); 
+                        console.log('Fallback: City from e.geocode.name parts[0]:', city);
+                        // Si la ciudad obtenida del fallback contiene "Partido de", intentamos con el siguiente elemento si existe.
+                        if (city && city.toLowerCase().startsWith('partido de ') && parts.length > 1) {
+                            const potentialCity = parts[1].trim();
+                            if (!potentialCity.toLowerCase().startsWith('partido de ')) {
+                                 city = potentialCity;
+                                 console.log('Fallback adjustment: City from e.geocode.name parts[1]:', city);
+                            }
+                        }
+                    }
+                }
+            }
 
-        } else {
-            console.error('Error en geocodificación desde backend:', resultado.error || 'Error desconocido');
-            alert(`No se pudo encontrar la dirección: ${resultado.error || 'Intente con otra búsqueda.'}`);
+            if (city) {
+                console.log('Ciudad extraída (final):', city);
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/api/buscar_ciudad', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ ciudad: city }),
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.codigo_ciudad) {
+                            console.log('Código de ciudad recibido:', data.codigo_ciudad);
+                            userSelections.codigoCiudad = data.codigo_ciudad;
+                            await escribirCodigoCiudadEnExcel(data.codigo_ciudad);
+                        } else {
+                            console.warn('No se encontró código para la ciudad:', city, data.message);
+                            userSelections.codigoCiudad = null;
+                            setTimeout(() => {
+                                alert("La ciudad ingresada (" + city + ") no se encontró en nuestra base de datos. Por favor, verifique el nombre o intente con una ciudad cercana.");
+                            }, 0);
+                        }
+                    } else {
+                        const errorData = await response.json();
+                        setTimeout(() => {
+                            alert("Error al buscar la ciudad. Por favor, intente de nuevo.");
+                        }, 0);
+                        console.error('Error al buscar ciudad en backend:', response.status, errorData.error);
+                        userSelections.codigoCiudad = null;
+                    }
+                } catch (error) {
+                    console.error('Error en la solicitud fetch para buscar_ciudad:', error);
+                    userSelections.codigoCiudad = null;
+                    setTimeout(() => {
+                        alert("Error de conexión al buscar la ciudad. Por favor, verifique su conexión e intente de nuevo.");
+                    }, 0);
+                }
+            } else {
+                console.warn('No se pudo extraer la ciudad de la dirección:', e.geocode.name, addressProperties);
+                userSelections.codigoCiudad = null;
+            }
+            saveUserSelections(); 
         }
-    } catch (error) {
-        console.error('Error en fetch a /api/geocode:', error);
-        alert('Error de conexión al intentar geocodificar la dirección.');
+    }).addTo(map);
+
+    // Relocate the geocoder DOM element
+    const geocoderElement = geocoderControlInstance.getContainer();
+    const customGeocoderContainer = document.getElementById('geocoder-container');
+    
+    if (customGeocoderContainer && geocoderElement) {
+        customGeocoderContainer.innerHTML = ''; // Clear the container first if it has placeholder content or old controls
+        customGeocoderContainer.appendChild(geocoderElement);
+    } else {
+        if (!customGeocoderContainer) console.error('Custom geocoder container (geocoder-container) not found.');
+        if (!geocoderElement) console.error('Geocoder control element (geocoderElement) not found.');
     }
 }
-// --- FIN NUEVAS FUNCIONES ---
 
 
 // --- Lógica de la Navegación de Pantallas (EXISTENTE, VERIFICADA) ---
@@ -2740,67 +2804,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 // --- Funciones de validación (ejemplo, si ya las tenías) ---
 // function validateStep1() { ... }
 // function validateForm() { ... }
-
-// --- INICIO: Nueva función para verificar ciudad ---
-async function verificarCiudadEnBackend(ciudadNombre) {
-    if (!ciudadNombre || ciudadNombre === 'CiudadNoEncontrada') {
-        console.warn('No se pudo determinar la ciudad para verificar.');
-        // Aquí podrías querer mostrar un mensaje al usuario en la UI eventualmente.
-        return;
-    }
-
-    // Normalización simple a minúsculas
-    const ciudadNormalizada = ciudadNombre.toLowerCase();
-    console.log('[[DEBUG]] Enviando ciudad normalizada al backend:', ciudadNormalizada);
-
-    try {
-        const response = await fetch('/api/verificar_ciudad', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ ciudad: ciudadNormalizada }),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'Error desconocido del backend' }));
-            console.error('Error del backend al verificar ciudad:', response.status, errorData);
-            // Aquí también, eventualmente mostrar error en UI.
-            alert(`Error del servidor: ${errorData.error || response.statusText}`);
-            return;
-        }
-
-        const resultado = await response.json();
-        console.log('[[DEBUG]] Respuesta del backend (verificación ciudad):', resultado);
-
-        if (resultado.ciudad_encontrada) {
-            console.log(`La ciudad "${resultado.ciudad_buscada}" ES VÁLIDA y se encuentra en la lista.`);
-            // Aquí puedes habilitar funcionalidades o mostrar un mensaje positivo.
-            // alert(`Ciudad válida: ${resultado.ciudad_buscada}`);
-        } else {
-            console.warn(`La ciudad "${resultado.ciudad_buscada}" NO ES VÁLIDA o no se encuentra en la lista.`);
-            // Aquí puedes deshabilitar funcionalidades o mostrar una advertencia.
-            // alert(`Ciudad no válida o no listada: ${resultado.ciudad_buscada}. Algunas funcionalidades podrían no estar disponibles.`);
-        }
-
-    } catch (error) {
-        console.error('Error en fetch al verificar ciudad:', error);
-        // alert('Error de conexión al intentar verificar la ciudad. Por favor, revise su conexión e intente de nuevo.');
-    }
-}
-// --- FIN: Nueva función para verificar ciudad ---
-
-// --- INICIO: Estilos para el nuevo input y botón del geocodificador (opcional, si no se hace en CSS principal) ---
-// Se podrían añadir aquí o, mejor, en el archivo CSS principal.
-// Ejemplo:
-// const styleSheet = document.createElement("style");
-// styleSheet.type = "text/css";
-// styleSheet.innerText = `
-//  #direccion-input { width: calc(100% - 85px); padding: 8px; margin-right: 5px; border: 1px solid #ccc; border-radius: 4px; }
-//  #buscar-direccion-btn { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; }
-// `;
-// document.head.appendChild(styleSheet);
-// --- FIN: Estilos ---
 
 // --------------------------------------------------------------------------------
 // INICIO DEL CÓDIGO QUE ORIGINALMENTE DEBERÍA ESTAR EN TU CALCULADOR.JS

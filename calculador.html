@@ -105,12 +105,71 @@
             z-index: 1;
         }
 #geocoder-container {
-    width: 100%; 
-    margin: 15px 0 0 0; 
-    /* This container will now hold the actual Leaflet geocoder control */
+    position: absolute; /* Para posicionarlo sobre el mapa */
+    bottom: 20px; /* Distancia desde abajo */
+    left: 50%;
+    transform: translateX(-50%); /* Centrar horizontalmente */
+    width: 80%; /* Ancho del contenedor del geocodificador al 80% */
+    max-width: 700px; /* Un ancho máximo para pantallas muy grandes, ajustable */
+    z-index: 1000; /* Asegurar que esté sobre el mapa */
+    background-color: rgba(255, 255, 255, 0.9); /* Fondo ligeramente transparente */
+    padding: 8px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
+
+/* Estilos para el input dentro del geocodificador */
+#geocoder-container .leaflet-control-geocoder-form input {
+    width: 100%; /* Hacer que el input ocupe el ancho del #geocoder-container */
+    padding: 10px 15px;
+    font-size: 1rem;
+    color: #555; /* Tipografía gris */
+    border: 1px solid var(--color-tertiary); /* Borde fino azulino */
+    border-radius: 6px; /* Bordes redondeados */
+    box-sizing: border-box;
+    background-color: #fff;
+}
+
+/* Estilos para el botón de búsqueda (si el geocodificador lo usa visiblemente) */
+/* Leaflet Geocoder por defecto usa un ícono de lupa como botón dentro del input o al lado */
+/* Si es un botón separado, este estilo aplicaría. Si es un ícono, se necesitaría otro selector. */
+#geocoder-container .leaflet-control-geocoder-form button {
+    background-color: var(--color-tertiary); /* Fondo azulino */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-left: 5px; /* Espacio entre input y botón si están lado a lado */
+}
+#geocoder-container .leaflet-control-geocoder-icon { /* Para el ícono de lupa */
+    color: var(--color-tertiary); /* Color azulino para el ícono */
+}
+
+/* Estilos para las alternativas/sugerencias */
+#geocoder-container .leaflet-control-geocoder-alternatives {
+    background-color: white;
+    border: 1px solid var(--color-tertiary);
+    border-top: none; /* El input ya tiene borde superior */
+    border-radius: 0 0 6px 6px; /* Redondear solo esquinas inferiores */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#geocoder-container .leaflet-control-geocoder-alternatives li {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--text-dark);
+}
+
+#geocoder-container .leaflet-control-geocoder-alternatives li:hover {
+    background-color: var(--bg-light);
+    color: var(--color-primary);
+}
+
         .location-info {
-            margin-top: 1.2rem;
+            margin-top: 1.2rem; /* Ajustar si el geocodificador superpuesto lo requiere */
             padding: 1rem 1.5rem;
             background: var(--bg-light);
             border-radius: 8px;
@@ -475,10 +534,7 @@
             <div class="map-area">
                 <div id="map"></div>
                 <div id="geocoder-container"></div>
-                <div class="location-info">
-                    <b>Latitud:</b> <span id="latitud-display"></span> &nbsp;
-                    <b>Longitud:</b> <span id="longitud-display"></span>
-                </div>
+                <!-- El div .location-info ha sido eliminado -->
             </div>
             <div class="form-sections-container">
                 <div class="form-section" id="user-type-section">
@@ -616,7 +672,7 @@
                             <input type="number" id="angulo-inclinacion-input" name="anguloInclinacion" class="form-control" step="any" placeholder="Ej: 30">
                         </div>
                         <div class="form-group" id="form-group-orientacion">
-                            <label for="angulo-orientacion-input">Ángulo de orientación respecto del norte (de -90 a 90):</label>
+                            <label for="angulo-orientacion-input">Ángulo de orientación respecto del norte (° Este positivo):</label>
                             <input type="number" id="angulo-orientacion-input" name="anguloOrientacion" class="form-control" step="any" min="-90" max="90" placeholder="Ej: 0 (Norte), -45 (Noreste)">
                              <small style="font-size: 0.85em; color: #666;">(Valores entre -90 para Este, 0 para Norte, y 90 para Oeste)</small>
                         </div>
@@ -667,7 +723,7 @@
                     </div>
                     <div class="form-actions">
                         <button type="button" id="back-to-metodo-calculo-from-modelo" class="back-button">Atrás</button>
-                        <button type="button" id="next-to-paneles-from-modelo">Siguiente</button> 
+                        <button type="button" id="next-to-paneles-from-modelo">Siguiente</button>
                     </div>
                 </div>
                 <!-- Fin de Nueva sección para Modelo del Método -->
@@ -814,13 +870,13 @@
                         </div>
                         <div class="form-actions sub-form-actions">
                             <button type="button" id="back-to-panel-potencia" class="back-button">Atrás</button>
-                            <button type="button" id="next-to-inversor-from-panels">Siguiente</button> 
+                            <button type="button" id="next-to-inversor-from-panels">Siguiente</button>
                         </div>
                         <!-- No <hr> after the last sub-form before the main section's form-actions -->
                     </div>
 
                     <div class="form-actions"> <!-- Main form actions for paneles-section -->
-                        <!-- The "Siguiente" button that was here (id="next-to-inversor") is removed 
+                        <!-- The "Siguiente" button that was here (id="next-to-inversor") is removed
                              as navigation is now handled by the last sub-form's "Siguiente" button -->
                     </div>
                 </div>
@@ -829,12 +885,12 @@
                     <p style="text-align: center; font-style: italic; padding: 20px;">La selección detallada del modelo de inversor se habilitará en futuras versiones.</p>
                     <div class="form-actions">
                         <button type="button" id="back-to-paneles" class="back-button">Atrás</button>
-                        <button type="submit" id="next-to-perdidas">Siguiente</button> 
+                        <button type="submit" id="next-to-perdidas">Siguiente</button>
                     </div>
                 </div>
                 <div id="perdidas-section" style="display:none;">
                     <h1>Paso 5: Registro Pérdidas</h1>
-                    
+
                     <div id="frecuencia-lluvias-subform-content" style="display:none;"> <!-- Content for first sub-form -->
                         <h2>¿Cuál es la frecuencia de lluvias estimada en la locación de la instalación?</h2>
                         <div class="form-group">
@@ -885,6 +941,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-    <script src="calculador.js"></script>
+    <script src="calculador.js" defer></script>
 </body>
 </html>
