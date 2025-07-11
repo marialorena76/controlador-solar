@@ -91,8 +91,8 @@ const sectionInfoMap = {
 };
 
 // Elementos principales del DOM
-const latitudDisplay = document.getElementById('latitud-display');
-const longitudDisplay = document.getElementById('longitud-display');
+// const latitudDisplay = document.getElementById('latitud-display'); // Eliminado
+// const longitudDisplay = document.getElementById('longitud-display'); // Eliminado
 const mapScreen = document.getElementById('map-screen');
 const dataFormScreen = document.getElementById('data-form-screen');
 const dataMeteorologicosSection = document.getElementById('data-meteorologicos-section');
@@ -1686,15 +1686,15 @@ function initMap() {
     }).addTo(map);
 
     marker = L.marker(userLocation).addTo(map);
-    if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6);
-    if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6);
+    // if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6); // Eliminado
+    // if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6); // Eliminado
 
     map.on('click', function(e) {
         userLocation.lat = e.latlng.lat;
         userLocation.lng = e.latlng.lng;
         marker.setLatLng(userLocation);
-        if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6);
-        if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6);
+        // if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6); // Eliminado
+        // if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6); // Eliminado
         userSelections.location = userLocation; // Guardar la ubicación en userSelections
         saveUserSelections(); // Guardar las selecciones en localStorage
     });
@@ -1702,9 +1702,9 @@ function initMap() {
     // Asegúrate de que el geocodificador esté importado correctamente en tu HTML
     // <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     const geocoderControlInstance = L.Control.geocoder({
-        placeholder: 'Buscar o ingresar dirección...',
+        placeholder: 'Ej: Buchardo 3232, Olavarría', // Nuevo placeholder
         errorMessage: 'No se encontró la dirección.',
-        defaultMarkGeocode: false // Revert to false
+        defaultMarkGeocode: false
     }).on('markgeocode', async function(e) {
         console.log('Geocode event:', e);
         if (e.geocode && e.geocode.center) {
@@ -1718,8 +1718,8 @@ function initMap() {
             }
             map.setView(userLocation, 13);
 
-            if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6);
-            if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6);
+            // if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6); // Eliminado
+            // if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6); // Eliminado
             userSelections.location = userLocation;
 
             let city = null;
