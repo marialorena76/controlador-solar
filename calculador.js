@@ -1640,6 +1640,38 @@ function calcularConsumo() {
     if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = userSelections.totalAnnualConsumption.toFixed(2);
 }
 
+// --- Nueva función para escribir el código de ciudad en Excel ---
+async function escribirCodigoCiudadEnExcel(codigoCiudad) {
+    if (!codigoCiudad) {
+        console.warn('No se proporcionó código de ciudad para escribir en Excel.');
+        return;
+    }
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/escribir_dato_excel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                dato: codigoCiudad,
+                hoja: 'Datos de Entrada', // Nombre de la hoja
+                celda: 'B7' // Celda específica
+            }),
+        });
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Respuesta del backend (escribir_dato_excel):', data.message);
+        } else {
+            const errorData = await response.json();
+            console.error('Error al escribir dato en Excel (backend):', response.status, errorData.error);
+            alert(`Error al actualizar el archivo de datos: ${errorData.error}`);
+        }
+    } catch (error) {
+        console.error('Error en la solicitud fetch para escribir_dato_excel:', error);
+        alert('Error de conexión al intentar actualizar el archivo de datos.');
+    }
+}
+
 
 // --- Lógica del Mapa (EXISTENTE, CON PEQUEÑAS MEJORAS) ---
 
@@ -1671,31 +1703,65 @@ function initMap() {
     // <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     const geocoderControlInstance = L.Control.geocoder({
         placeholder: 'Buscar o ingresar dirección...',
-        errorMessage: 'No se encontró la dirección.'
-        // defaultMarkGeocode: true, // Let control handle its own marker by default
-    }).on('markgeocode', function(e) {
+        errorMessage: 'No se encontró la dirección.',
+        defaultMarkGeocode: false // Set to false to handle markgeocode manually
+    }).on('markgeocode', async function(e) { // Added async here
+        console.log('Geocode event:', e);
         if (e.geocode && e.geocode.center) {
             userLocation.lat = e.geocode.center.lat;
             userLocation.lng = e.geocode.center.lng;
-            
-            // The control's default behavior will place/update its own marker.
-            // If a separate 'marker' variable is used for map clicks, ensure they coordinate
-            // or let the geocoder manage its marker exclusively.
-            // For simplicity, if 'marker' is primarily for map clicks,
-            // we might not need to call marker.setLatLng(userLocation) here if defaultMarkGeocode is true.
-            // However, to ensure OUR 'marker' (from map clicks) is also updated:
-            if (marker) { // Check if 'marker' (from map clicks) exists
+
+            if (marker) {
                 marker.setLatLng(userLocation);
-            } else { // If no map-click marker exists yet, create one
+            } else {
                 marker = L.marker(userLocation).addTo(map);
             }
-            
-            map.setView(userLocation, 13); // Center map on geocoded location
+            map.setView(userLocation, 13);
 
             if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6);
             if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6);
             userSelections.location = userLocation;
-            saveUserSelections();
+            // userSelections.fullAddress = e.geocode.name; // Store the full address
+
+            // Extract city and send to backend
+            const addressString = e.geocode.name;
+            const parts = addressString.split(',');
+            if (parts.length > 1) {
+                const city = parts[1].trim(); // Assuming city is the second part
+                console.log('Ciudad extraída:', city);
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/api/buscar_ciudad', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ ciudad: city }),
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.codigo_ciudad) {
+                            console.log('Código de ciudad recibido:', data.codigo_ciudad);
+                            userSelections.codigoCiudad = data.codigo_ciudad;
+                            // Now, call the function to write this to Excel via backend
+                            await escribirCodigoCiudadEnExcel(data.codigo_ciudad);
+                        } else {
+                            console.warn('No se encontró código para la ciudad:', city, data.message);
+                            userSelections.codigoCiudad = null;
+                        }
+                    } else {
+                        const errorData = await response.json();
+                        console.error('Error al buscar ciudad en backend:', response.status, errorData.error);
+                        userSelections.codigoCiudad = null;
+                    }
+                } catch (error) {
+                    console.error('Error en la solicitud fetch para buscar_ciudad:', error);
+                    userSelections.codigoCiudad = null;
+                }
+            } else {
+                console.warn('No se pudo extraer la ciudad de la dirección:', addressString);
+                userSelections.codigoCiudad = null;
+            }
+            saveUserSelections(); // Save all selections including codigoCiudad
         }
     }).addTo(map);
 
