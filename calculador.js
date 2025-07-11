@@ -1704,8 +1704,8 @@ function initMap() {
     const geocoderControlInstance = L.Control.geocoder({
         placeholder: 'Buscar o ingresar dirección...',
         errorMessage: 'No se encontró la dirección.',
-        defaultMarkGeocode: false // Set to false to handle markgeocode manually
-    }).on('markgeocode', async function(e) { // Added async here
+        defaultMarkGeocode: false // Revert to false
+    }).on('markgeocode', async function(e) {
         console.log('Geocode event:', e);
         if (e.geocode && e.geocode.center) {
             userLocation.lat = e.geocode.center.lat;
@@ -1721,14 +1721,43 @@ function initMap() {
             if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6);
             if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6);
             userSelections.location = userLocation;
-            // userSelections.fullAddress = e.geocode.name; // Store the full address
 
-            // Extract city and send to backend
-            const addressString = e.geocode.name;
-            const parts = addressString.split(',');
-            if (parts.length > 1) {
-                const city = parts[1].trim(); // Assuming city is the second part
-                console.log('Ciudad extraída:', city);
+            let city = null;
+            const addressProperties = e.geocode.properties && e.geocode.properties.address ? e.geocode.properties.address : {};
+
+            console.log('Geocode e.geocode.name:', e.geocode.name); // Log para comparar
+            console.log('Geocode properties.address:', addressProperties); // Log detallado de las propiedades
+
+            if (addressProperties.city) {
+                city = addressProperties.city;
+            } else if (addressProperties.town) {
+                city = addressProperties.town;
+            } else if (addressProperties.village) {
+                city = addressProperties.village;
+            } else if (addressProperties.hamlet) {
+                city = addressProperties.hamlet;
+            } else {
+                // Fallback MUY simple si no se encuentra en las propiedades anteriores:
+                // Tomar el primer elemento antes de una coma si e.geocode.name existe.
+                if (e.geocode.name) {
+                    const parts = e.geocode.name.split(',');
+                    if (parts.length > 0) {
+                        city = parts[0].trim();
+                        console.log('Fallback: City from e.geocode.name parts[0]:', city);
+                        // Si la ciudad obtenida del fallback contiene "Partido de", intentamos con el siguiente elemento si existe.
+                        if (city && city.toLowerCase().startsWith('partido de ') && parts.length > 1) {
+                            const potentialCity = parts[1].trim();
+                            if (!potentialCity.toLowerCase().startsWith('partido de ')) {
+                                 city = potentialCity;
+                                 console.log('Fallback adjustment: City from e.geocode.name parts[1]:', city);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (city) {
+                console.log('Ciudad extraída (final):', city);
                 try {
                     const response = await fetch('http://127.0.0.1:5000/api/buscar_ciudad', {
                         method: 'POST',
@@ -1742,26 +1771,34 @@ function initMap() {
                         if (data.codigo_ciudad) {
                             console.log('Código de ciudad recibido:', data.codigo_ciudad);
                             userSelections.codigoCiudad = data.codigo_ciudad;
-                            // Now, call the function to write this to Excel via backend
                             await escribirCodigoCiudadEnExcel(data.codigo_ciudad);
                         } else {
                             console.warn('No se encontró código para la ciudad:', city, data.message);
                             userSelections.codigoCiudad = null;
+                            setTimeout(() => {
+                                alert("La ciudad ingresada (" + city + ") no se encontró en nuestra base de datos. Por favor, verifique el nombre o intente con una ciudad cercana.");
+                            }, 0);
                         }
                     } else {
                         const errorData = await response.json();
+                        setTimeout(() => {
+                            alert("Error al buscar la ciudad. Por favor, intente de nuevo.");
+                        }, 0);
                         console.error('Error al buscar ciudad en backend:', response.status, errorData.error);
                         userSelections.codigoCiudad = null;
                     }
                 } catch (error) {
                     console.error('Error en la solicitud fetch para buscar_ciudad:', error);
                     userSelections.codigoCiudad = null;
+                    setTimeout(() => {
+                        alert("Error de conexión al buscar la ciudad. Por favor, verifique su conexión e intente de nuevo.");
+                    }, 0);
                 }
             } else {
-                console.warn('No se pudo extraer la ciudad de la dirección:', addressString);
+                console.warn('No se pudo extraer la ciudad de la dirección:', e.geocode.name, addressProperties);
                 userSelections.codigoCiudad = null;
             }
-            saveUserSelections(); // Save all selections including codigoCiudad
+            saveUserSelections();
         }
     }).addTo(map);
 
