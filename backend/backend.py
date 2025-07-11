@@ -736,6 +736,22 @@ def get_frecuencia_lluvias_options():
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor al obtener opciones de frecuencia lluvias: {str(e)}"}), 500
 
+# --- Función de Normalización de Texto ---
+def normalizar_texto(texto):
+    if texto is None:
+        return ""
+    texto = texto.lower().strip()
+    # Reemplazos para vocales acentuadas y diéresis comunes en español
+    reemplazos = {
+        'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
+        'ä': 'a', 'ë': 'e', 'ï': 'i', 'ö': 'o', 'ü': 'u', # Considerar si 'ü' debe ser 'u' o 'ue'
+        'à': 'a', 'è': 'e', 'ì': 'i', 'ò': 'o', 'ù': 'u'  # Acentos graves, menos comunes en español pero por si acaso
+        # Podrían añadirse más reemplazos si es necesario (ej. ñ -> n, aunque esto es debatible)
+    }
+    for acentuada, sin_acento in reemplazos.items():
+        texto = texto.replace(acentuada, sin_acento)
+    return texto
+
 # --- NUEVA RUTA: Para buscar ciudad y obtener código ---
 @app.route('/api/buscar_ciudad', methods=['POST'])
 def buscar_ciudad():
@@ -753,19 +769,26 @@ def buscar_ciudad():
         df_ciudades = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Ciudades', usecols="A,B", header=None, skiprows=1, names=['codigo', 'ciudad_nombre'], engine='openpyxl')
         print(f"DEBUG: Hoja 'Ciudades' leída. Total filas: {len(df_ciudades)}")
 
-        # Limpiar nombres de ciudad para comparación más robusta
-        ciudad_buscada_limpia = ciudad_buscada.strip().lower()
+        ciudad_buscada_normalizada = normalizar_texto(ciudad_buscada)
 
         # Iterar para encontrar la ciudad
         for index, row in df_ciudades.iterrows():
-            nombre_excel = str(row['ciudad_nombre']).strip().lower()
-            if nombre_excel == ciudad_buscada_limpia:
-                codigo_encontrado = row['codigo']
-                print(f"DEBUG: Ciudad '{ciudad_buscada}' encontrada. Código: {codigo_encontrado}")
-                return jsonify({"codigo_ciudad": codigo_encontrado, "message": "Ciudad encontrada."})
+            nombre_excel_original = str(row['ciudad_nombre'])
+            nombre_excel_normalizado = normalizar_texto(nombre_excel_original)
 
-        print(f"WARN: Ciudad '{ciudad_buscada}' no encontrada en la hoja 'Ciudades'.")
-        return jsonify({"message": "Ciudad no encontrada."}), 404
+            # Log para depuración si se encuentra una ciudad que contenga la buscada (antes de la igualdad exacta)
+            # Esto ayuda a ver si la normalización funciona o si hay otras diferencias.
+            # if ciudad_buscada_normalizada in nombre_excel_normalizado or nombre_excel_normalizado in ciudad_buscada_normalizada :
+            #     print(f"DEBUG Excel check: Original='{nombre_excel_original}', NormalizadoExcel='{nombre_excel_normalizado}', BuscadoNormalizado='{ciudad_buscada_normalizada}'")
+
+            if nombre_excel_normalizado == ciudad_buscada_normalizada:
+                codigo_encontrado = row['codigo']
+                print(f"DEBUG: Ciudad '{ciudad_buscada}' (normalizada como '{ciudad_buscada_normalizada}') encontrada. Código: {codigo_encontrado}. Original Excel: '{nombre_excel_original}'")
+                return jsonify({"codigo_ciudad": codigo_encontrado, "message": "Ciudad encontrada."}), 200
+
+        print(f"WARN: Ciudad '{ciudad_buscada}' (normalizada como '{ciudad_buscada_normalizada}') no encontrada en la hoja 'Ciudades'.")
+        # Devolver 200 OK, pero con codigo_ciudad: null para indicar que no se encontró
+        return jsonify({"codigo_ciudad": None, "message": f"Ciudad '{ciudad_buscada}' no encontrada."}), 200
 
     except FileNotFoundError:
         print(f"ERROR en /api/buscar_ciudad: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
