@@ -1747,9 +1747,12 @@ function initMap() {
                         } else {
                             console.warn('No se encontró código para la ciudad:', city, data.message);
                             userSelections.codigoCiudad = null;
+                            alert("La ciudad ingresada (" + city + ") no se encontró en nuestra base de datos. Por favor, verifique el nombre o intente con una ciudad cercana.");
                         }
                     } else {
                         const errorData = await response.json();
+                        // También mostrar popup si el backend devuelve un error explícito de "no encontrado" o un error genérico
+                        alert("Error al buscar la ciudad. Por favor, intente de nuevo.");
                         console.error('Error al buscar ciudad en backend:', response.status, errorData.error);
                         userSelections.codigoCiudad = null;
                     }
