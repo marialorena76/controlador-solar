@@ -483,9 +483,11 @@ def get_metodo_calculo_options():
         print("DEBUG: Hoja 'Tablas' leída para opciones de método de cálculo.")
 
         col_idx = 8  # Columna I
-        # Filas Excel 18 a 19 -> iloc 17 a 18
-        fila_inicio_idx = 17 # Fila 18 en Excel
-        fila_fin_idx = 18    # Fila 19 en Excel
+        # Las filas exactas pueden variar según la versión del Excel.
+        # Se lee un rango amplio y se filtran solo las entradas que
+        # correspondan a los métodos de cálculo deseados.
+        fila_inicio_idx = 17  # Primer valor posible (Fila 18 en Excel)
+        fila_fin_idx = 22     # Última fila revisada (Fila 23 en Excel)
 
         metodo_options_lista = []
         max_filas_df = df_tablas.shape[0]
@@ -495,18 +497,28 @@ def get_metodo_calculo_options():
             print(f"WARN: Columna I ({col_idx}) fuera de límites (hoja 'Tablas' tiene {max_cols_df} columnas).")
             return jsonify({"error": "Definición de columna para método de cálculo fuera de los límites de la hoja."}), 500
 
-        for r_idx in range(fila_inicio_idx, fila_fin_idx + 1): # +1 para incluir fila_fin_idx
+        for r_idx in range(fila_inicio_idx, fila_fin_idx + 1):  # +1 para incluir fila_fin_idx
             if r_idx >= max_filas_df:
-                print(f"WARN: Fila {r_idx+1} para método de cálculo fuera de límites (hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida.")
+                print(
+                    f"WARN: Fila {r_idx+1} para método de cálculo fuera de límites "
+                    f"(hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida."
+                )
                 break
 
             valor_celda = df_tablas.iloc[r_idx, col_idx]
 
             if pd.isna(valor_celda) or str(valor_celda).strip() == "":
-                print(f"DEBUG: Fila {r_idx+1}, Columna I omitida por valor NaN o vacío para método de cálculo.")
+                print(
+                    f"DEBUG: Fila {r_idx+1}, Columna I omitida por valor NaN o vacío para método de cálculo."
+                )
                 continue
 
-            metodo_options_lista.append(str(valor_celda).strip())
+            valor_str = str(valor_celda).strip()
+
+            # Solo conservar valores que empiecen con "Cielo" para evitar
+            # que se cuelen modelos como 'Modelo Liu-Jordan' en esta lista.
+            if valor_str.startswith("Cielo"):
+                metodo_options_lista.append(valor_str)
 
         print(f"DEBUG: Total opciones de método de cálculo leídas de 'Tablas' I{fila_inicio_idx+1}:I{fila_fin_idx+1}: {len(metodo_options_lista)}")
         return jsonify(metodo_options_lista)
