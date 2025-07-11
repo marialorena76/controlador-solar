@@ -3,13 +3,34 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import pandas as pd
 import os
-import json # Added import
+import json
+
+DEFAULT_EXCEL_FILE = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx'
+
+
+def load_excel_path():
+    """Return Excel path from env or config, falling back to default."""
+    env_path = os.getenv('EXCEL_FILE_PATH')
+    if env_path:
+        return env_path
+
+    config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as cfg:
+                cfg_data = json.load(cfg)
+            if isinstance(cfg_data, dict) and cfg_data.get('EXCEL_FILE_PATH'):
+                return cfg_data['EXCEL_FILE_PATH']
+        except Exception as exc:  # noqa: BLE001
+            print(f"WARNING: Could not read config file {config_path}: {exc}")
+
+    return DEFAULT_EXCEL_FILE
 
 app = Flask(__name__)
-CORS(app) # Habilita CORS para permitir solicitudes desde el frontend
+CORS(app)  # Habilita CORS para permitir solicitudes desde el frontend
 
 # Ruta donde estará tu archivo Excel en el servidor
-EXCEL_FILE_PATH = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx'
+EXCEL_FILE_PATH = load_excel_path()
 
 # --- NUEVA RUTA: Para obtener la lista de electrodomésticos y sus consumos ---
 @app.route('/api/electrodomesticos', methods=['GET'])
