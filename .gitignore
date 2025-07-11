@@ -16,3 +16,4 @@ dist/
 # General
 .env
 *.log
+~$*.xlsx
