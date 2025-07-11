@@ -1704,8 +1704,8 @@ function initMap() {
     const geocoderControlInstance = L.Control.geocoder({
         placeholder: 'Buscar o ingresar dirección...',
         errorMessage: 'No se encontró la dirección.',
-        defaultMarkGeocode: false // Set to false to handle markgeocode manually
-    }).on('markgeocode', async function(e) { // Added async here
+        defaultMarkGeocode: false // Revert to false
+    }).on('markgeocode', async function(e) {
         console.log('Geocode event:', e);
         if (e.geocode && e.geocode.center) {
             userLocation.lat = e.geocode.center.lat;
@@ -1721,13 +1721,11 @@ function initMap() {
             if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6);
             if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6);
             userSelections.location = userLocation;
-            // userSelections.fullAddress = e.geocode.name; // Store the full address
 
-            // Extract city and send to backend
             const addressString = e.geocode.name;
             const parts = addressString.split(',');
             if (parts.length > 1) {
-                const city = parts[1].trim(); // Assuming city is the second part
+                const city = parts[1].trim();
                 console.log('Ciudad extraída:', city);
                 try {
                     const response = await fetch('http://127.0.0.1:5000/api/buscar_ciudad', {
@@ -1742,29 +1740,34 @@ function initMap() {
                         if (data.codigo_ciudad) {
                             console.log('Código de ciudad recibido:', data.codigo_ciudad);
                             userSelections.codigoCiudad = data.codigo_ciudad;
-                            // Now, call the function to write this to Excel via backend
                             await escribirCodigoCiudadEnExcel(data.codigo_ciudad);
                         } else {
                             console.warn('No se encontró código para la ciudad:', city, data.message);
                             userSelections.codigoCiudad = null;
-                            alert("La ciudad ingresada (" + city + ") no se encontró en nuestra base de datos. Por favor, verifique el nombre o intente con una ciudad cercana.");
+                            setTimeout(() => {
+                                alert("La ciudad ingresada (" + city + ") no se encontró en nuestra base de datos. Por favor, verifique el nombre o intente con una ciudad cercana.");
+                            }, 0);
                         }
                     } else {
                         const errorData = await response.json();
-                        // También mostrar popup si el backend devuelve un error explícito de "no encontrado" o un error genérico
-                        alert("Error al buscar la ciudad. Por favor, intente de nuevo.");
+                        setTimeout(() => {
+                            alert("Error al buscar la ciudad. Por favor, intente de nuevo.");
+                        }, 0);
                         console.error('Error al buscar ciudad en backend:', response.status, errorData.error);
                         userSelections.codigoCiudad = null;
                     }
                 } catch (error) {
                     console.error('Error en la solicitud fetch para buscar_ciudad:', error);
                     userSelections.codigoCiudad = null;
+                    setTimeout(() => {
+                        alert("Error de conexión al buscar la ciudad. Por favor, verifique su conexión e intente de nuevo.");
+                    }, 0);
                 }
             } else {
                 console.warn('No se pudo extraer la ciudad de la dirección:', addressString);
                 userSelections.codigoCiudad = null;
             }
-            saveUserSelections(); // Save all selections including codigoCiudad
+            saveUserSelections();
         }
     }).addTo(map);
 
