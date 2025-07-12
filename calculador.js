@@ -1210,15 +1210,19 @@ async function initModeloTemperaturaPanelOptions() { // Keep async if other init
         console.error("Contenedor 'modelo-temperatura-options-container' no encontrado.");
         return;
     }
-    container.innerHTML = '<p style="text-align: center; font-style: italic; padding: 10px;">Opciones para Modelo de Cálculo de Temperatura se definirán próximamente.</p>';
-
-    // Ensure userSelections.modeloTemperaturaPanel is reset if we are not loading options
-    // or providing a way to select it. This prevents stale data if user navigates back and forth.
-    // However, if the user *could* have set it previously and we want to retain that (even if options aren't shown),
-    // then don't reset. Given "me faltan datos", resetting seems safer.
-    // userSelections.modeloTemperaturaPanel = null;
-    // saveUserSelections(); // If resetting. For now, let's not reset, just show placeholder.
-                            // The selection mechanism (dropdown) is removed, so it can't be changed from UI here.
+    container.textContent = 'Cargando...';
+    try {
+        const resp = await fetch('http://127.0.0.1:5000/api/modelo_temperatura_panel_valor');
+        if (!resp.ok) {
+            throw new Error(`HTTP ${resp.status}`);
+        }
+        const data = await resp.json();
+        const valor = data.valor ?? '';
+        container.textContent = valor !== '' ? valor : 'No definido';
+    } catch (error) {
+        console.error('Error al cargar valor modelo temperatura panel:', error);
+        container.textContent = 'Error al cargar valor';
+    }
 }
 
 function initPotenciaPanelOptions() {
