@@ -1788,6 +1788,17 @@ async function escribirPotenciaPanelEnExcel(potenciaPanel) {
 }
 
 
+// Utilidad para extraer la ciudad de una dirección con formato
+// "calle número, ciudad". Devuelve null si no se encuentra una coma.
+function extraerCiudadDeDireccion(direccion) {
+    if (!direccion) return null;
+    const partes = direccion.split(',');
+    if (partes.length >= 2) {
+        return partes[1].trim();
+    }
+    return null;
+}
+
 // --- Lógica del Mapa (EXISTENTE, CON PEQUEÑAS MEJORAS) ---
 
 function initMap() {
@@ -1837,35 +1848,30 @@ function initMap() {
             // if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6); // Eliminado
             userSelections.location = userLocation;
 
-            let city = null;
+            let city = extraerCiudadDeDireccion(e.geocode.name);
             const addressProperties = e.geocode.properties && e.geocode.properties.address ? e.geocode.properties.address : {};
 
             console.log('Geocode e.geocode.name:', e.geocode.name); // Log para comparar
             console.log('Geocode properties.address:', addressProperties); // Log detallado de las propiedades
 
-            if (addressProperties.city) {
-                city = addressProperties.city;
-            } else if (addressProperties.town) {
-                city = addressProperties.town;
-            } else if (addressProperties.village) {
-                city = addressProperties.village;
-            } else if (addressProperties.hamlet) {
-                city = addressProperties.hamlet;
-            } else {
-                // Fallback si no se encuentran propiedades de ciudad en el geocoder.
-                // Se toma la parte posterior a la primera coma en e.geocode.name
-                if (e.geocode.name) {
+            if (!city) {
+                if (addressProperties.city) {
+                    city = addressProperties.city;
+                } else if (addressProperties.town) {
+                    city = addressProperties.town;
+                } else if (addressProperties.village) {
+                    city = addressProperties.village;
+                } else if (addressProperties.hamlet) {
+                    city = addressProperties.hamlet;
+                } else if (e.geocode.name) {
                     const parts = e.geocode.name.split(',');
                     if (parts.length > 1) {
                         city = parts[1].trim();
                     } else if (parts.length === 1) {
                         city = parts[0].trim();
                     }
-                    if (city) {
-                        console.log('Fallback: City extracted from e.geocode.name using comma:', city);
-                        if (city.toLowerCase().startsWith('partido de ')) {
-                            city = city.substring('partido de '.length).trim();
-                        }
+                    if (city && city.toLowerCase().startsWith('partido de ')) {
+                        city = city.substring('partido de '.length).trim();
                     }
                 }
             }
