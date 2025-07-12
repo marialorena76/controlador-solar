@@ -768,34 +768,20 @@ async function initMetodoCalculoSection() {
     selectElement.appendChild(placeholderOption);
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/metodo_calculo_options');
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.json(); // Expected: ["Método A", "Método B"]
+        // Simulating fetch with predefined data as per requirement
+        const data = ["Cielo Anisotrópico", "Cielo Isotrópico"];
 
-        if (!Array.isArray(data)) {
-            console.error('[METODO CALCULO OPTIONS LOAD ERROR] Data received is not an array:', data);
-            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto para método de cálculo.</p>';
-            return; // Exit if data format is wrong
-        }
+        data.forEach(optionText => { // data is an array of strings
+            const optionElement = document.createElement('option');
+            optionElement.value = optionText;
+            optionElement.textContent = optionText;
 
-        if (data.length === 0) {
-            console.log('[METODO CALCULO OPTIONS LOAD] No hay opciones de método de cálculo disponibles.');
-            // selectElement will only have the placeholder.
-        } else {
-            data.forEach(optionText => { // data is an array of strings
-                const optionElement = document.createElement('option');
-                optionElement.value = optionText;
-                optionElement.textContent = optionText;
-
-                if (userSelections.metodoCalculoRadiacion === optionText) {
-                    optionElement.selected = true;
-                    placeholderOption.selected = false;
-                }
-                selectElement.appendChild(optionElement);
-            });
-        }
+            if (userSelections.metodoCalculoRadiacion === optionText) {
+                optionElement.selected = true;
+                placeholderOption.selected = false;
+            }
+            selectElement.appendChild(optionElement);
+        });
 
         selectElement.addEventListener('change', (event) => {
             const selectedValue = event.target.value;
@@ -833,7 +819,7 @@ async function initMetodoCalculoSection() {
         container.appendChild(selectElement);
 
     } catch (error) {
-        console.error('[METODO CALCULO OPTIONS LOAD ERROR] Error fetching or processing método de cálculo options:', error);
+        console.error('[METODO CALCULO OPTIONS LOAD ERROR] Error processing método de cálculo options:', error);
         if (error.message) {
             console.error('[METODO CALCULO OPTIONS LOAD ERROR] Message:', error.message);
         }
@@ -859,115 +845,88 @@ async function initModeloMetodoSection() {
     const metodoCalculoSeleccionado = userSelections.metodoCalculoRadiacion;
     console.log('[initModeloMetodoSection] Parent metodoCalculoSeleccionado:', metodoCalculoSeleccionado);
 
-    const apiUrl = 'http://127.0.0.1:5000/api/modelo_metodo_options';
-    console.log('[initModeloMetodoSection] fetching from:', apiUrl);
+    // Defining model options based on the new requirement
+    const allModelOptions = {
+        "Cielo Anisotrópico": ["Modelo Hay and Davies", "Modelo Riendl", "Modelo Perez"],
+        "Cielo Isotrópico": ["Método Liu-Jordan"]
+    };
+    console.log('[initModeloMetodoSection] allModelOptions defined:', allModelOptions);
 
-    try {
-        const response = await fetch(apiUrl);
-        console.log('[initModeloMetodoSection] response status:', response.status);
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('[initModeloMetodoSection] Response not OK. Status:', response.status, 'Text:', errorText);
-            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+    let filteredData = [];
+    let autoSelectModel = null;
+
+    if (metodoCalculoSeleccionado === "Cielo Isotrópico") {
+        console.log('[initModeloMetodoSection] Filtering for "Cielo Isotrópico"');
+        filteredData = allModelOptions["Cielo Isotrópico"];
+        autoSelectModel = "Método Liu-Jordan";
+        userSelections.modeloMetodoRadiacion = autoSelectModel; // Auto-select and save
+        console.log('[initModeloMetodoSection] Auto-selecting "Método Liu-Jordan" and updated userSelections.');
+    } else if (metodoCalculoSeleccionado === "Cielo Anisotrópico") {
+        console.log('[initModeloMetodoSection] Filtering for "Cielo Anisotrópico"');
+        filteredData = allModelOptions["Cielo Anisotrópico"];
+        if (userSelections.modeloMetodoRadiacion === "Método Liu-Jordan") {
+            userSelections.modeloMetodoRadiacion = null;
+            console.log('[initModeloMetodoSection] Cleared modeloMetodoRadiacion as "Método Liu-Jordan" is not valid for current parent selection.');
         }
-        const allModelOptions = await response.json();
-        console.log('[initModeloMetodoSection] allModelOptions received:', allModelOptions);
+    }
+    saveUserSelections();
+    console.log('[initModeloMetodoSection] Filtered data for dropdown:', filteredData);
 
-        if (!Array.isArray(allModelOptions)) {
-            console.error('[initModeloMetodoSection] Data is not an array:', allModelOptions);
-            container.innerHTML = '<p style="color: red; text-align: center;">Error: Formato de datos incorrecto.</p>';
-            return;
-        }
+    const selectElement = document.createElement('select');
+    selectElement.id = 'modelo-metodo-select';
+    selectElement.className = 'form-control';
 
-        let filteredData = [];
-        let autoSelectModel = null;
-
-        if (metodoCalculoSeleccionado === "Cielo Isotrópico") {
-            console.log('[initModeloMetodoSection] Filtering for "Cielo Isotrópico"');
-            filteredData = allModelOptions.filter(optText => optText === "Método Liu-Jordan");
-            if (filteredData.length > 0) {
-                autoSelectModel = "Método Liu-Jordan";
-                userSelections.modeloMetodoRadiacion = autoSelectModel; // Auto-select and save
-                // saveUserSelections(); // Will be saved after populating or on change
-                console.log('[initModeloMetodoSection] Auto-selecting "Método Liu-Jordan" and updated userSelections.');
-            } else {
-                 console.warn('[initModeloMetodoSection] "Método Liu-Jordan" not found in API options for "Cielo Isotrópico".');
-                 userSelections.modeloMetodoRadiacion = null; // Ensure it's null if the expected option isn't there
-            }
-        } else { // Assumed "Cielo Anisotrópico" or any other selection
-            console.log('[initModeloMetodoSection] Filtering for other methods (excluding "Método Liu-Jordan")');
-            filteredData = allModelOptions.filter(optText => optText !== "Método Liu-Jordan");
-            // If previously "Método Liu-Jordan" was selected, it's no longer valid.
-            if (userSelections.modeloMetodoRadiacion === "Método Liu-Jordan") {
-                userSelections.modeloMetodoRadiacion = null;
-                console.log('[initModeloMetodoSection] Cleared modeloMetodoRadiacion as "Método Liu-Jordan" is not valid for current parent selection.');
-            }
-        }
-        // Ensure saveUserSelections is called if modeloMetodoRadiacion was changed due to filtering logic
-        saveUserSelections();
-        console.log('[initModeloMetodoSection] Filtered data for dropdown:', filteredData);
-
-        const selectElement = document.createElement('select');
-        selectElement.id = 'modelo-metodo-select';
-        selectElement.className = 'form-control';
-
+    if (metodoCalculoSeleccionado !== "Cielo Isotrópico") {
         const placeholderOption = document.createElement('option');
         placeholderOption.value = '';
         placeholderOption.textContent = 'Seleccione un modelo...';
         placeholderOption.disabled = true;
         selectElement.appendChild(placeholderOption);
+    }
 
-        if (filteredData.length === 0) {
-            console.log('[initModeloMetodoSection] No options available after filtering.');
-        } else {
-            filteredData.forEach((optionText) => {
-                const optionElement = document.createElement('option');
-                optionElement.value = optionText; // Value and text are the same
-                optionElement.textContent = optionText;
-                console.log(`[initModeloMetodoSection] Adding option: '${optionText}'`);
+    if (filteredData.length === 0) {
+        console.log('[initModeloMetodoSection] No options available after filtering.');
+    } else {
+        filteredData.forEach((optionText) => {
+            const optionElement = document.createElement('option');
+            optionElement.value = optionText;
+            optionElement.textContent = optionText;
+            console.log(`[initModeloMetodoSection] Adding option: '${optionText}'`);
 
-                if (userSelections.modeloMetodoRadiacion === optionText) {
-                    optionElement.selected = true;
-                    placeholderOption.selected = false;
-                    console.log('[initModeloMetodoSection] pre-selecting option:', optionText);
+            if (userSelections.modeloMetodoRadiacion === optionText) {
+                optionElement.selected = true;
+                if (selectElement.options[0]?.disabled) {
+                    selectElement.options[0].selected = false;
                 }
-                selectElement.appendChild(optionElement);
-            });
-        }
-
-        if (selectElement.selectedIndex === -1 || (selectElement.options[selectElement.selectedIndex] && selectElement.options[selectElement.selectedIndex].disabled)) {
-            placeholderOption.selected = true;
-            // If placeholder is selected, ensure userSelection reflects no choice, unless autoSelectModel was set
-            if (!autoSelectModel) {
-                 userSelections.modeloMetodoRadiacion = null;
-                 // saveUserSelections(); // Already saved after filtering
             }
-        }
-
-        selectElement.addEventListener('change', (event) => {
-            const selectedValue = event.target.value;
-            if (selectedValue && selectedValue !== '') {
-                userSelections.modeloMetodoRadiacion = selectedValue;
-            } else {
-                userSelections.modeloMetodoRadiacion = null;
-            }
-            saveUserSelections();
-            console.log('[initModeloMetodoSection] Modelo del método seleccionado:', userSelections.modeloMetodoRadiacion);
+            selectElement.appendChild(optionElement);
         });
+    }
 
-        container.appendChild(selectElement);
-        console.log('[initModeloMetodoSection] select element appended.');
+    if (metodoCalculoSeleccionado === "Cielo Isotrópico") {
+        selectElement.disabled = true;
+    }
 
-    } catch (error) {
-        console.error('[initModeloMetodoSection] CATCH block error:', error);
-        if (error.message) {
-            console.error('[initModeloMetodoSection] CATCH error message:', error.message);
-        }
-        alert('Error al cargar las opciones de modelo del método. Intente más tarde.');
-        if (container) {
-            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones.</p>';
+    if (selectElement.selectedIndex === -1 || (selectElement.options[selectElement.selectedIndex] && selectElement.options[selectElement.selectedIndex].disabled)) {
+        if(selectElement.options.length > 0) selectElement.options[0].selected = true;
+        if (!autoSelectModel) {
+            userSelections.modeloMetodoRadiacion = null;
         }
     }
+
+    selectElement.addEventListener('change', (event) => {
+        const selectedValue = event.target.value;
+        if (selectedValue && selectedValue !== '') {
+            userSelections.modeloMetodoRadiacion = selectedValue;
+        } else {
+            userSelections.modeloMetodoRadiacion = null;
+        }
+        saveUserSelections();
+        console.log('[initModeloMetodoSection] Modelo del método seleccionado:', userSelections.modeloMetodoRadiacion);
+    });
+
+    container.appendChild(selectElement);
+    console.log('[initModeloMetodoSection] select element appended.');
 }
 
 // --- Nueva función para inicializar la sección de Pérdidas ---
