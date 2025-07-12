@@ -62,8 +62,8 @@
             margin-bottom: 0;
         }
         .logo-row-2 img { margin: 0 15px; }
-        .logo { max-height: 70px; width: auto; }
-        .logo-small { max-height: 50px; width: auto; }
+        .logo { max-height: 88px; width: auto; }
+        .logo-small { max-height: 40px; width: auto; }
 
 #map-screen {
     width: 100%;
@@ -508,6 +508,25 @@
                 width: 100%;
             }
         }
+
+        footer {
+            background: white;
+            text-align: center;
+            padding: 15px 0;
+            border-top: 1px solid var(--border-color);
+            margin-top: 1rem;
+        }
+
+        .footer-logo {
+            max-height: 40px;
+            width: auto;
+            margin-bottom: 8px;
+        }
+
+        .copyright {
+            font-size: 0.85rem;
+            color: var(--text-dark);
+        }
     </style>
 </head>
 <body>
@@ -525,7 +544,6 @@
         </div>
         <div class="logo-row-2">
             <img src="images/logo-ctae.png" alt="CTAE Logo" class="logo-small">
-            <img src="images/logo-facultad.png" alt="Facultad de Ingeniería Logo" class="logo-small">
         </div>
     </div>
 
@@ -942,5 +960,10 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script src="calculador.js" defer></script>
+
+    <footer>
+        <img src="images/logo-facultad.png" alt="Facultad de Ingeniería Logo" class="footer-logo">
+        <div class="copyright">&copy; 2024 Facultad de Ingeniería</div>
+    </footer>
 </body>
 </html>
