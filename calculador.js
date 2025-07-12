@@ -1107,6 +1107,13 @@ function initPanelesSectionExpert() {
         console.error('[DEBUG] initPanelesSectionExpert: initMarcaPanelOptions function IS NOT DEFINED.');
     }
     console.log('[DEBUG] initPanelesSectionExpert: Returned from initMarcaPanelOptions call attempt.');
+
+    // Add this call
+    if (typeof initPotenciaPanelOptions === 'function') {
+        initPotenciaPanelOptions();
+    } else {
+        console.error('[DEBUG] initPanelesSectionExpert: initPotenciaPanelOptions function IS NOT DEFINED.');
+    }
 }
 
 // async function initModeloTemperaturaPanelOptions() { ... } // This was the duplicated incorrect one, remove it.
@@ -1137,9 +1144,13 @@ async function initMarcaPanelOptions() {
         }
         let data = await response.json(); // Expected: array of strings
 
-        // Add 'AMERISOLAR' to the list if it's not already there
-        if (Array.isArray(data) && !data.includes('AMERISOLAR')) {
-            data.push('AMERISOLAR');
+        const requiredBrands = ['AMERISOLAR', 'ASTRONERGY', 'TRINASOLAR', 'EGING'];
+        if (Array.isArray(data)) {
+            requiredBrands.forEach(brand => {
+                if (!data.includes(brand)) {
+                    data.push(brand);
+                }
+            });
             data.sort(); // Optional: sort the list alphabetically
         }
 
@@ -1176,6 +1187,11 @@ async function initMarcaPanelOptions() {
             }
             saveUserSelections();
             console.log('Marca de panel seleccionada:', userSelections.marcaPanel);
+
+            // Re-initialize potencia panel options
+            if (typeof initPotenciaPanelOptions === 'function') {
+                initPotenciaPanelOptions();
+            }
         });
         container.appendChild(selectElement);
 
@@ -1202,6 +1218,75 @@ async function initModeloTemperaturaPanelOptions() { // Keep async if other init
     // userSelections.modeloTemperaturaPanel = null;
     // saveUserSelections(); // If resetting. For now, let's not reset, just show placeholder.
                             // The selection mechanism (dropdown) is removed, so it can't be changed from UI here.
+}
+
+function initPotenciaPanelOptions() {
+    const marcaSeleccionada = userSelections.marcaPanel;
+    const container = document.getElementById('panel-potencia-subform'); // The whole subform container
+    const potenciaDeseadaInput = document.getElementById('potencia-panel-deseada-input');
+
+    if (!container || !potenciaDeseadaInput) {
+        console.error("Contenedor de potencia o input no encontrado.");
+        return;
+    }
+
+    // Clear previous dynamic elements
+    const existingSelect = document.getElementById('potencia-panel-select');
+    if (existingSelect) {
+        existingSelect.remove();
+    }
+
+    potenciaDeseadaInput.style.display = 'block'; // Show the input by default
+
+    const powerRanges = {
+        'AMERISOLAR': { start: 270, end: 400, step: 5 },
+        'ASTRONERGY': { start: 585, end: 605, step: 5 },
+        'TRINASOLAR': { start: 430, end: 510, step: 5 },
+        'GENERICOS': { start: 280, end: 430, step: 5 },
+        'EGING': { start: 440, end: 550, step: 5 }
+    };
+
+    const range = powerRanges[marcaSeleccionada];
+
+    if (range) {
+        potenciaDeseadaInput.style.display = 'none'; // Hide the original input
+
+        const selectElement = document.createElement('select');
+        selectElement.id = 'potencia-panel-select';
+        selectElement.className = 'form-control';
+
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.textContent = 'Seleccione una potencia...';
+        placeholderOption.disabled = true;
+        placeholderOption.selected = true;
+        selectElement.appendChild(placeholderOption);
+
+        for (let i = range.start; i <= range.end; i += range.step) {
+            const optionElement = document.createElement('option');
+            optionElement.value = i;
+            optionElement.textContent = `${i} W`;
+            if (userSelections.potenciaPanelDeseada === i) {
+                optionElement.selected = true;
+                placeholderOption.selected = false;
+            }
+            selectElement.appendChild(optionElement);
+        }
+
+        selectElement.addEventListener('change', (event) => {
+            const value = parseInt(event.target.value, 10);
+            userSelections.potenciaPanelDeseada = isNaN(value) ? null : value;
+            saveUserSelections();
+        });
+
+        // Insert the select after the label
+        const label = container.querySelector('label[for="potencia-panel-deseada-input"]');
+        if (label) {
+            label.after(selectElement);
+        } else {
+            container.prepend(selectElement);
+        }
+    }
 }
 
 function initInversorSection() {
