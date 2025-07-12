@@ -860,8 +860,19 @@ def buscar_ciudad():
         # Leer la hoja 'Ciudades', columnas A (código) y B (nombre)
         # Column A is index 0, Column B is index 1
         # Filas Excel 2 a 1990 -> iloc 1 a 1989
-        df_ciudades = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Ciudades', usecols="A,B", header=None, skiprows=1, names=['codigo', 'ciudad_nombre'], engine='openpyxl')
-        print(f"DEBUG: Hoja 'Ciudades' leída. Total filas: {len(df_ciudades)}")
+        df_ciudades = pd.read_excel(
+            EXCEL_FILE_PATH,
+            sheet_name='Ciudades',
+            usecols="A,B",
+            header=None,
+            skiprows=1,
+            nrows=1989,  # Solo B2:B1990
+            names=['codigo', 'ciudad_nombre'],
+            engine='openpyxl'
+        )
+        print(
+            f"DEBUG: Hoja 'Ciudades' leída. Filas consideradas: {len(df_ciudades)}"
+        )
 
         ciudad_buscada_normalizada = normalizar_texto(ciudad_buscada)
 
