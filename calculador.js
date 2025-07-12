@@ -1848,20 +1848,19 @@ function initMap() {
             } else if (addressProperties.hamlet) {
                 city = addressProperties.hamlet;
             } else {
-                // Fallback MUY simple si no se encuentra en las propiedades anteriores:
-                // Tomar el primer elemento antes de una coma si e.geocode.name existe.
+                // Fallback si no se encuentran propiedades de ciudad en el geocoder.
+                // Se toma la parte posterior a la primera coma en e.geocode.name
                 if (e.geocode.name) {
                     const parts = e.geocode.name.split(',');
-                    if (parts.length > 0) {
+                    if (parts.length > 1) {
+                        city = parts[1].trim();
+                    } else if (parts.length === 1) {
                         city = parts[0].trim();
-                        console.log('Fallback: City from e.geocode.name parts[0]:', city);
-                        // Si la ciudad obtenida del fallback contiene "Partido de", intentamos con el siguiente elemento si existe.
-                        if (city && city.toLowerCase().startsWith('partido de ') && parts.length > 1) {
-                            const potentialCity = parts[1].trim();
-                            if (!potentialCity.toLowerCase().startsWith('partido de ')) {
-                                 city = potentialCity;
-                                 console.log('Fallback adjustment: City from e.geocode.name parts[1]:', city);
-                            }
+                    }
+                    if (city) {
+                        console.log('Fallback: City extracted from e.geocode.name using comma:', city);
+                        if (city.toLowerCase().startsWith('partido de ')) {
+                            city = city.substring('partido de '.length).trim();
                         }
                     }
                 }
