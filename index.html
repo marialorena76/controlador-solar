@@ -71,12 +71,12 @@
         }
 
         .logo {
-            max-height: 70px; /* Ajuste de tamaño para logos */
+            max-height: 88px; /* Unificar altura tomando como referencia el logo de la Provincia */
             width: auto;
         }
 
         .logo-small {
-            max-height: 50px; /* Tamaño más pequeño para logos de la segunda línea */
+            max-height: 40px; /* Logos de la segunda línea más pequeños */
             width: auto;
         }
 
@@ -285,6 +285,25 @@
             .map-area { padding: 1.2rem; }
             .side-form { padding: 1.5rem 1rem;}
         }
+
+        footer {
+            background: white;
+            text-align: center;
+            padding: 15px 0;
+            border-top: 1px solid var(--border-color);
+            margin-top: 1rem;
+        }
+
+        .footer-logo {
+            max-height: 40px;
+            width: auto;
+            margin-bottom: 8px;
+        }
+
+        .copyright {
+            font-size: 0.85rem;
+            color: var(--text-dark);
+        }
     </style>
 </head>
 <body>
@@ -292,18 +311,17 @@
         <div class="app-header">
             <div class="logo-row-1">
                 <div class="left-logo">
-                    <img src="logo-freba.png" alt="FREBA Logo" class="logo">
+                    <img src="images/logo-freba.png" alt="FREBA Logo" class="logo">
                 </div>
                 <div class="middle-logo">
-                    <img src="logo-buenosaires.png" alt="Buenos Aires Provincia Logo" class="logo">
+                    <img src="images/logo-buenosaires.png" alt="Buenos Aires Provincia Logo" class="logo">
                 </div>
                 <div class="right-logo">
-                    <img src="logo-proinged.png" alt="PROINGED Logo" class="logo">
+                    <img src="images/logo-proinged.png" alt="PROINGED Logo" class="logo">
                 </div>
             </div>
             <div class="logo-row-2">
-                <img src="logo-ctae.png" alt="CTAE Logo" class="logo-small">
-                <img src="logo-facultad.png" alt="Facultad de Ingeniería Logo" class="logo-small">
+                <img src="images/logo-ctae.png" alt="CTAE Logo" class="logo-small">
             </div>
         </div>
 
@@ -380,5 +398,10 @@
             showSection(null); // Ocultar todas las secciones si no hay una específica para admin
         };
     </script>
+
+    <footer>
+        <img src="images/logo-facultad.png" alt="Facultad de Ingeniería Logo" class="footer-logo">
+        <div class="copyright">&copy; 2024 Facultad de Ingeniería</div>
+    </footer>
 </body>
 </html>
