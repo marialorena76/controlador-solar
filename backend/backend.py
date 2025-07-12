@@ -718,6 +718,55 @@ def get_modelo_temperatura_panel_options():
         return jsonify({"error": f"Error interno del servidor al obtener opciones de modelo temperatura panel: {str(e)}"}), 500
 
 
+# --- NUEVA RUTA: Valor por defecto del Modelo de Temperatura de Paneles ---
+@app.route('/api/modelo_temperatura_panel_valor', methods=['GET'])
+def get_modelo_temperatura_panel_valor():
+    """Obtener el valor actual de la celda C83 de 'Datos de Entrada'."""
+    try:
+        import zipfile
+        import xml.etree.ElementTree as ET
+
+        ns = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+
+        def read_sheet(zf, path):
+            with zf.open(path) as f:
+                return ET.fromstring(f.read())
+
+        def parse_shared_strings(zf):
+            root = read_sheet(zf, "xl/sharedStrings.xml")
+            return [
+                "".join(t.text or "" for t in si.findall(".//s:t", ns))
+                for si in root.findall("s:si", ns)
+            ]
+
+        def cell_value(sheet_root, ref, strings):
+            cell = sheet_root.find(f".//s:c[@r='{ref}']", ns)
+            if cell is None:
+                return None
+            v = cell.find("s:v", ns)
+            if v is None:
+                return ""
+            return strings[int(v.text)] if cell.get("t") == "s" else v.text
+
+        with zipfile.ZipFile(EXCEL_FILE_PATH) as zf:
+            strings = parse_shared_strings(zf)
+            datos = read_sheet(zf, "xl/worksheets/sheet3.xml")  # Datos de Entrada
+            valor = cell_value(datos, "C83", strings) or ""
+
+        return jsonify({"valor": valor})
+
+    except FileNotFoundError:
+        print(
+            f"ERROR en /api/modelo_temperatura_panel_valor: Archivo Excel no encontrado: {EXCEL_FILE_PATH}"
+        )
+        return jsonify({"error": "Archivo Excel no encontrado."}), 500
+    except Exception as exc:  # noqa: BLE001
+        import traceback
+        print(f"ERROR en /api/modelo_temperatura_panel_valor: {exc}")
+        print(traceback.format_exc())
+        return jsonify({"error": "No se pudo obtener el valor solicitado."}), 500
+
+
 # --- NUEVA RUTA: Para obtener opciones de Frecuencia de Lluvias ---
 @app.route('/api/frecuencia_lluvias_options', methods=['GET'])
 def get_frecuencia_lluvias_options():
