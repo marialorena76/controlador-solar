@@ -1848,7 +1848,14 @@ function initMap() {
             // if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6); // Eliminado
             userSelections.location = userLocation;
 
-            let city = extraerCiudadDeDireccion(e.geocode.name);
+            // La ciudad válida es la que el usuario escribe después de la coma
+            // en el cuadro de búsqueda. Tomamos esa cadena directamente del
+            // input del geocoder por si el resultado de la geocodificación
+            // incluye información adicional.
+            let city = extraerCiudadDeDireccion(
+                geocoderControlInstance._input &&
+                geocoderControlInstance._input.value
+            );
             const addressProperties = e.geocode.properties && e.geocode.properties.address ? e.geocode.properties.address : {};
 
             console.log('Geocode e.geocode.name:', e.geocode.name); // Log para comparar
