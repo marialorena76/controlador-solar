@@ -1135,7 +1135,13 @@ async function initMarcaPanelOptions() {
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
-        const data = await response.json(); // Expected: array of strings
+        let data = await response.json(); // Expected: array of strings
+
+        // Add 'AMERISOLAR' to the list if it's not already there
+        if (Array.isArray(data) && !data.includes('AMERISOLAR')) {
+            data.push('AMERISOLAR');
+            data.sort(); // Optional: sort the list alphabetically
+        }
 
         if (!Array.isArray(data)) {
             console.error('[MARCA PANEL OPTIONS LOAD ERROR] Data not an array:', data);
