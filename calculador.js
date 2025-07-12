@@ -1182,6 +1182,7 @@ async function initMarcaPanelOptions() {
             const selectedValue = event.target.value;
             if (selectedValue && selectedValue !== '') {
                 userSelections.marcaPanel = selectedValue;
+                escribirMarcaPanelEnExcel(selectedValue);
             } else {
                 userSelections.marcaPanel = null;
             }
@@ -1722,6 +1723,66 @@ async function escribirCodigoCiudadEnExcel(codigoCiudad) {
     }
 }
 
+// --- Nueva función para escribir la marca de panel seleccionada en Excel ---
+async function escribirMarcaPanelEnExcel(marcaPanel) {
+    if (!marcaPanel) {
+        console.warn('No se proporcionó marca de panel para escribir en Excel.');
+        return;
+    }
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/escribir_dato_excel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                dato: marcaPanel,
+                hoja: 'Datos de Entrada',
+                celda: 'C81'
+            }),
+        });
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Marca de panel escrita en Excel:', data.message);
+        } else {
+            const errorData = await response.json();
+            console.error('Error al escribir marca de panel en Excel:', response.status, errorData.error);
+        }
+    } catch (error) {
+        console.error('Error en la solicitud fetch para escribir marca de panel en Excel:', error);
+    }
+}
+
+// --- Nueva función para escribir la potencia de panel deseada en Excel ---
+async function escribirPotenciaPanelEnExcel(potenciaPanel) {
+    if (potenciaPanel === null || potenciaPanel === undefined || potenciaPanel === '') {
+        console.warn('No se proporcionó potencia de panel para escribir en Excel.');
+        return;
+    }
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/escribir_dato_excel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                dato: potenciaPanel,
+                hoja: 'Datos de Entrada',
+                celda: 'C82'
+            }),
+        });
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Potencia de panel escrita en Excel:', data.message);
+        } else {
+            const errorData = await response.json();
+            console.error('Error al escribir potencia de panel en Excel:', response.status, errorData.error);
+        }
+    } catch (error) {
+        console.error('Error en la solicitud fetch para escribir potencia de panel en Excel:', error);
+    }
+}
+
 
 // --- Lógica del Mapa (EXISTENTE, CON PEQUEÑAS MEJORAS) ---
 
@@ -2217,6 +2278,7 @@ function setupNavigationButtons() {
                 const value = parseFloat(valueStr);
                 if (!isNaN(value) && value >= 0) {
                     userSelections.potenciaPanelDeseada = value;
+                    escribirPotenciaPanelEnExcel(value);
                 }
                 // If input is invalid (e.g. negative or non-numeric and not empty),
                 // userSelections.potenciaPanelDeseada retains its previous valid value or null.
