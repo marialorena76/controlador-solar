@@ -129,16 +129,20 @@
         }
         /* Geocoder (buscador) */
         .leaflet-control-geocoder {
+            position: absolute; /* Superponer sobre el mapa */
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%); /* Centrar horizontalmente */
+            width: 80%; /* Ocupa el 80% del ancho del mapa */
+            max-width: 700px;
             box-shadow: 0 1px 5px rgba(0,0,0,0.4);
             border-radius: 5px;
             background-color: white;
             padding: 5px;
             z-index: 1000; /* Asegurar que esté por encima del mapa */
-            display: flex; /* Para el estilo del buscador como en la imagen */
+            display: flex; /* Para el estilo del buscador */
             align-items: center;
             justify-content: center;
-            width: 90%; /* Ajuste de ancho */
-            margin-top: 15px; /* Espacio entre el mapa y el buscador */
         }
         .leaflet-control-geocoder .leaflet-control-geocoder-form input {
             border: none;
