@@ -1820,7 +1820,7 @@ function initMap() {
         placeholder: 'Ej: Buchardo 3232, Olavarría', // Nuevo placeholder
         errorMessage: 'No se encontró la dirección.',
         defaultMarkGeocode: false
-    }).on('markgeocode', async function(e) {
+    }).on('markgeocode', function(e) {
         console.log('Geocode event:', e);
         if (e.geocode && e.geocode.center) {
             userLocation.lat = e.geocode.center.lat;
@@ -1833,15 +1833,13 @@ function initMap() {
             }
             map.setView(userLocation, 13);
 
-            // if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6); // Eliminado
-            // if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6); // Eliminado
             userSelections.location = userLocation;
 
             let city = null;
             const addressProperties = e.geocode.properties && e.geocode.properties.address ? e.geocode.properties.address : {};
 
-            console.log('Geocode e.geocode.name:', e.geocode.name); // Log para comparar
-            console.log('Geocode properties.address:', addressProperties); // Log detallado de las propiedades
+            console.log('Geocode e.geocode.name:', e.geocode.name);
+            console.log('Geocode properties.address:', addressProperties);
 
             if (addressProperties.city) {
                 city = addressProperties.city;
@@ -1852,27 +1850,22 @@ function initMap() {
             } else if (addressProperties.hamlet) {
                 city = addressProperties.hamlet;
             } else {
-                // Fallback si no se encuentran propiedades de ciudad en el geocoder.
-                // Se toma la parte posterior a la primera coma en e.geocode.name
                 if (e.geocode.name) {
                     const parts = e.geocode.name.split(',');
                     if (parts.length > 1) {
-                        city = parts[1].trim();
-                    } else if (parts.length === 1) {
+                        city = parts.slice(1).join(',').trim();
+                    } else {
                         city = parts[0].trim();
                     }
-                    if (city) {
-                        console.log('Fallback: City extracted from e.geocode.name using comma:', city);
-                        if (city.toLowerCase().startsWith('partido de ')) {
-                            city = city.substring('partido de '.length).trim();
-                        }
+                    if (city.toLowerCase().startsWith('partido de ')) {
+                        city = city.substring('partido de '.length).trim();
                     }
                 }
             }
 
             if (city) {
                 console.log('Ciudad extraída (final):', city);
-                buscarCodigoCiudad(city); // Llamada a la nueva función
+                buscarCodigoCiudad(city);
             } else {
                 console.warn('No se pudo extraer la ciudad de la dirección:', e.geocode.name, addressProperties);
                 userSelections.codigoCiudad = null;
@@ -1880,9 +1873,19 @@ function initMap() {
             }
         }
     }).addTo(map);
+
+    const geocoderElement = geocoderControlInstance.getContainer();
+    const customGeocoderContainer = document.getElementById('geocoder-container');
+
+    if (customGeocoderContainer && geocoderElement) {
+        customGeocoderContainer.innerHTML = '';
+        customGeocoderContainer.appendChild(geocoderElement);
+    } else {
+        if (!customGeocoderContainer) console.error('Custom geocoder container (geocoder-container) not found.');
+        if (!geocoderElement) console.error('Geocoder control element (geocoderElement) not found.');
+    }
 }
 
-// --- Nueva función para buscar el código de la ciudad ---
 async function buscarCodigoCiudad(ciudad) {
     try {
         const response = await fetch('http://127.0.0.1:5000/api/buscar_ciudad', {
@@ -1921,18 +1924,6 @@ async function buscarCodigoCiudad(ciudad) {
         }, 0);
     } finally {
         saveUserSelections();
-    }
-
-    // Relocate the geocoder DOM element
-    const geocoderElement = geocoderControlInstance.getContainer();
-    const customGeocoderContainer = document.getElementById('geocoder-container');
-    
-    if (customGeocoderContainer && geocoderElement) {
-        customGeocoderContainer.innerHTML = ''; // Clear the container first if it has placeholder content or old controls
-        customGeocoderContainer.appendChild(geocoderElement);
-    } else {
-        if (!customGeocoderContainer) console.error('Custom geocoder container (geocoder-container) not found.');
-        if (!geocoderElement) console.error('Geocoder control element (geocoderElement) not found.');
     }
 }
 
