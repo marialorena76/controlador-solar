@@ -830,5 +830,126 @@ def get_frecuencia_lluvias_options():
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor al obtener opciones de frecuencia lluvias: {str(e)}"}), 500
 
+# --- Función de Normalización de Texto ---
+def normalizar_texto(texto):
+    if texto is None:
+        return ""
+    texto = texto.lower().strip()
+    # Reemplazos para vocales acentuadas y diéresis comunes en español
+    reemplazos = {
+        'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
+        'ä': 'a', 'ë': 'e', 'ï': 'i', 'ö': 'o', 'ü': 'u', # Considerar si 'ü' debe ser 'u' o 'ue'
+        'à': 'a', 'è': 'e', 'ì': 'i', 'ò': 'o', 'ù': 'u'  # Acentos graves, menos comunes en español pero por si acaso
+        # Podrían añadirse más reemplazos si es necesario (ej. ñ -> n, aunque esto es debatible)
+    }
+    for acentuada, sin_acento in reemplazos.items():
+        texto = texto.replace(acentuada, sin_acento)
+    return texto
+
+# --- NUEVA RUTA: Para buscar ciudad y obtener código ---
+@app.route('/api/buscar_ciudad', methods=['POST'])
+def buscar_ciudad():
+    data = request.json
+    ciudad_buscada = data.get('ciudad')
+
+    if not ciudad_buscada:
+        return jsonify({"error": "Nombre de ciudad no proporcionado."}), 400
+
+    try:
+        print(f"DEBUG: Solicitud a /api/buscar_ciudad para: {ciudad_buscada}")
+        # Leer la hoja 'Ciudades', columnas A (código) y B (nombre)
+        # Column A is index 0, Column B is index 1
+        # Filas Excel 2 a 1990 -> iloc 1 a 1989
+        df_ciudades = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Ciudades', usecols="A,B", header=None, skiprows=1, names=['codigo', 'ciudad_nombre'], engine='openpyxl')
+        print(f"DEBUG: Hoja 'Ciudades' leída. Total filas: {len(df_ciudades)}")
+
+        ciudad_buscada_normalizada = normalizar_texto(ciudad_buscada)
+
+        # Iterar para encontrar la ciudad
+        for index, row in df_ciudades.iterrows():
+            nombre_excel_original = str(row['ciudad_nombre'])
+            nombre_excel_normalizado = normalizar_texto(nombre_excel_original)
+
+            # Log para depuración si se encuentra una ciudad que contenga la buscada (antes de la igualdad exacta)
+            # Esto ayuda a ver si la normalización funciona o si hay otras diferencias.
+            # if ciudad_buscada_normalizada in nombre_excel_normalizado or nombre_excel_normalizado in ciudad_buscada_normalizada :
+            #     print(f"DEBUG Excel check: Original='{nombre_excel_original}', NormalizadoExcel='{nombre_excel_normalizado}', BuscadoNormalizado='{ciudad_buscada_normalizada}'")
+
+            if nombre_excel_normalizado == ciudad_buscada_normalizada:
+                codigo_encontrado = row['codigo']
+                print(f"DEBUG: Ciudad '{ciudad_buscada}' (normalizada como '{ciudad_buscada_normalizada}') encontrada. Código: {codigo_encontrado}. Original Excel: '{nombre_excel_original}'")
+                return jsonify({"codigo_ciudad": codigo_encontrado, "message": "Ciudad encontrada."}), 200
+
+        print(f"WARN: Ciudad '{ciudad_buscada}' (normalizada como '{ciudad_buscada_normalizada}') no encontrada en la hoja 'Ciudades'.")
+        # Devolver 200 OK, pero con codigo_ciudad: null para indicar que no se encontró
+        return jsonify({"codigo_ciudad": None, "message": f"Ciudad '{ciudad_buscada}' no encontrada."}), 200
+
+    except FileNotFoundError:
+        print(f"ERROR en /api/buscar_ciudad: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 500
+    except KeyError as e:
+        print(f"ERROR en /api/buscar_ciudad: Hoja 'Ciudades' o columnas A/B no encontradas? Error: {e}")
+        return jsonify({"error": f"Error de clave al leer la hoja de cálculo para ciudades: {e}"}), 500
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/buscar_ciudad: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno del servidor al buscar ciudad: {str(e)}"}), 500
+
+# --- NUEVA RUTA: Para escribir un dato en una celda específica del Excel ---
+@app.route('/api/escribir_dato_excel', methods=['POST'])
+def escribir_dato_excel():
+    data = request.json
+    dato_a_escribir = data.get('dato')
+    hoja_destino = data.get('hoja')
+    celda_destino = data.get('celda') # Ej: "B7"
+
+    if dato_a_escribir is None or not hoja_destino or not celda_destino: # None check for dato_a_escribir
+        return jsonify({"error": "Faltan datos: 'dato', 'hoja' o 'celda' no proporcionados."}), 400
+
+    try:
+        print(f"DEBUG: Solicitud a /api/escribir_dato_excel. Dato: {dato_a_escribir}, Hoja: {hoja_destino}, Celda: {celda_destino}")
+
+        # Usar openpyxl para leer y escribir para preservar el archivo existente tanto como sea posible
+        import openpyxl
+
+        # Verificar si el archivo existe
+        if not os.path.exists(EXCEL_FILE_PATH):
+            print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO para escritura: {EXCEL_FILE_PATH}")
+            return jsonify({"error": f"Archivo Excel '{EXCEL_FILE_PATH}' no encontrado en el servidor."}), 500
+
+        workbook = openpyxl.load_workbook(EXCEL_FILE_PATH)
+
+        if hoja_destino not in workbook.sheetnames:
+            print(f"ERROR: Hoja '{hoja_destino}' no encontrada en el archivo Excel.")
+            return jsonify({"error": f"Hoja '{hoja_destino}' no encontrada."}), 400
+
+        sheet = workbook[hoja_destino]
+
+        # Validar la celda (simple validación de formato, openpyxl maneja errores de celda inválida)
+        if not isinstance(celda_destino, str) or not celda_destino:
+             print(f"ERROR: Formato de celda inválido: {celda_destino}")
+             return jsonify({"error": "Formato de celda inválido."}), 400
+
+        sheet[celda_destino] = dato_a_escribir
+
+        workbook.save(EXCEL_FILE_PATH)
+        print(f"DEBUG: Dato '{dato_a_escribir}' escrito en Hoja '{hoja_destino}', Celda '{celda_destino}' exitosamente.")
+
+        return jsonify({"message": f"Dato '{dato_a_escribir}' escrito correctamente en {hoja_destino}!{celda_destino}."})
+
+    except FileNotFoundError: # Aunque ya chequeamos arriba, por si acaso durante el load_workbook
+        print(f"ERROR en /api/escribir_dato_excel: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel de configuración no encontrado durante la operación."}), 500
+    except KeyError as e: # Podría ser por hoja_destino si el chequeo inicial falla de alguna forma
+        print(f"ERROR en /api/escribir_dato_excel: Hoja '{hoja_destino}' no encontrada? Error: {e}")
+        return jsonify({"error": f"Error de clave, Hoja '{hoja_destino}' no encontrada: {e}"}), 400
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/escribir_dato_excel: {e}")
+        print(traceback.format_exc())
+        # Evitar exponer detalles internos en el mensaje de error al cliente
+        return jsonify({"error": "Error interno del servidor al intentar escribir en el archivo Excel."}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
