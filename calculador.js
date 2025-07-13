@@ -1878,49 +1878,56 @@ function initMap() {
 
             if (city) {
                 console.log('Ciudad extraída (final):', city);
-                try {
-                    const response = await fetch('http://127.0.0.1:5000/api/buscar_ciudad', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ ciudad: city }),
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.codigo_ciudad) {
-                            console.log('Código de ciudad recibido:', data.codigo_ciudad);
-                            userSelections.codigoCiudad = data.codigo_ciudad;
-                            await escribirCodigoCiudadEnExcel(data.codigo_ciudad);
-                        } else {
-                            console.warn('No se encontró código para la ciudad:', city, data.message);
-                            userSelections.codigoCiudad = null;
-                            setTimeout(() => {
-                                alert("La ciudad ingresada (" + city + ") no se encontró en nuestra base de datos. Por favor, verifique el nombre o intente con una ciudad cercana.");
-                            }, 0);
-                        }
-                    } else {
-                        const errorData = await response.json();
-                        setTimeout(() => {
-                            alert("Error al buscar la ciudad. Por favor, intente de nuevo.");
-                        }, 0);
-                        console.error('Error al buscar ciudad en backend:', response.status, errorData.error);
-                        userSelections.codigoCiudad = null;
-                    }
-                } catch (error) {
-                    console.error('Error en la solicitud fetch para buscar_ciudad:', error);
-                    userSelections.codigoCiudad = null;
-                    setTimeout(() => {
-                        alert("Error de conexión al buscar la ciudad. Por favor, verifique su conexión e intente de nuevo.");
-                    }, 0);
-                }
+                buscarCodigoCiudad(city); // Llamada a la nueva función
             } else {
                 console.warn('No se pudo extraer la ciudad de la dirección:', e.geocode.name, addressProperties);
                 userSelections.codigoCiudad = null;
+                saveUserSelections();
             }
-            saveUserSelections();
         }
     }).addTo(map);
+}
+
+// --- Nueva función para buscar el código de la ciudad ---
+async function buscarCodigoCiudad(ciudad) {
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/buscar_ciudad', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ciudad: ciudad }),
+        });
+        if (response.ok) {
+            const data = await response.json();
+            if (data.codigo_ciudad) {
+                console.log('Código de ciudad recibido:', data.codigo_ciudad);
+                userSelections.codigoCiudad = data.codigo_ciudad;
+                await escribirCodigoCiudadEnExcel(data.codigo_ciudad);
+            } else {
+                console.warn('No se encontró código para la ciudad:', ciudad, data.message);
+                userSelections.codigoCiudad = null;
+                setTimeout(() => {
+                    alert("La ciudad ingresada (" + ciudad + ") no se encontró en nuestra base de datos. Por favor, verifique el nombre o intente con una ciudad cercana.");
+                }, 0);
+            }
+        } else {
+            const errorData = await response.json();
+            setTimeout(() => {
+                alert("Error al buscar la ciudad. Por favor, intente de nuevo.");
+            }, 0);
+            console.error('Error al buscar ciudad en backend:', response.status, errorData.error);
+            userSelections.codigoCiudad = null;
+        }
+    } catch (error) {
+        console.error('Error en la solicitud fetch para buscar_ciudad:', error);
+        userSelections.codigoCiudad = null;
+        setTimeout(() => {
+            alert("Error de conexión al buscar la ciudad. Por favor, verifique su conexión e intente de nuevo.");
+        }, 0);
+    } finally {
+        saveUserSelections();
+    }
 
     // Relocate the geocoder DOM element
     const geocoderElement = geocoderControlInstance.getContainer();
