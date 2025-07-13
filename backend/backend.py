@@ -860,8 +860,19 @@ def buscar_ciudad():
         # Leer la hoja 'Ciudades', columnas A (código) y B (nombre)
         # Column A is index 0, Column B is index 1
         # Filas Excel 2 a 1990 -> iloc 1 a 1989
-        df_ciudades = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Ciudades', usecols="A,B", header=None, skiprows=1, names=['codigo', 'ciudad_nombre'], engine='openpyxl')
-        print(f"DEBUG: Hoja 'Ciudades' leída. Total filas: {len(df_ciudades)}")
+        df_ciudades = pd.read_excel(
+            EXCEL_FILE_PATH,
+            sheet_name='Ciudades',
+            usecols="A,B",
+            header=None,
+            skiprows=1,
+            nrows=1989,  # Solo B2:B1990
+            names=['codigo', 'ciudad_nombre'],
+            engine='openpyxl'
+        )
+        print(
+            f"DEBUG: Hoja 'Ciudades' leída. Filas consideradas: {len(df_ciudades)}"
+        )
 
         ciudad_buscada_normalizada = normalizar_texto(ciudad_buscada)
 
@@ -877,8 +888,23 @@ def buscar_ciudad():
 
             if nombre_excel_normalizado == ciudad_buscada_normalizada:
                 codigo_encontrado = row['codigo']
-                print(f"DEBUG: Ciudad '{ciudad_buscada}' (normalizada como '{ciudad_buscada_normalizada}') encontrada. Código: {codigo_encontrado}. Original Excel: '{nombre_excel_original}'")
-                return jsonify({"codigo_ciudad": codigo_encontrado, "message": "Ciudad encontrada."}), 200
+                # Convertir NaN a None para evitar JSON invalido
+                if pd.isna(codigo_encontrado):
+                    print(
+                        f"WARN: Código de ciudad para '{ciudad_buscada}' es NaN en la hoja de cálculo."
+                    )
+                    codigo_encontrado = None
+
+                print(
+                    f"DEBUG: Ciudad '{ciudad_buscada}' (normalizada como '{ciudad_buscada_normalizada}') encontrada. Código: {codigo_encontrado}. Original Excel: '{nombre_excel_original}'"
+                )
+                return (
+                    jsonify({
+                        "codigo_ciudad": codigo_encontrado,
+                        "message": "Ciudad encontrada."
+                    }),
+                    200,
+                )
 
         print(f"WARN: Ciudad '{ciudad_buscada}' (normalizada como '{ciudad_buscada_normalizada}') no encontrada en la hoja 'Ciudades'.")
         # Devolver 200 OK, pero con codigo_ciudad: null para indicar que no se encontró
