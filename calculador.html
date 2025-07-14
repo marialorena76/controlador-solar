@@ -878,16 +878,36 @@
                         <hr style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
                     </div>
 
-                    <!-- Sub-Form 4: Modelo de Cálculo de Temperatura -->
-                    <div id="panel-modelo-temperatura-subform" style="display:none;">
-                        <h2>Ingrese el modelo de cálculo de temperatura de los paneles:</h2>
+                    <!-- Sub-Form 3: Modelo de Panel -->
+                    <div id="panel-modelo-subform" style="display:none;">
+                        <h2>Ingrese el modelo de panel:</h2>
                         <div class="form-group">
-                            <div id="modelo-temperatura-options-container">
-                                <input type="text" id="modelo-temperatura-input" class="form-control" value="ASTRO N5 CHSM72N-HC 590W" readonly>
+                            <div id="modelo-panel-options-container">
+                                <input type="text" id="modelo-panel-input" class="form-control" value="ASTRO N5 CHSM72N-HC 590W" readonly>
                             </div>
                         </div>
                         <div class="form-actions sub-form-actions">
                             <button type="button" id="back-to-panel-potencia" class="back-button">Atrás</button>
+                            <button type="button" id="next-to-temperatura-from-modelo">Siguiente</button>
+                        </div>
+                        <hr style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                    </div>
+
+                    <!-- Sub-Form 4: Modelo de Cálculo de Temperatura -->
+                    <div id="panel-modelo-temperatura-subform" style="display:none;">
+                        <h2>Ingrese el modelo de cálculo de temperatura de los paneles:</h2>
+                        <div class="form-group">
+                            <select id="modelo-temperatura-select" class="form-control">
+                                <option value="" disabled selected>Seleccione un modelo...</option>
+                                <option value="Standard">Standard</option>
+                                <option value="Skoplaki">Skoplaki</option>
+                                <option value="Koehl">Koehl</option>
+                                <option value="Mattei">Mattei</option>
+                                <option value="de Kurtz">de Kurtz</option>
+                            </select>
+                        </div>
+                        <div class="form-actions sub-form-actions">
+                            <button type="button" id="back-to-panel-modelo" class="back-button">Atrás</button>
                             <button type="button" id="next-to-inversor-from-panels">Siguiente</button>
                         </div>
                         <!-- No <hr> after the last sub-form before the main section's form-actions -->
