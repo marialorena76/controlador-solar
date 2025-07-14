@@ -79,6 +79,7 @@ const sectionInfoMap = {
     'paneles-section': { generalCategory: 'Paneles', specificName: 'Paneles Solares', sidebarId: 'sidebar-paneles' }, // Main section
     'panel-marca-subform': { generalCategory: 'Paneles', specificName: 'Marca Panel', sidebarId: 'sidebar-paneles' },
     'panel-potencia-subform': { generalCategory: 'Paneles', specificName: 'Potencia Panel', sidebarId: 'sidebar-paneles' },
+    'panel-modelo-subform': { generalCategory: 'Paneles', specificName: 'Modelo Panel', sidebarId: 'sidebar-paneles' },
     'panel-modelo-temperatura-subform': { generalCategory: 'Paneles', specificName: 'Modelo Temperatura Panel', sidebarId: 'sidebar-paneles' },
 
     'inversor-section': { generalCategory: 'Inversor', specificName: 'Selección de Inversor', sidebarId: 'sidebar-inversor' },
@@ -127,8 +128,11 @@ const marcaPanelOptionsContainer = document.getElementById('marca-panel-options-
 const panelPotenciaSubform = document.getElementById('panel-potencia-subform');
 const potenciaPanelDeseadaInput = document.getElementById('potencia-panel-deseada-input');
 
+const panelModeloSubform = document.getElementById('panel-modelo-subform');
+const modeloPanelOptionsContainer = document.getElementById('modelo-panel-options-container');
+
 const panelModeloTemperaturaSubform = document.getElementById('panel-modelo-temperatura-subform');
-const modeloTemperaturaOptionsContainer = document.getElementById('modelo-temperatura-options-container');
+const modeloTemperaturaSelect = document.getElementById('modelo-temperatura-select');
 
 
 // --- Funciones de Persistencia (NUEVO BLOQUE INTEGRADO) ---
@@ -1074,11 +1078,12 @@ function initPanelesSectionExpert() {
     console.log('[DEBUG] initPanelesSectionExpert: Called.');
     console.log('[DEBUG] panelMarcaSubform:', typeof panelMarcaSubform !== 'undefined' ? panelMarcaSubform : 'NOT DEFINED');
     console.log('[DEBUG] panelPotenciaSubform:', typeof panelPotenciaSubform !== 'undefined' ? panelPotenciaSubform : 'NOT DEFINED');
+    console.log('[DEBUG] panelModeloSubform:', typeof panelModeloSubform !== 'undefined' ? panelModeloSubform : 'NOT DEFINED');
     console.log('[DEBUG] panelModeloTemperaturaSubform:', typeof panelModeloTemperaturaSubform !== 'undefined' ? panelModeloTemperaturaSubform : 'NOT DEFINED');
     // panelCantidadExpertSubform was removed, ensure it's not referenced.
 
-    if (!panelMarcaSubform || !panelPotenciaSubform || !panelModeloTemperaturaSubform) {
-        console.error("Uno o más contenedores de sub-formularios de Paneles no fueron encontrados en initPanelesSectionExpert. panelMarcaSubform:", panelMarcaSubform, "panelPotenciaSubform:", panelPotenciaSubform, "panelModeloTemperaturaSubform:", panelModeloTemperaturaSubform);
+    if (!panelMarcaSubform || !panelPotenciaSubform || !panelModeloSubform || !panelModeloTemperaturaSubform) {
+        console.error("Uno o más contenedores de sub-formularios de Paneles no fueron encontrados en initPanelesSectionExpert. panelMarcaSubform:", panelMarcaSubform, "panelPotenciaSubform:", panelPotenciaSubform, "panelModeloSubform:", panelModeloSubform, "panelModeloTemperaturaSubform:", panelModeloTemperaturaSubform);
         return;
     }
 
@@ -1086,6 +1091,7 @@ function initPanelesSectionExpert() {
     panelMarcaSubform.style.display = 'none';
     panelPotenciaSubform.style.display = 'none';
     // panelCantidadExpertSubform was removed
+    panelModeloSubform.style.display = 'none';
     panelModeloTemperaturaSubform.style.display = 'none';
     console.log('[DEBUG] initPanelesSectionExpert: All panel sub-forms hidden.');
 
@@ -1204,10 +1210,10 @@ async function initMarcaPanelOptions() {
     }
 }
 
-async function initModeloTemperaturaPanelOptions() { // Keep async if other init functions are, for consistency
-    const container = document.getElementById('modelo-temperatura-options-container');
+async function initModeloPanelOptions() {
+    const container = modeloPanelOptionsContainer;
     if (!container) {
-        console.error("Contenedor 'modelo-temperatura-options-container' no encontrado.");
+        console.error("Contenedor 'modelo-panel-options-container' no encontrado.");
         return;
     }
     container.textContent = 'Cargando...';
@@ -1220,9 +1226,43 @@ async function initModeloTemperaturaPanelOptions() { // Keep async if other init
         const valor = data.valor ?? '';
         container.textContent = valor !== '' ? valor : 'No definido';
     } catch (error) {
-        console.error('Error al cargar valor modelo temperatura panel:', error);
+        console.error('Error al cargar valor modelo panel:', error);
         container.textContent = 'Error al cargar valor';
     }
+}
+
+function initModeloTemperaturaPanelOptions() {
+    if (!modeloTemperaturaSelect) {
+        console.error("Elemento 'modelo-temperatura-select' no encontrado.");
+        return;
+    }
+
+    const opciones = ['Standard', 'Skoplaki', 'Koehl', 'Mattei', 'de Kurtz'];
+    modeloTemperaturaSelect.innerHTML = '';
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    placeholder.textContent = 'Seleccione un modelo...';
+    modeloTemperaturaSelect.appendChild(placeholder);
+
+    opciones.forEach(opt => {
+        const optionEl = document.createElement('option');
+        optionEl.value = opt;
+        optionEl.textContent = opt;
+        if (userSelections.modeloTemperaturaPanel === opt) {
+            optionEl.selected = true;
+            placeholder.selected = false;
+        }
+        modeloTemperaturaSelect.appendChild(optionEl);
+    });
+
+    modeloTemperaturaSelect.addEventListener('change', (e) => {
+        const value = e.target.value;
+        userSelections.modeloTemperaturaPanel = value || null;
+        saveUserSelections();
+    });
 }
 
 function initPotenciaPanelOptions() {
@@ -2037,7 +2077,7 @@ function updateStepIndicator(currentSectionId) {
                     'altura-instalacion-section', 'metodo-calculo-section', 'modelo-metodo-section'
                 ];
                 const expertPostEnergyOrder = [
-                    'panel-marca-subform', 'panel-potencia-subform', 'panel-modelo-temperatura-subform',
+                    'panel-marca-subform', 'panel-potencia-subform', 'panel-modelo-subform', 'panel-modelo-temperatura-subform',
                     'inversor-section',
                     'frecuencia-lluvias-subform-content', 'foco-polvo-subform-content',
                     'analisis-economico-section'
@@ -2082,7 +2122,8 @@ function updateStepIndicator(currentSectionId) {
                      subStepIndicator = "a";
                 } else if (currentSectionId === 'panel-marca-subform') subStepIndicator = ".1";
                 else if (currentSectionId === 'panel-potencia-subform') subStepIndicator = ".2";
-                else if (currentSectionId === 'panel-modelo-temperatura-subform') subStepIndicator = ".3";
+                else if (currentSectionId === 'panel-modelo-subform') subStepIndicator = ".3";
+                else if (currentSectionId === 'panel-modelo-temperatura-subform') subStepIndicator = ".4";
                 else if (currentSectionId === 'frecuencia-lluvias-subform-content') subStepIndicator = ".1";
                 else if (currentSectionId === 'foco-polvo-subform-content') subStepIndicator = ".2";
 
@@ -2767,26 +2808,19 @@ function setupNavigationButtons() {
         // initMarcaPanelOptions(); // Optional: Re-call if options could change; usually not for 'Back'
     });
 
-    // 3. From "Potencia Deseada" to "Modelo Temperatura Panel"
+    // 3. From "Potencia Deseada" to "Modelo Panel"
     document.getElementById('next-from-panel-potencia')?.addEventListener('click', () => {
         if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
-        if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
-        initModeloTemperaturaPanelOptions(); // Call to populate/display placeholder
-        updateStepIndicator('panel-modelo-temperatura-subform');
+        if (panelModeloSubform) panelModeloSubform.style.display = 'block';
+        initModeloPanelOptions();
+        updateStepIndicator('panel-modelo-subform');
     });
 
-    // 4. From "Modelo Temperatura Panel" back to "Potencia Deseada"
-    // Assuming the back button on panel-modelo-temperatura-subform still has id="back-to-panel-cantidad"
-    // as per HTML structure after "Cantidad" subform removal, where its next button was changed.
-    // The HTML for panel-modelo-temperatura-subform is:
-    // <button type="button" id="back-to-panel-potencia" class="back-button">Atrás</button> (ID was changed in HTML)
-    // <button type="button" id="next-to-inversor-from-panels">Siguiente</button>
-    // So, we use 'back-to-panel-potencia' as the selector.
+    // 4. From "Modelo Panel" back to "Potencia Deseada"
     document.getElementById('back-to-panel-potencia')?.addEventListener('click', () => {
-        if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'none';
+        if (panelModeloSubform) panelModeloSubform.style.display = 'none';
         if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'block';
         updateStepIndicator('panel-potencia-subform');
-        // Ensure potencia input shows persisted value
         if (potenciaPanelDeseadaInput && userSelections.potenciaPanelDeseada !== null) {
             potenciaPanelDeseadaInput.value = userSelections.potenciaPanelDeseada;
         } else if (potenciaPanelDeseadaInput) {
@@ -2794,7 +2828,22 @@ function setupNavigationButtons() {
         }
     });
 
-    // 5. Navigation from "Modelo Temperatura Panel" to "Inversor" section
+    // 5. From "Modelo Panel" to "Modelo Temperatura Panel"
+    document.getElementById('next-to-temperatura-from-modelo')?.addEventListener('click', () => {
+        if (panelModeloSubform) panelModeloSubform.style.display = 'none';
+        if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
+        initModeloTemperaturaPanelOptions();
+        updateStepIndicator('panel-modelo-temperatura-subform');
+    });
+
+    // 6. From "Modelo Temperatura Panel" back to "Modelo Panel"
+    document.getElementById('back-to-panel-modelo')?.addEventListener('click', () => {
+        if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'none';
+        if (panelModeloSubform) panelModeloSubform.style.display = 'block';
+        updateStepIndicator('panel-modelo-subform');
+    });
+
+    // 7. Navigation from "Modelo Temperatura Panel" to "Inversor" section
     const nextFromPanelModeloToInversor = document.getElementById('next-to-inversor-from-panels');
     if (nextFromPanelModeloToInversor) {
         nextFromPanelModeloToInversor.addEventListener('click', () => {
