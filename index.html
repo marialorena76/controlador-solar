@@ -308,6 +308,26 @@
             font-size: 0.85rem;
             color: var(--text-dark);
         }
+
+        /* Estilos unificados para títulos de formularios */
+        .form-section h2,
+        .side-form h2,
+        .main-content h1 {
+            font-family: var(--font-heading);
+            font-size: 1.8rem;
+            color: var(--color-tertiary);
+            margin-top: 0;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .selection-summary {
+            font-family: var(--font-body);
+            font-size: 1rem;
+            color: var(--color-secondary);
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -331,15 +351,16 @@
 
         <div class="content-area">
             <div class="map-area">
-                <div id="map"></div>
-                <div id="geocoder-container" class="leaflet-control-geocoder">
-                    </div>
-                <div class="location-info">
-                    <b>Latitud:</b> <span id="latitud-display"></span> &nbsp;
-                    <b>Longitud:</b> <span id="longitud-display"></span>
+            <div id="map"></div>
+            <div id="geocoder-container" class="leaflet-control-geocoder">
                 </div>
+            <div class="location-info">
+                <b>Latitud:</b> <span id="latitud-display"></span> &nbsp;
+                <b>Longitud:</b> <span id="longitud-display"></span>
             </div>
+        </div>
             <div class="side-form">
+                <div id="selection-summary" class="selection-summary"></div>
                 <div class="form-section" id="supply-section" style="display:none;">
                     <h2>Tipo de instalación</h2>
                     <button class="selection-button" id="residential-button">Residencial</button>
