@@ -130,6 +130,7 @@ const potenciaPanelDeseadaInput = document.getElementById('potencia-panel-desead
 
 const panelModeloSubform = document.getElementById('panel-modelo-subform');
 const modeloPanelOptionsContainer = document.getElementById('modelo-panel-options-container');
+const modeloPanelInput = document.getElementById('modelo-panel-input');
 
 const panelModeloTemperaturaSubform = document.getElementById('panel-modelo-temperatura-subform');
 const modeloTemperaturaSelect = document.getElementById('modelo-temperatura-select');
@@ -1216,7 +1217,11 @@ async function initModeloPanelOptions() {
         console.error("Contenedor 'modelo-panel-options-container' no encontrado.");
         return;
     }
-    container.textContent = 'Cargando...';
+    if (modeloPanelInput) {
+        modeloPanelInput.value = 'Cargando...';
+    } else {
+        container.textContent = 'Cargando...';
+    }
     try {
         const resp = await fetch('http://127.0.0.1:5000/api/modelo_temperatura_panel_valor');
         if (!resp.ok) {
@@ -1224,10 +1229,18 @@ async function initModeloPanelOptions() {
         }
         const data = await resp.json();
         const valor = data.valor ?? '';
-        container.textContent = valor !== '' ? valor : 'No definido';
+        if (modeloPanelInput) {
+            modeloPanelInput.value = valor !== '' ? valor : 'No definido';
+        } else {
+            container.textContent = valor !== '' ? valor : 'No definido';
+        }
     } catch (error) {
         console.error('Error al cargar valor modelo panel:', error);
-        container.textContent = 'Error al cargar valor';
+        if (modeloPanelInput) {
+            modeloPanelInput.value = 'Error al cargar valor';
+        } else {
+            container.textContent = 'Error al cargar valor';
+        }
     }
 }
 
@@ -2904,6 +2917,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                                 // Usamos 'await' para asegurar que los electrodomésticos estén cargados
                                                 // antes de que se muestre la pantalla, si es la de energía.
     setupNavigationButtons(); // 5. Configura todos los botones de navegación y otros listeners.
+    initModeloTemperaturaPanelOptions(); // Prepara opciones de modelo de temperatura
 
     // 6. Muestra la pantalla guardada o la inicial después de que todo esté cargado y listo
     const currentScreenId = 'map-screen';
