@@ -2083,17 +2083,16 @@ function updateStepIndicator(currentSectionId) {
                     'analisis-economico-section'
                 ];
 
-                let tempFlowOrder = ['data-meteorologicos-section']; // Starts with Zona
+                let tempFlowOrder = ['data-meteorologicos-section'].concat(expertCoreDatosOrder);
 
-                if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
+                tempFlowOrder.push('energia-section');
+
+                if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME' ||
+                    userSelections.metodoIngresoConsumoEnergia === 'boletaMensual') {
                     tempFlowOrder.push('consumo-factura-section');
-                } else { // Residencial
-                    tempFlowOrder.push('energia-section');
-                    if (userSelections.metodoIngresoConsumoEnergia === 'boletaMensual') {
-                         tempFlowOrder.push('consumo-factura-section');
-                    }
                 }
-                currentFlowOrder = tempFlowOrder.concat(expertCoreDatosOrder, expertPostEnergyOrder);
+
+                currentFlowOrder = tempFlowOrder.concat(expertPostEnergyOrder);
 
             } else { // basico
                 if (userSelections.installationType === 'Residencial') {
@@ -2418,22 +2417,9 @@ function setupNavigationButtons() {
             // return; // Optional: Prevent navigation if selection is mandatory
         }
 
-        // ** START: MODIFIED BLOCK for next-to-energia **
-        if (userSelections.userType === 'experto') {
-            showScreen('energia-section');
-            updateStepIndicator('energia-section');
-            initElectrodomesticosSection(); // This handles expert energy choices
-        } else if (userSelections.userType === 'basico' &&
-            (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME')) {
-            showScreen('consumo-factura-section');
-            updateStepIndicator('consumo-factura-section');
-            // initConsumoFacturaSection(); // Call if there's an init for this section
-        } else { // Basic Residencial (or other default)
-            showScreen('energia-section');
-            updateStepIndicator('energia-section');
-            initElectrodomesticosSection();
-        }
-        // ** END: MODIFIED BLOCK for next-to-energia **
+        showScreen('superficie-section');
+        updateStepIndicator('superficie-section');
+        if (typeof initSuperficieSection === 'function') initSuperficieSection();
     });
 
     document.getElementById('back-to-data-meteorologicos-from-superficie')?.addEventListener('click', () => {
@@ -2556,15 +2542,20 @@ function setupNavigationButtons() {
 
     // ** START: MODIFIED BLOCK for next-to-paneles-from-modelo **
     document.getElementById('next-to-paneles-from-modelo')?.addEventListener('click', () => {
-        // Validate modeloMetodoRadiacion if necessary
-        // if (!userSelections.modeloMetodoRadiacion) {
-        //     alert("Por favor, seleccione un modelo del método.");
-        //     return;
-        // }
-        // For Experts, this now goes to paneles-section (first sub-form)
-        showScreen('paneles-section');
-        initPanelesSectionExpert(); // Shows the first panel sub-form
-        updateStepIndicator('panel-marca-subform'); // Indicator for the first panel sub-form
+        if (userSelections.userType === 'experto' || userSelections.userType === 'basico') {
+            const needsFactura = (userSelections.installationType === 'Comercial' ||
+                                  userSelections.installationType === 'PYME' ||
+                                  userSelections.metodoIngresoConsumoEnergia === 'boletaMensual');
+
+            if (needsFactura) {
+                showScreen('consumo-factura-section');
+                updateStepIndicator('consumo-factura-section');
+            } else {
+                showScreen('energia-section');
+                updateStepIndicator('energia-section');
+                if (typeof initElectrodomesticosSection === 'function') initElectrodomesticosSection();
+            }
+        }
     });
     // ** END: MODIFIED BLOCK for next-to-paneles-from-modelo **
 
@@ -2594,8 +2585,9 @@ function setupNavigationButtons() {
     }
 
     document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => {
-        showScreen('data-meteorologicos-section');
-        updateStepIndicator('data-meteorologicos-section');
+        showScreen('modelo-metodo-section');
+        updateStepIndicator('modelo-metodo-section');
+        if (typeof initModeloMetodoSection === 'function') initModeloMetodoSection();
     });
 
     // MODIFICATION 2: `back-from-consumo-factura` button
@@ -2604,15 +2596,15 @@ function setupNavigationButtons() {
         backFromConsumoFacturaButton.addEventListener('click', () => {
             if (userSelections.userType === 'experto') {
                 if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
-                    // Expert + Comercial/PYME was auto-routed to boleta. "Back" goes to Zona.
-                    showScreen('data-meteorologicos-section');
-                    updateStepIndicator('data-meteorologicos-section');
-                } else { // Expert + Residencial who chose 'boletaMensual' from options
+                    showScreen('modelo-metodo-section');
+                    updateStepIndicator('modelo-metodo-section');
+                    if (typeof initModeloMetodoSection === 'function') initModeloMetodoSection();
+                } else {
                     showScreen('energia-section');
                     updateStepIndicator('energia-section');
-                    initElectrodomesticosSection(); // This will show the 3 choices again
+                    if (typeof initElectrodomesticosSection === 'function') initElectrodomesticosSection();
                 }
-            } else { // Basic user (must be Comercial or PYME to have reached consumo-factura-section via new flow)
+            } else {
                 showScreen('data-meteorologicos-section');
                 updateStepIndicator('data-meteorologicos-section');
             }
@@ -2646,11 +2638,9 @@ function setupNavigationButtons() {
             saveUserSelections();
 
             if (userSelections.userType === 'experto') {
-                showScreen('superficie-section');
-                updateStepIndicator('superficie-section');
-                if (typeof initSuperficieSection === 'function') {
-                    initSuperficieSection();
-                }
+                showScreen('paneles-section');
+                initPanelesSectionExpert();
+                updateStepIndicator('panel-marca-subform');
             } else { // Basic user (or default if userType not set, though it should be)
                 showScreen('analisis-economico-section');
                 updateStepIndicator('analisis-economico-section');
@@ -2662,28 +2652,11 @@ function setupNavigationButtons() {
     const nextToPanelesButton = document.getElementById('next-to-paneles');
     if (nextToPanelesButton) {
         nextToPanelesButton.addEventListener('click', () => {
-            // ADD THESE LINES HERE:
-            console.log('[DEBUG] Next from Energía clicked. User Type:', userSelections.userType);
-            console.log('[DEBUG] Metodo Ingreso Consumo Energia:', userSelections.metodoIngresoConsumoEnergia);
-
-            // Existing logic follows:
             if (userSelections.userType === 'experto') {
-                const metodo = userSelections.metodoIngresoConsumoEnergia;
-                if (metodo === 'detalleHogar' || metodo === 'detalleHogarHoras') {
-                    showScreen('superficie-section');
-                    updateStepIndicator('superficie-section');
-                    if (typeof initSuperficieSection === 'function') {
-                        initSuperficieSection();
-                    }
-                } else if (metodo === 'boletaMensual') {
-                    // This case should ideally not be hit if 'boletaMensual' directly navigates to 'consumo-factura-section'
-                    // and 'next-from-consumo-factura' is the button that leads to 'superficie-section'.
-                    // However, if it can be reached, it might mean the user selected boleta but didn't proceed from there.
-                    alert('Por favor, complete el ingreso de consumo por boleta en su sección correspondiente o elija otro método.');
-                } else {
-                    alert('Por favor, seleccione un método para ingresar los datos de consumo antes de continuar.');
-                }
-            } else { // Basic user
+                showScreen('paneles-section');
+                initPanelesSectionExpert();
+                updateStepIndicator('panel-marca-subform');
+            } else {
                 showScreen('analisis-economico-section');
                 updateStepIndicator('analisis-economico-section');
             }
