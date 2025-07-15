@@ -2150,6 +2150,20 @@ function updateStepIndicator(currentSectionId) {
         console.warn(`[updateStepIndicator] Section ID '${currentSectionId}' not found in sectionInfoMap.`);
         currentStepText = `${userTypeDisplay}: Paso Desconocido`;
     }
+
+    const summaryEl = document.getElementById('selection-summary');
+    if (summaryEl) {
+        const typeText = userSelections.userType
+            ? `Usuario ${userSelections.userType === 'experto' ? 'Experto' : 'Básico'}`
+            : '';
+        const instText = userSelections.installationType || '';
+        const incomeText = userSelections.incomeLevel
+            ? `Nivel de Ingreso ${userSelections.incomeLevel}`
+            : '';
+        summaryEl.textContent = [typeText, instText, incomeText]
+            .filter(Boolean)
+            .join('. ');
+    }
     stepIndicatorText.textContent = currentStepText;
 }
 
@@ -2893,6 +2907,27 @@ function setupNavigationButtons() {
     }
 }
 
+function setupSidebarNavigation() {
+    const navMap = {
+        'sidebar-datos': 'data-meteorologicos-section',
+        'sidebar-energia': 'energia-section',
+        'sidebar-paneles': 'paneles-section',
+        'sidebar-inversor': 'inversor-section',
+        'sidebar-perdidas': 'perdidas-section',
+        'sidebar-analisis-economico': 'analisis-economico-section',
+        'sidebar-resultados': 'resultados-informe'
+    };
+    Object.entries(navMap).forEach(([sidebarId, target]) => {
+        const element = document.getElementById(sidebarId);
+        if (element) {
+            element.addEventListener('click', () => {
+                showScreen(target);
+                updateStepIndicator(target);
+            });
+        }
+    });
+}
+
 
 // --- INIT principal (Se ejecuta al cargar el DOM) (EXISTENTE, MODIFICADO) ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -2904,6 +2939,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                                 // Usamos 'await' para asegurar que los electrodomésticos estén cargados
                                                 // antes de que se muestre la pantalla, si es la de energía.
     setupNavigationButtons(); // 5. Configura todos los botones de navegación y otros listeners.
+    setupSidebarNavigation();
 
     // 6. Muestra la pantalla guardada o la inicial después de que todo esté cargado y listo
     const currentScreenId = 'map-screen';
