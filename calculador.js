@@ -1505,6 +1505,14 @@ function initElectrodomesticosSection() {
         });
 
     } else { // Basic user
+        if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
+            console.log('[DEBUG] Basic Comercial/PYME: redirecting to factura consumption form.');
+            userSelections.metodoIngresoConsumoEnergia = 'boletaMensual';
+            saveUserSelections();
+            showScreen('consumo-factura-section');
+            updateStepIndicator('consumo-factura-section');
+            return;
+        }
         modoSeleccionContainer.style.display = 'none';
         if (summaryContainer) summaryContainer.style.display = 'flex';
         populateStandardApplianceList(listContainer);
