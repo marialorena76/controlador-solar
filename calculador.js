@@ -2412,14 +2412,18 @@ function setupNavigationButtons() {
             saveUserSelections();
             console.log('Zona de instalación seleccionada:', userSelections.selectedZonaInstalacion);
         } else {
-            // alert('Por favor, seleccione una zona de instalación.'); // Optional: User feedback
             console.warn('No se seleccionó zona de instalación.');
-            // return; // Optional: Prevent navigation if selection is mandatory
         }
 
-        showScreen('superficie-section');
-        updateStepIndicator('superficie-section');
-        if (typeof initSuperficieSection === 'function') initSuperficieSection();
+        if (userSelections.userType === 'experto') {
+            showScreen('superficie-section');
+            updateStepIndicator('superficie-section');
+            if (typeof initSuperficieSection === 'function') initSuperficieSection();
+        } else {
+            showScreen('energia-section');
+            updateStepIndicator('energia-section');
+            if (typeof initElectrodomesticosSection === 'function') initElectrodomesticosSection();
+        }
     });
 
     document.getElementById('back-to-data-meteorologicos-from-superficie')?.addEventListener('click', () => {
@@ -2542,20 +2546,9 @@ function setupNavigationButtons() {
 
     // ** START: MODIFIED BLOCK for next-to-paneles-from-modelo **
     document.getElementById('next-to-paneles-from-modelo')?.addEventListener('click', () => {
-        if (userSelections.userType === 'experto' || userSelections.userType === 'basico') {
-            const needsFactura = (userSelections.installationType === 'Comercial' ||
-                                  userSelections.installationType === 'PYME' ||
-                                  userSelections.metodoIngresoConsumoEnergia === 'boletaMensual');
-
-            if (needsFactura) {
-                showScreen('consumo-factura-section');
-                updateStepIndicator('consumo-factura-section');
-            } else {
-                showScreen('energia-section');
-                updateStepIndicator('energia-section');
-                if (typeof initElectrodomesticosSection === 'function') initElectrodomesticosSection();
-            }
-        }
+        showScreen('energia-section');
+        updateStepIndicator('energia-section');
+        if (typeof initElectrodomesticosSection === 'function') initElectrodomesticosSection();
     });
     // ** END: MODIFIED BLOCK for next-to-paneles-from-modelo **
 
@@ -2652,14 +2645,11 @@ function setupNavigationButtons() {
     const nextToPanelesButton = document.getElementById('next-to-paneles');
     if (nextToPanelesButton) {
         nextToPanelesButton.addEventListener('click', () => {
+            showScreen('paneles-section');
             if (userSelections.userType === 'experto') {
-                showScreen('paneles-section');
                 initPanelesSectionExpert();
-                updateStepIndicator('panel-marca-subform');
-            } else {
-                showScreen('analisis-economico-section');
-                updateStepIndicator('analisis-economico-section');
             }
+            updateStepIndicator('panel-marca-subform');
         });
     }
 
