@@ -189,12 +189,6 @@
             box-sizing: border-box;
         }
         .form-section { margin-bottom: 2rem; }
-        .form-section h2 {
-            font-family: var(--font-heading);
-            font-size: 1.45rem;
-            margin-top: 0;
-            color: var(--color-tertiary);
-        }
         .selection-button {
             display: block;
             width: 100%;
@@ -272,6 +266,7 @@
         .data-form-screen .main-content {
             flex-grow: 1;
             padding: 2.5rem;
+            min-height: 480px; /* Unificar tamaño de las pantallas de formularios */
         }
         .data-form-screen .main-content h1 {
             font-family: var(--font-heading);
@@ -281,9 +276,7 @@
             margin-bottom: 2rem;
         }
         .data-form-screen .step-indicator {
-            font-size: 0.9rem;
-            color: #6b7280;
-            margin-bottom: 0.5rem;
+            display: none; /* Ocultar subtítulos como "Básico, Paso X" */
         }
         .data-form-screen .step-indicator strong { color: var(--color-tertiary); }
         .data-form-screen .form-section {
@@ -529,15 +522,23 @@
         }
 
         /* Estilos unificados para títulos de formularios */
-        .form-section h2,
-        .form-sections-container .form-section h2,
         .main-content h1 {
             font-family: var(--font-heading);
             font-size: 1.8rem;
             color: var(--color-tertiary);
             margin-top: 0;
             margin-bottom: 1rem;
-            text-align: center;
+            text-align: left; /* Alineación solicitada */
+        }
+
+        .form-section h2,
+        .form-sections-container .form-section h2 {
+            font-family: var(--font-heading);
+            font-size: 1.4rem; /* Tipografía más pequeña para diferenciar */
+            color: #555; /* Títulos de formularios en gris oscuro */
+            margin-top: 0;
+            margin-bottom: 1rem;
+            text-align: left;
         }
 
         .selection-summary {
@@ -633,7 +634,6 @@
                 </div>
             </div>
             <div class="main-content">
-                <div class="step-indicator" id="step-indicator-text">Paso 1 > <strong>Datos Meteorológicos</strong></div>
                 <div id="selection-summary" class="selection-summary"></div>
                 <div id="data-meteorologicos-section">
                     <h1>¿En qué zona se encuentra la intalación?</h1>
