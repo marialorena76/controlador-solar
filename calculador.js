@@ -2645,11 +2645,16 @@ function setupNavigationButtons() {
     const nextToPanelesButton = document.getElementById('next-to-paneles');
     if (nextToPanelesButton) {
         nextToPanelesButton.addEventListener('click', () => {
-            showScreen('paneles-section');
             if (userSelections.userType === 'experto') {
+                showScreen('paneles-section');
                 initPanelesSectionExpert();
+                updateStepIndicator('panel-marca-subform');
+            } else {
+                // Para usuarios básicos, salteamos la sección de paneles y
+                // vamos directo al análisis económico
+                showScreen('analisis-economico-section');
+                updateStepIndicator('analisis-economico-section');
             }
-            updateStepIndicator('panel-marca-subform');
         });
     }
 
