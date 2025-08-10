@@ -585,15 +585,15 @@ async function initRotacionSection() {
 
     // Renamed and enhanced helper function
     function updateAngleFieldsVisibilityAndData(selectedText) {
-        const cleanSelectedText = selectedText ? selectedText.trim() : "";
+        const cleanSelectedText = selectedText ? selectedText.trim().toLowerCase() : "";
 
         if (!fijoAnglesContainer || !inclinacionFormGroup || !orientacionFormGroup || !anguloInclinacionInput || !anguloOrientacionInput) {
             console.warn('[initRotacionSection] updateAngleFieldsVisibilityAndData: conditional elements not found.');
             return;
         }
 
-        const isFijos = (cleanSelectedText === "Fijos");
-        const isInclinacionFijaVertical = (cleanSelectedText === "Inclinación fija, rotación sobre un eje vertical");
+        const isFijos = (cleanSelectedText === "fijos");
+        const isInclinacionFijaVertical = (cleanSelectedText === "inclinación fija, rotación sobre un eje vertical");
 
         if (isFijos) {
             fijoAnglesContainer.style.display = 'block';
@@ -2455,11 +2455,11 @@ function setupNavigationButtons() {
     const nextFromSuperficieButton = document.getElementById('next-to-energia-from-superficie');
     if (nextFromSuperficieButton) {
         nextFromSuperficieButton.addEventListener('click', () => {
-            // Validate superficieRodea selection if necessary
-            // if (!userSelections.superficieRodea.valor) {
-            //     alert("Por favor, seleccione una opción de superficie.");
-            //     return;
-            // }
+            // Validate superficieRodea selection
+            if (userSelections.superficieRodea.valor === null) {
+                alert("Por favor, seleccione una opción de superficie.");
+                return;
+            }
             showScreen('rugosidad-section');
             updateStepIndicator('rugosidad-section');
             if (typeof initRugosidadSection === 'function') initRugosidadSection();
@@ -2473,11 +2473,11 @@ function setupNavigationButtons() {
     });
 
     document.getElementById('next-to-rotacion-from-rugosidad')?.addEventListener('click', () => {
-        // Validate rugosidadSuperficie selection if necessary
-        // if (!userSelections.rugosidadSuperficie.valor) {
-        //     alert("Por favor, seleccione una opción de rugosidad.");
-        //     return;
-        // }
+        // Validate rugosidadSuperficie selection
+        if (userSelections.rugosidadSuperficie.valor === null) {
+            alert("Por favor, seleccione una opción de rugosidad.");
+            return;
+        }
         showScreen('rotacion-section');
         updateStepIndicator('rotacion-section');
         if (typeof initRotacionSection === 'function') initRotacionSection();
