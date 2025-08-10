@@ -1377,27 +1377,29 @@ function initInversorSection() {
 
 async function cargarElectrodomesticosDesdeBackend() {
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/electrodomesticos');
+        const response = await fetch('./public/electrodomesticos.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        // La API devuelve un JSON con una clave raíz "categorias"
+        // El JSON generado tiene una clave raíz "categorias"
         electrodomesticosCategorias = data.categorias;
-        console.log('Electrodomésticos cargados desde la API del backend:', electrodomesticosCategorias);
+        console.log('Electrodomésticos cargados desde el archivo JSON estático:', electrodomesticosCategorias);
         initElectrodomesticosSection(); // Inicializa la interfaz de electrodomésticos
         calcularConsumo(); // Recalcula el consumo con los datos cargados y cantidades del usuario
     } catch (error) {
-        console.error('No se pudo cargar los datos de electrodomésticos desde la API:', error);
-        alert('Error crítico: No se pudo cargar la lista de electrodomésticos desde el servidor. El servidor podría no estar corriendo o hay un problema de red. Usando datos de respaldo.');
+        console.error('No se pudo cargar el archivo estático de electrodomésticos (public/electrodomesticos.json):', error);
+        alert('Error crítico: No se pudo cargar la lista de electrodomésticos. El archivo de datos podría estar corrupto o no encontrado. Usando datos de respaldo.');
         // Datos de respaldo en caso de falla para desarrollo/prueba
         electrodomesticosCategorias = {
             "Cocina": [
-                { name: "Heladera", consumo_diario_kwh: 1.5, watts: 150 },
-                { name: "Microondas", consumo_diario_kwh: 0.6, watts: 1200 }
+                { name: "Heladera", consumo_diario_kwh: 1.5 },
+                { name: "Microondas", consumo_diario_kwh: 0.6 },
+                { name: "Lavarropas", consumo_diario_kwh: 0.7 }
             ],
             "Entretenimiento": [
-                { name: "Televisor", consumo_diario_kwh: 0.4, watts: 100 }
+                { name: "Televisor", consumo_diario_kwh: 0.4 },
+                { name: "Computadora", consumo_diario_kwh: 1.2 }
             ]
         };
         initElectrodomesticosSection();
@@ -1429,21 +1431,26 @@ function initElectrodomesticosSection() {
     if (userSelections.userType === 'experto') {
         // --- START: Definition of handleExpertEnergyChoice (moved up) ---
         const handleExpertEnergyChoice = (choice) => {
-            const consumoFacturaForm = document.getElementById('consumo-factura-section');
-
-            // Hide all possible content sections first
-            listContainer.innerHTML = ''; // Clear appliance lists
-            if (consumoFacturaForm) consumoFacturaForm.style.display = 'none';
-            if (summaryContainer) summaryContainer.style.display = 'none';
-
+            // modoSeleccionContainer.style.display = 'none'; // Keep it visible unless a choice leads to navigation
+            listContainer.innerHTML = ''; // Clear list container before populating based on choice
 
             if (choice === 'detalleHogar') {
-                if (summaryContainer) summaryContainer.style.display = 'flex';
+                if (summaryContainer) summaryContainer.style.display = 'flex'; // Show summary for this option
                 populateStandardApplianceList(listContainer);
             } else if (choice === 'boletaMensual') {
-                if (consumoFacturaForm) consumoFacturaForm.style.display = 'block';
+                // Navigation happens, so this section will be hidden by showScreen
+                if (summaryContainer) summaryContainer.style.display = 'none';
+                listContainer.innerHTML = '';
+                showScreen('consumo-factura-section');
+                updateStepIndicator('consumo-factura-section');
             } else if (choice === 'detalleHogarHoras') {
+                // Summary display is handled by populateDetailedApplianceList
                 populateDetailedApplianceList(listContainer);
+            } else {
+                // This case should ideally not be hit if radios are the only trigger
+                // but as a fallback, ensure mode selection is visible.
+                modoSeleccionContainer.style.display = 'block';
+                if (summaryContainer) summaryContainer.style.display = 'none';
             }
         };
         // --- END: Definition of handleExpertEnergyChoice ---
@@ -2416,13 +2423,11 @@ function setupNavigationButtons() {
             console.warn('No se seleccionó zona de instalación.');
         }
 
-        if (userSelections.userType === 'experto' && userSelections.installationType !== 'Residencial') {
-            // Expert user, Commercial or PYME installation -> Go to advanced flow
+        if (userSelections.userType === 'experto') {
             showScreen('superficie-section');
             updateStepIndicator('superficie-section');
             if (typeof initSuperficieSection === 'function') initSuperficieSection();
         } else {
-            // Basic user OR Expert user with Residential installation -> Go to simple energy form
             showScreen('energia-section');
             updateStepIndicator('energia-section');
             if (typeof initElectrodomesticosSection === 'function') initElectrodomesticosSection();
@@ -2586,44 +2591,68 @@ function setupNavigationButtons() {
         if (typeof initModeloMetodoSection === 'function') initModeloMetodoSection();
     });
 
-    // The `back-from-consumo-factura` and `next-from-consumo-factura` buttons
-    // were inside the moved HTML section. Their logic is now handled by the main
-    // navigation buttons of the `energia-section` (`#back-to-data-meteorologicos` and `#next-to-paneles`).
-    // The old listeners are removed to prevent conflicts.
+    // MODIFICATION 2: `back-from-consumo-factura` button
+    const backFromConsumoFacturaButton = document.getElementById('back-from-consumo-factura');
+    if (backFromConsumoFacturaButton) {
+        backFromConsumoFacturaButton.addEventListener('click', () => {
+            if (userSelections.userType === 'experto') {
+                if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
+                    showScreen('modelo-metodo-section');
+                    updateStepIndicator('modelo-metodo-section');
+                    if (typeof initModeloMetodoSection === 'function') initModeloMetodoSection();
+                } else {
+                    showScreen('energia-section');
+                    updateStepIndicator('energia-section');
+                    if (typeof initElectrodomesticosSection === 'function') initElectrodomesticosSection();
+                }
+            } else {
+                showScreen('data-meteorologicos-section');
+                updateStepIndicator('data-meteorologicos-section');
+            }
+        });
+    }
+
+    const nextFromConsumoFacturaButton = document.getElementById('next-from-consumo-factura');
+    if (nextFromConsumoFacturaButton) {
+        nextFromConsumoFacturaButton.addEventListener('click', () => {
+            const monthIds = [
+                'consumo-enero', 'consumo-febrero', 'consumo-marzo', 'consumo-abril',
+                'consumo-mayo', 'consumo-junio', 'consumo-julio', 'consumo-agosto',
+                'consumo-septiembre', 'consumo-octubre', 'consumo-noviembre', 'consumo-diciembre'
+            ];
+            let totalAnnualConsumptionFromBill = 0;
+            const monthlyConsumptions = [];
+            monthIds.forEach(id => {
+                const inputElement = document.getElementById(id);
+                if (inputElement) {
+                    const value = parseFloat(inputElement.value);
+                    if (isNaN(value) || value < 0) {
+                        monthlyConsumptions.push(0);
+                    } else {
+                        monthlyConsumptions.push(value);
+                        totalAnnualConsumptionFromBill += value;
+                    }
+                }
+            });
+            userSelections.consumosMensualesFactura = monthlyConsumptions;
+            userSelections.totalAnnualConsumption = totalAnnualConsumptionFromBill;
+            saveUserSelections();
+
+            if (userSelections.userType === 'experto') {
+                showScreen('paneles-section');
+                initPanelesSectionExpert();
+                updateStepIndicator('panel-marca-subform');
+            } else { // Basic user (or default if userType not set, though it should be)
+                showScreen('analisis-economico-section');
+                updateStepIndicator('analisis-economico-section');
+            }
+        });
+    }
 
     // MODIFICATION 3: `next-to-paneles` button (from `energia-section`)
     const nextToPanelesButton = document.getElementById('next-to-paneles');
     if (nextToPanelesButton) {
         nextToPanelesButton.addEventListener('click', () => {
-            // Si el modo de consumo por factura está activo, lee y guarda los datos primero.
-            if (userSelections.metodoIngresoConsumoEnergia === 'boletaMensual') {
-                const monthIds = [
-                    'consumo-enero', 'consumo-febrero', 'consumo-marzo', 'consumo-abril',
-                    'consumo-mayo', 'consumo-junio', 'consumo-julio', 'consumo-agosto',
-                    'consumo-septiembre', 'consumo-octubre', 'consumo-noviembre', 'consumo-diciembre'
-                ];
-                let totalAnnualConsumptionFromBill = 0;
-                const monthlyConsumptions = [];
-                monthIds.forEach(id => {
-                    const inputElement = document.getElementById(id);
-                    if (inputElement) {
-                        const value = parseFloat(inputElement.value);
-                        if (isNaN(value) || value < 0) {
-                            monthlyConsumptions.push(0);
-                        } else {
-                            monthlyConsumptions.push(value);
-                            totalAnnualConsumptionFromBill += value;
-                        }
-                    }
-                });
-                userSelections.consumosMensualesFactura = monthlyConsumptions;
-                userSelections.totalAnnualConsumption = totalAnnualConsumptionFromBill;
-                // También actualizamos el consumo mensual promedio para consistencia
-                userSelections.totalMonthlyConsumption = totalAnnualConsumptionFromBill / 12;
-                saveUserSelections();
-            }
-
-            // La navegación continúa como antes...
             if (userSelections.userType === 'experto') {
                 showScreen('paneles-section');
                 initPanelesSectionExpert();
