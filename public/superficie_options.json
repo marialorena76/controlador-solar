@@ -1,0 +1,90 @@
+[
+    {
+        "descripcion": "Pintura blanca",
+        "valor": 0.75
+    },
+    {
+        "descripcion": "Nieve ",
+        "valor": 0.625
+    },
+    {
+        "descripcion": "Hielo",
+        "valor": 0.6
+    },
+    {
+        "descripcion": "Pintura colores claros",
+        "valor": 0.45
+    },
+    {
+        "descripcion": "Pintura colores medios y grises",
+        "valor": 0.45
+    },
+    {
+        "descripcion": "Desierto de arena",
+        "valor": 0.4
+    },
+    {
+        "descripcion": "Hormigon claro",
+        "valor": 0.35
+    },
+    {
+        "descripcion": "Dunas, arena",
+        "valor": 0.325
+    },
+    {
+        "descripcion": "Pasto/Cesped",
+        "valor": 0.25
+    },
+    {
+        "descripcion": "Piedras",
+        "valor": 0.25
+    },
+    {
+        "descripcion": "Hormigón medio, ladrillo rojo",
+        "valor": 0.25
+    },
+    {
+        "descripcion": "Suelo arenoso",
+        "valor": 0.225
+    },
+    {
+        "descripcion": "Tundra",
+        "valor": 0.2
+    },
+    {
+        "descripcion": "Suelo agricola",
+        "valor": 0.2
+    },
+    {
+        "descripcion": "Bosques de hoja caduca",
+        "valor": 0.16499999999999998
+    },
+    {
+        "descripcion": "Urbano medio",
+        "valor": 0.15
+    },
+    {
+        "descripcion": "Bosques coniferas",
+        "valor": 0.11499999999999999
+    },
+    {
+        "descripcion": "Agua profunda",
+        "valor": 0.1
+    },
+    {
+        "descripcion": "Asfalto",
+        "valor": 0.1
+    },
+    {
+        "descripcion": "Edificios",
+        "valor": 0.09
+    },
+    {
+        "descripcion": "Océano",
+        "valor": 0.085
+    },
+    {
+        "descripcion": "Suelo volcánico",
+        "valor": 0.075
+    }
+]

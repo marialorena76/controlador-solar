@@ -1,0 +1,30 @@
+[
+    {
+        "descripcion": "Fijos",
+        "valor": 0.0
+    },
+    {
+        "descripcion": "Rotación sobre un eje horizontal este-oeste con ajuste diario",
+        "valor": 0.0
+    },
+    {
+        "descripcion": "Rotación sobre un eje horizontal este-oeste con ajuste continuo",
+        "valor": 0.0
+    },
+    {
+        "descripcion": "Rotación sobre un eje horizontal norte-sur con ajuste continuo",
+        "valor": 0.0
+    },
+    {
+        "descripcion": "Inclinación fija, rotación sobre un eje vertical",
+        "valor": 0.0
+    },
+    {
+        "descripcion": "Rotación sobre un eje norte-sur paralelo al eje de la tierra con ajuste continuo",
+        "valor": 0.0
+    },
+    {
+        "descripcion": "Rotación en dos ejes minimizando angulo de incidencia",
+        "valor": 0.0
+    }
+]

@@ -1,0 +1,22 @@
+[
+    {
+        "descripcion": "Valor de a para distintos terrenos (cálculo velocidad del viento)",
+        "valor": 0.0
+    },
+    {
+        "descripcion": "Liso (mar, arena)",
+        "valor": 0.13
+    },
+    {
+        "descripcion": "Rugosidad moderada (hierba, cultivos)",
+        "valor": 0.2
+    },
+    {
+        "descripcion": "Rugoso (bosques, edificaciones, terreno accidentado)",
+        "valor": 0.27
+    },
+    {
+        "descripcion": "Muy rugoso (ciudades, terrenos muy accidentados)",
+        "valor": 0.4
+    }
+]
