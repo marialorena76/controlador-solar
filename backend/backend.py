@@ -5,7 +5,7 @@ import pandas as pd
 import os
 import json
 
-DEFAULT_EXCEL_FILE = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx'
+DEFAULT_EXCEL_FILE = 'backend/Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx'
 
 
 def load_excel_path():
