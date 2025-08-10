@@ -86,13 +86,12 @@ def get_electrodomesticos_consumos():
         col_consumo_idx = 1 # Columna B
         col_watts_idx = 2   # Columna C (Potencia en Watts)
         fila_inicio_idx = 110 # Fila 111 en Excel (111 - 1)
-        fila_fin_idx = 173  # Fila 174 en Excel (174 - 1)
 
         # electrodomesticos_lista = [] # Old list
         categorized_appliances = {} # New categorized dictionary
         max_filas_df = df_tablas.shape[0]
 
-        for r_idx in range(fila_inicio_idx, fila_fin_idx + 1):
+        for r_idx in range(fila_inicio_idx, max_filas_df):
             if r_idx >= max_filas_df:
                 print(f"WARN: Fila {r_idx+1} fuera de límites (hoja 'Tablas' tiene {max_filas_df} filas). Lectura detenida.")
                 break
@@ -103,12 +102,13 @@ def get_electrodomesticos_consumos():
                 break
 
             nombre = df_tablas.iloc[r_idx, col_nombre_idx]
-            consumo_kwh = df_tablas.iloc[r_idx, col_consumo_idx]
-            watts_val = df_tablas.iloc[r_idx, col_watts_idx]
 
             if pd.isna(nombre) or str(nombre).strip() == "":
-                print(f"DEBUG: Fila {r_idx+1} omitida por nombre NaN o vacío.")
-                continue
+                print(f"DEBUG: Fila {r_idx+1} sin nombre de electrodoméstico. Finalizando lectura.")
+                break
+
+            consumo_kwh = df_tablas.iloc[r_idx, col_consumo_idx]
+            watts_val = df_tablas.iloc[r_idx, col_watts_idx]
 
             consumo_kwh_float = 0.0
             if pd.isna(consumo_kwh):
@@ -142,7 +142,7 @@ def get_electrodomesticos_consumos():
                 categorized_appliances[category] = []
             categorized_appliances[category].append(appliance_entry)
 
-        print(f"DEBUG: Total electrodomésticos (con watts) leídos y categorizados de 'Tablas' A{fila_inicio_idx+1}:C{fila_fin_idx+1}: {sum(len(v) for v in categorized_appliances.values())}")
+        print(f"DEBUG: Total electrodomésticos (con watts) leídos y categorizados de 'Tablas' desde la fila {fila_inicio_idx+1}: {sum(len(v) for v in categorized_appliances.values())}")
         # categorias_respuesta = {"Electrodomésticos Disponibles": electrodomesticos_lista} # Old
         categorias_respuesta = categorized_appliances # New: directly use the categorized dictionary
 
