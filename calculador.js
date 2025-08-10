@@ -1377,29 +1377,27 @@ function initInversorSection() {
 
 async function cargarElectrodomesticosDesdeBackend() {
     try {
-        const response = await fetch('./public/electrodomesticos.json');
+        const response = await fetch('http://127.0.0.1:5000/api/electrodomesticos');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        // El JSON generado tiene una clave raíz "categorias"
+        // La API devuelve un JSON con una clave raíz "categorias"
         electrodomesticosCategorias = data.categorias;
-        console.log('Electrodomésticos cargados desde el archivo JSON estático:', electrodomesticosCategorias);
+        console.log('Electrodomésticos cargados desde la API del backend:', electrodomesticosCategorias);
         initElectrodomesticosSection(); // Inicializa la interfaz de electrodomésticos
         calcularConsumo(); // Recalcula el consumo con los datos cargados y cantidades del usuario
     } catch (error) {
-        console.error('No se pudo cargar el archivo estático de electrodomésticos (public/electrodomesticos.json):', error);
-        alert('Error crítico: No se pudo cargar la lista de electrodomésticos. El archivo de datos podría estar corrupto o no encontrado. Usando datos de respaldo.');
+        console.error('No se pudo cargar los datos de electrodomésticos desde la API:', error);
+        alert('Error crítico: No se pudo cargar la lista de electrodomésticos desde el servidor. El servidor podría no estar corriendo o hay un problema de red. Usando datos de respaldo.');
         // Datos de respaldo en caso de falla para desarrollo/prueba
         electrodomesticosCategorias = {
             "Cocina": [
-                { name: "Heladera", consumo_diario_kwh: 1.5 },
-                { name: "Microondas", consumo_diario_kwh: 0.6 },
-                { name: "Lavarropas", consumo_diario_kwh: 0.7 }
+                { name: "Heladera", consumo_diario_kwh: 1.5, watts: 150 },
+                { name: "Microondas", consumo_diario_kwh: 0.6, watts: 1200 }
             ],
             "Entretenimiento": [
-                { name: "Televisor", consumo_diario_kwh: 0.4 },
-                { name: "Computadora", consumo_diario_kwh: 1.2 }
+                { name: "Televisor", consumo_diario_kwh: 0.4, watts: 100 }
             ]
         };
         initElectrodomesticosSection();
