@@ -1377,19 +1377,19 @@ function initInversorSection() {
 
 async function cargarElectrodomesticosDesdeBackend() {
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/electrodomesticos');
+        const response = await fetch('./public/electrodomesticos.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        // Asumiendo que el backend devuelve un objeto con la clave 'categorias'
+        // El JSON generado tiene una clave raíz "categorias"
         electrodomesticosCategorias = data.categorias;
-        console.log('Electrodomésticos cargados desde el backend:', electrodomesticosCategorias);
+        console.log('Electrodomésticos cargados desde el archivo JSON estático:', electrodomesticosCategorias);
         initElectrodomesticosSection(); // Inicializa la interfaz de electrodomésticos
         calcularConsumo(); // Recalcula el consumo con los datos cargados y cantidades del usuario
     } catch (error) {
-        console.error('No se pudieron cargar los electrodomésticos desde el backend:', error);
-        alert('No se pudieron cargar los electrodomésticos. Usando datos de respaldo. Asegúrate de que tu backend esté corriendo y sea accesible en http://127.0.0.1:5000');
+        console.error('No se pudo cargar el archivo estático de electrodomésticos (public/electrodomesticos.json):', error);
+        alert('Error crítico: No se pudo cargar la lista de electrodomésticos. El archivo de datos podría estar corrupto o no encontrado. Usando datos de respaldo.');
         // Datos de respaldo en caso de falla para desarrollo/prueba
         electrodomesticosCategorias = {
             "Cocina": [
