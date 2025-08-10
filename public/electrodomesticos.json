@@ -1,0 +1,337 @@
+{
+  "categorias": {
+    "Climatización": [
+      {
+        "name": "Aire acondicionado 2200 frigorias F/C",
+        "consumo_diario_kwh": 1350.0,
+        "watts": 0.6
+      },
+      {
+        "name": "Aire acondicionado 3500 frigorias F/C",
+        "consumo_diario_kwh": 2150.0,
+        "watts": 0.7
+      },
+      {
+        "name": "Caloventilador chico c/termostato",
+        "consumo_diario_kwh": 1500.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Estufa halogena de 3 velas c/termostato",
+        "consumo_diario_kwh": 1500.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Estufa de cuarzo c/termostato",
+        "consumo_diario_kwh": 1200.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Radiador electrico mediano",
+        "consumo_diario_kwh": 1500.0,
+        "watts": 0.8
+      },
+      {
+        "name": "Ventilador de techo",
+        "consumo_diario_kwh": 60.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Ventilador de pie",
+        "consumo_diario_kwh": 90.0,
+        "watts": 0.8
+      },
+      {
+        "name": "Vitroconvector 54x57 cm",
+        "consumo_diario_kwh": 1000.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Vitroconvector 86x58 cm",
+        "consumo_diario_kwh": 2000.0,
+        "watts": 1.0
+      }
+    ],
+    "Otras Aplicaciones": [
+      {
+        "name": "Aspiradora",
+        "consumo_diario_kwh": 750.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Batidora de mano",
+        "consumo_diario_kwh": 300.0,
+        "watts": 0.8
+      },
+      {
+        "name": "Bomba de agua de 1/2 HP",
+        "consumo_diario_kwh": 380.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Bomba de agua de 3/4 HP",
+        "consumo_diario_kwh": 570.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Cortadora de Césped",
+        "consumo_diario_kwh": 552.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Extractor de Aire",
+        "consumo_diario_kwh": 25.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Licuadora de mano o de pie",
+        "consumo_diario_kwh": 600.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Lustraspiradora",
+        "consumo_diario_kwh": 800.0,
+        "watts": 0.9
+      },
+      {
+        "name": "Máquina de coser",
+        "consumo_diario_kwh": 90.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Motor de 1 HP",
+        "consumo_diario_kwh": 746.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Multiprocesadora",
+        "consumo_diario_kwh": 500.0,
+        "watts": 0.8
+      },
+      {
+        "name": "Plancha",
+        "consumo_diario_kwh": 1500.0,
+        "watts": 0.7
+      },
+      {
+        "name": "Termotanque electrico",
+        "consumo_diario_kwh": 1500.0,
+        "watts": 0.7
+      }
+    ],
+    "Cocina": [
+      {
+        "name": "Cafetera de filtro electrica",
+        "consumo_diario_kwh": 900.0,
+        "watts": 0.8
+      },
+      {
+        "name": "Horno electrico de 25 a 30 lts",
+        "consumo_diario_kwh": 1500.0,
+        "watts": 0.8
+      },
+      {
+        "name": "Microondas",
+        "consumo_diario_kwh": 800.0,
+        "watts": 0.8
+      },
+      {
+        "name": "Tostadora",
+        "consumo_diario_kwh": 950.0,
+        "watts": 0.8
+      }
+    ],
+    "Informática": [
+      {
+        "name": "Cargador de celular",
+        "consumo_diario_kwh": 5.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Computadora (CPU)",
+        "consumo_diario_kwh": 300.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Monitor LED 19\"",
+        "consumo_diario_kwh": 22.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Notebook",
+        "consumo_diario_kwh": 22.0,
+        "watts": 1.0
+      }
+    ],
+    "Iluminación": [
+      {
+        "name": "Dicróica",
+        "consumo_diario_kwh": 20.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Lampara bajo consumo 11W",
+        "consumo_diario_kwh": 11.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Lampara bajo consumo 15W",
+        "consumo_diario_kwh": 15.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Lampara bajo consumo 20W",
+        "consumo_diario_kwh": 20.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Lampara halogena 100W",
+        "consumo_diario_kwh": 100.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Lampara halogena 40W",
+        "consumo_diario_kwh": 40.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Lampara halogena 60W",
+        "consumo_diario_kwh": 60.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Lampara LED 5W",
+        "consumo_diario_kwh": 5.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Lampara LED 9W",
+        "consumo_diario_kwh": 9.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Lampara LED 11W",
+        "consumo_diario_kwh": 11.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Tubo fluorescente 18W",
+        "consumo_diario_kwh": 18.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Tubo fluorescente 36W",
+        "consumo_diario_kwh": 36.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Tubo fluorescente 58W",
+        "consumo_diario_kwh": 58.0,
+        "watts": 1.0
+      }
+    ],
+    "Refrigeración": [
+      {
+        "name": "Freezer",
+        "consumo_diario_kwh": 250.0,
+        "watts": 0.5
+      },
+      {
+        "name": "Heladera",
+        "consumo_diario_kwh": 150.0,
+        "watts": 0.5
+      },
+      {
+        "name": "Heladera con freezer",
+        "consumo_diario_kwh": 200.0,
+        "watts": 0.5
+      }
+    ],
+    "Lavado y Secado": [
+      {
+        "name": "Lavarropas automatico 5kg con agua caliente",
+        "consumo_diario_kwh": 2500.0,
+        "watts": 0.4
+      },
+      {
+        "name": "Lavarropas automatico 5kg",
+        "consumo_diario_kwh": 500.0,
+        "watts": 0.4
+      },
+      {
+        "name": "Lavarropas semi-automatico 5kg",
+        "consumo_diario_kwh": 200.0,
+        "watts": 0.4
+      },
+      {
+        "name": "Lavavajilla para 12 cubiertos",
+        "consumo_diario_kwh": 1500.0,
+        "watts": 0.7
+      },
+      {
+        "name": "Secarropas a calor",
+        "consumo_diario_kwh": 950.0,
+        "watts": 0.9
+      },
+      {
+        "name": "Secarropas centrifugo",
+        "consumo_diario_kwh": 380.0,
+        "watts": 0.9
+      }
+    ],
+    "Entretenimiento": [
+      {
+        "name": "Minicomponentes",
+        "consumo_diario_kwh": 60.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Reproductor DVD",
+        "consumo_diario_kwh": 15.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Televisor TRC 21\"",
+        "consumo_diario_kwh": 75.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Televisor TRC 25\"",
+        "consumo_diario_kwh": 155.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Televisor TRC 29\" a 34\"",
+        "consumo_diario_kwh": 175.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Televisor LCD de 40\"",
+        "consumo_diario_kwh": 180.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Televisor LED 24\"",
+        "consumo_diario_kwh": 40.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Televisor LED 32\" a 50\"",
+        "consumo_diario_kwh": 90.0,
+        "watts": 1.0
+      }
+    ],
+    "Cuidado Personal": [
+      {
+        "name": "Planchita de pelo o buclera",
+        "consumo_diario_kwh": 40.0,
+        "watts": 1.0
+      },
+      {
+        "name": "Secador de cabellos",
+        "consumo_diario_kwh": 500.0,
+        "watts": 0.8
+      }
+    ]
+  }
+}
