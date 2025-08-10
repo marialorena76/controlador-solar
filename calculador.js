@@ -2421,11 +2421,13 @@ function setupNavigationButtons() {
             console.warn('No se seleccionó zona de instalación.');
         }
 
-        if (userSelections.userType === 'experto') {
+        if (userSelections.userType === 'experto' && userSelections.installationType !== 'Residencial') {
+            // Expert user, Commercial or PYME installation -> Go to advanced flow
             showScreen('superficie-section');
             updateStepIndicator('superficie-section');
             if (typeof initSuperficieSection === 'function') initSuperficieSection();
         } else {
+            // Basic user OR Expert user with Residential installation -> Go to simple energy form
             showScreen('energia-section');
             updateStepIndicator('energia-section');
             if (typeof initElectrodomesticosSection === 'function') initElectrodomesticosSection();
