@@ -869,5 +869,40 @@ def escribir_dato_excel():
         # Evitar exponer detalles internos en el mensaje de error al cliente
         return jsonify({"error": "Error interno del servidor al intentar escribir en el archivo Excel."}), 500
 
+# --- NUEVA RUTA: Para obtener el modelo de panel desde la celda C83 ---
+@app.route('/api/get_modelo_panel', methods=['GET'])
+def get_modelo_panel():
+    """
+    Lee y devuelve el valor de la celda C83 de la hoja 'Datos de Entrada'.
+    """
+    try:
+        print(f"DEBUG: Solicitud a /api/get_modelo_panel. Leyendo celda C83 de 'Datos de Entrada' desde: {EXCEL_FILE_PATH}")
+
+        # Usar openpyxl es más eficiente para una sola celda.
+        import openpyxl
+
+        # data_only=True para obtener el valor calculado si es una fórmula
+        workbook = openpyxl.load_workbook(EXCEL_FILE_PATH, data_only=True)
+        sheet = workbook['Datos de Entrada']
+        valor_celda = sheet['C83'].value
+
+        print(f"DEBUG: Valor leído de C83: {valor_celda}")
+
+        return jsonify({"valor": valor_celda if valor_celda is not None else ""})
+
+    except FileNotFoundError:
+        print(f"ERROR en /api/get_modelo_panel: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
+    except KeyError:
+        # Esto podría ocurrir si 'Datos de Entrada' no existe.
+        print(f"ERROR en /api/get_modelo_panel: Hoja 'Datos de Entrada' no encontrada.")
+        return jsonify({"error": "Hoja 'Datos de Entrada' no encontrada en el archivo Excel."}), 500
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/get_modelo_panel: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno del servidor al obtener el modelo de panel: {str(e)}"}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)
