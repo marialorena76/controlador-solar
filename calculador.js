@@ -41,6 +41,7 @@ let userSelections = {
     panelesSolares: {
         tipo: null,
         cantidad: 0,
+        modelo: null,
         potenciaNominal: 0, // Potencia total de paneles en kWp
         superficie: 0
     },
@@ -171,7 +172,7 @@ function loadUserSelections() {
         totalMonthlyConsumption: 0,
         totalAnnualConsumption: 0,
         selectedCurrency: 'Pesos argentinos',
-        panelesSolares: { tipo: null, cantidad: 0, potenciaNominal: 0, superficie: 0 },
+        panelesSolares: { tipo: null, cantidad: 0, modelo: null, potenciaNominal: 0, superficie: 0 },
         inversor: { tipo: null, potenciaNominal: 0 },
         perdidas: { eficienciaPanel: 0, eficienciaInversor: 0, factorPerdidas: 0 },
         consumosMensualesFactura: [] // Assuming this might be stored
@@ -1211,23 +1212,30 @@ async function initMarcaPanelOptions() {
 }
 
 async function initModeloPanelOptions() {
-    const container = modeloPanelOptionsContainer;
-    if (!container) {
-        console.error("Contenedor 'modelo-panel-options-container' no encontrado.");
+    const inputElement = document.getElementById('modelo-panel-input');
+    if (!inputElement) {
+        console.error("Input 'modelo-panel-input' no encontrado.");
         return;
     }
-    container.textContent = 'Cargando...';
+    inputElement.value = 'Cargando...'; // Indicate loading state
     try {
-        const resp = await fetch('http://127.0.0.1:5000/api/modelo_temperatura_panel_valor');
+        const resp = await fetch('http://127.0.0.1:5000/api/get_modelo_panel');
         if (!resp.ok) {
             throw new Error(`HTTP ${resp.status}`);
         }
         const data = await resp.json();
         const valor = data.valor ?? '';
-        container.textContent = valor !== '' ? valor : 'No definido';
+        inputElement.value = valor;
+
+        // Also update the value in our state object
+        if(userSelections.panelesSolares) {
+            userSelections.panelesSolares.modelo = valor;
+            saveUserSelections();
+        }
+
     } catch (error) {
-        console.error('Error al cargar valor modelo panel:', error);
-        container.textContent = 'Error al cargar valor';
+        console.error('Error al cargar el modelo de panel desde Excel:', error);
+        inputElement.value = 'Error al cargar modelo';
     }
 }
 
