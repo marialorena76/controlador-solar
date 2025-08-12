@@ -225,11 +225,6 @@ function loadUserSelections() {
 
         console.log('User selections cargadas y normalizadas:', userSelections);
         updateUIFromSelections();
-        if (userSelections.userType === 'basico') {
-            document.getElementById('data-form-screen').classList.add('basic-user-mode');
-        } else {
-            document.getElementById('data-form-screen').classList.remove('basic-user-mode');
-        }
     } else {
         // No saved data, so global userSelections (which should already match defaultUserSelectionsStructure) is used.
         // Optionally, explicitly set userSelections to a deep copy of defaults here too for consistency:
@@ -2057,25 +2052,135 @@ function showScreen(screenId) {
 }
 
 function updateStepIndicator(currentSectionId) {
-    // Deactivate all sidebar items
-    const allSidebarItems = document.querySelectorAll('.sidebar .sidebar-item');
-    allSidebarItems.forEach(item => {
+    if (!stepIndicatorText) return;
+
+    let currentStepText = 'Calculador Solar'; // Default
+    const sectionInfo = sectionInfoMap[currentSectionId];
+    const userTypeDisplay = userSelections.userType === 'experto' ? 'Experto' : 'Básico';
+
+    document.querySelectorAll('.sidebar .sidebar-item').forEach(item => {
         item.classList.remove('active');
     });
 
-    // Find the new active sidebar item based on the current screen
-    const sectionInfo = sectionInfoMap[currentSectionId];
-    if (sectionInfo && sectionInfo.sidebarId) {
-        const activeSidebarItem = document.getElementById(sectionInfo.sidebarId);
-        if (activeSidebarItem) {
-            activeSidebarItem.classList.add('active');
+    if (sectionInfo) {
+        if (sectionInfo.sidebarId) {
+            const sidebarElement = document.getElementById(sectionInfo.sidebarId);
+            if (sidebarElement) {
+                sidebarElement.classList.add('active');
+            }
         }
+
+        let stepNum = 0;
+        const onMapScreen = (mapScreen.style.display !== 'none' && dataFormScreen.style.display === 'none');
+
+        if (onMapScreen) {
+            if (currentSectionId === 'user-type-section') stepNum = 0; // Or a different representation
+            else if (currentSectionId === 'supply-section') stepNum = 1;
+            else if (currentSectionId === 'income-section') stepNum = 2;
+
+            if (stepNum > 0) {
+                currentStepText = `${userTypeDisplay}, Paso ${stepNum} (${sectionInfo.generalCategory}), ${sectionInfo.specificName}`;
+            } else {
+                currentStepText = `${userTypeDisplay}, ${sectionInfo.generalCategory}, ${sectionInfo.specificName}`;
+            }
+        } else { // On dataFormScreen
+            let currentFlowOrder = [];
+            let baseStepForDataForm = 2; // Steps on map screen before data form (supply-1, income-2)
+
+            if (userSelections.userType === 'experto') {
+                const expertCoreDatosOrder = [
+                    'superficie-section', 'rugosidad-section', 'rotacion-section',
+                    'altura-instalacion-section', 'metodo-calculo-section', 'modelo-metodo-section'
+                ];
+                const expertPostEnergyOrder = [
+                    'panel-marca-subform', 'panel-potencia-subform', 'panel-modelo-subform', 'panel-modelo-temperatura-subform',
+                    'inversor-section',
+                    'frecuencia-lluvias-subform-content', 'foco-polvo-subform-content',
+                    'analisis-economico-section'
+                ];
+
+                let tempFlowOrder = ['data-meteorologicos-section'].concat(expertCoreDatosOrder);
+
+                tempFlowOrder.push('energia-section');
+
+                if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME' ||
+                    userSelections.metodoIngresoConsumoEnergia === 'boletaMensual') {
+                    tempFlowOrder.push('consumo-factura-section');
+                }
+
+                currentFlowOrder = tempFlowOrder.concat(expertPostEnergyOrder);
+
+            } else { // basico
+                if (userSelections.installationType === 'Residencial') {
+                    currentFlowOrder = ['data-meteorologicos-section', 'energia-section', 'analisis-economico-section'];
+                } else { // Comercial or PYME
+                    currentFlowOrder = ['data-meteorologicos-section', 'consumo-factura-section', 'analisis-economico-section'];
+                }
+            }
+
+            let sectionIndex = currentFlowOrder.indexOf(currentSectionId);
+            // If currentSectionId is a main container for sub-forms, find first sub-form's index
+            if (sectionIndex === -1) {
+                if (currentSectionId === 'paneles-section') sectionIndex = currentFlowOrder.indexOf('panel-marca-subform');
+                else if (currentSectionId === 'perdidas-section') sectionIndex = currentFlowOrder.indexOf('frecuencia-lluvias-subform-content');
+                else if (currentSectionId === 'energia-modo-seleccion') sectionIndex = currentFlowOrder.indexOf('energia-section');
+            }
+
+            if (sectionIndex !== -1) {
+                stepNum = baseStepForDataForm + 1 + sectionIndex;
+                let subStepIndicator = "";
+
+                if (currentSectionId === 'consumo-factura-section' && userSelections.userType === 'experto') {
+                     let energiaOrPrecedingIndex = currentFlowOrder.indexOf('energia-section');
+                     if(energiaOrPrecedingIndex === -1) energiaOrPrecedingIndex = currentFlowOrder.indexOf('data-meteorologicos-section'); // If energia section was skipped for com/pyme expert
+                     stepNum = baseStepForDataForm + 1 + energiaOrPrecedingIndex;
+                     subStepIndicator = "a";
+                } else if (currentSectionId === 'panel-marca-subform') subStepIndicator = ".1";
+                else if (currentSectionId === 'panel-potencia-subform') subStepIndicator = ".2";
+                else if (currentSectionId === 'panel-modelo-subform') subStepIndicator = ".3";
+                else if (currentSectionId === 'panel-modelo-temperatura-subform') subStepIndicator = ".4";
+                else if (currentSectionId === 'frecuencia-lluvias-subform-content') subStepIndicator = ".1";
+                else if (currentSectionId === 'foco-polvo-subform-content') subStepIndicator = ".2";
+
+                if (subStepIndicator.startsWith(".")) {
+                    let parentSectionFlowId = '';
+                    if (sectionInfo.sidebarId === 'sidebar-paneles') parentSectionFlowId = 'panel-marca-subform'; // Use first subform as representative
+                    else if (sectionInfo.sidebarId === 'sidebar-perdidas') parentSectionFlowId = 'frecuencia-lluvias-subform-content'; // Use first subform
+
+                    if (parentSectionFlowId) {
+                         const parentIndexInFlow = currentFlowOrder.indexOf(parentSectionFlowId);
+                         if (parentIndexInFlow !== -1) stepNum = baseStepForDataForm + 1 + parentIndexInFlow;
+                    }
+                }
+                currentStepText = `${userTypeDisplay}, Paso ${stepNum}${subStepIndicator} (${sectionInfo.generalCategory}), ${sectionInfo.specificName}`;
+            } else {
+                currentStepText = `${userTypeDisplay}, (${sectionInfo.generalCategory}), ${sectionInfo.specificName}`; // Fallback if not in defined flow order
+            }
+        }
+    } else if (currentSectionId === 'map-screen') {
+        currentStepText = 'Paso Inicial: Ubicación y Tipo de Usuario';
+        const defaultSidebar = document.getElementById('sidebar-datos');
+        if (defaultSidebar) defaultSidebar.classList.add('active');
+    } else {
+        console.warn(`[updateStepIndicator] Section ID '${currentSectionId}' not found in sectionInfoMap.`);
+        currentStepText = `${userTypeDisplay}: Paso Desconocido`;
     }
 
-    // Also update the text indicator, simplified for now
-    if (stepIndicatorText && sectionInfo) {
-        stepIndicatorText.textContent = sectionInfo.specificName;
+    const summaryEl = document.getElementById('selection-summary');
+    if (summaryEl) {
+        const typeText = userSelections.userType
+            ? `Usuario ${userSelections.userType === 'experto' ? 'Experto' : 'Básico'}`
+            : '';
+        const instText = userSelections.installationType || '';
+        const incomeText = userSelections.incomeLevel
+            ? `Nivel de Ingreso ${userSelections.incomeLevel}`
+            : '';
+        summaryEl.textContent = [typeText, instText, incomeText]
+            .filter(Boolean)
+            .join('. ');
     }
+    stepIndicatorText.textContent = currentStepText;
+    updateSidebarVisibility();
 }
 
 // Helper function to manage visibility of form sections within map-screen
@@ -2114,7 +2219,7 @@ function setupNavigationButtons() {
     if (basicUserButton) {
         basicUserButton.addEventListener('click', () => {
             userSelections.userType = 'basico';
-            document.getElementById('data-form-screen').classList.add('basic-user-mode');
+            localStorage.setItem('calculadorUserType', 'basico');
             saveUserSelections();
             showMapScreenFormSection('supply-section');
         });
@@ -2123,7 +2228,7 @@ function setupNavigationButtons() {
     if (expertUserButton) {
         expertUserButton.addEventListener('click', () => {
             userSelections.userType = 'experto';
-            document.getElementById('data-form-screen').classList.remove('basic-user-mode');
+            localStorage.setItem('calculadorUserType', 'experto');
             saveUserSelections();
             showMapScreenFormSection('supply-section');
             updateStepIndicator('map-screen');
@@ -2885,3 +2990,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 // --------------------------------------------------------------------------------
 // FIN DEL CÓDIGO ORIGINAL DE TU ARCHIVO CALCULADOR.JS QUE DEBE PERMANECER
 // --------------------------------------------------------------------------------
+
+function updateSidebarVisibility() {
+    const sidebarItems = Array.from(document.querySelectorAll('.sidebar .sidebar-item'));
+    const exitButton = sidebarItems.find(item => item.textContent.trim().includes('Salir'));
+
+    if (localStorage.getItem('calculadorUserType') === 'basico') {
+        // Hide all items first, except the exit button
+        sidebarItems.forEach(item => {
+            if (item !== exitButton) {
+                item.style.display = 'none';
+            }
+        });
+
+        // Find the active item's index
+        const activeIndex = sidebarItems.findIndex(item => item.classList.contains('active'));
+
+        // Show all items up to the active one
+        if (activeIndex !== -1) {
+            for (let i = 0; i <= activeIndex; i++) {
+                sidebarItems[i].style.display = 'flex';
+            }
+        } else if (dataFormScreen.style.display !== 'none') {
+            // If on data screen with no active item, show the first as default.
+            const firstStep = document.getElementById('sidebar-datos');
+            if (firstStep) {
+                firstStep.style.display = 'flex';
+            }
+        }
+
+        // Ensure exit button is always visible
+        if (exitButton) {
+            exitButton.style.display = 'flex';
+        }
+
+    } else { // For expert user, or if user type is not set, show all
+        sidebarItems.forEach(item => {
+            item.style.display = 'flex';
+        });
+    }
+}
