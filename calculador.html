@@ -255,6 +255,22 @@
             color: white;
             font-weight: 700;
         }
+
+        #data-form-screen.basic-user-mode .sidebar .sidebar-item {
+            display: none;
+        }
+        #data-form-screen.basic-user-mode .sidebar .sidebar-item.active,
+        #data-form-screen.basic-user-mode .sidebar .sidebar-item:last-child {
+            display: flex;
+        }
+
+        #data-form-screen.basic-user-mode .sidebar-item {
+            display: none;
+        }
+        #data-form-screen.basic-user-mode .sidebar-item.active,
+        #data-form-screen.basic-user-mode .sidebar-item:last-child {
+            display: flex;
+        }
         .data-form-screen .sidebar-item:hover:not(.active) {
             background-color: var(--bg-light);
         }
@@ -505,15 +521,25 @@
         footer {
             background: white;
             text-align: center;
-            padding: 15px 0;
+            padding: 20px 0;
             border-top: 1px solid var(--border-color);
-            margin-top: 1rem;
+            margin-top: 2rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .footer-logos {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 25px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
         }
 
         .footer-logo {
-            max-height: 40px;
+            max-height: 35px;
             width: auto;
-            margin-bottom: 8px;
         }
 
         .copyright {
@@ -967,7 +993,13 @@
     <script src="calculador.js" defer></script>
 
     <footer>
-        <img src="images/logo-facultad.png" alt="Facultad de Ingeniería Logo" class="footer-logo">
+        <div class="footer-logos">
+            <img src="images/logo-facultad.png" alt="Facultad de Ingeniería Logo" class="footer-logo">
+            <img src="images/logo-freba.png" alt="FREBA Logo" class="footer-logo">
+            <img src="images/logo-buenosaires.png" alt="Buenos Aires Provincia Logo" class="footer-logo">
+            <img src="images/logo-proinged-full.png" alt="PROINGED Logo" class="footer-logo">
+            <img src="images/logo-ctae.png" alt="CTAE Logo" class="footer-logo">
+        </div>
         <div class="copyright">&copy; 2024 Facultad de Ingeniería</div>
     </footer>
 </body>
