@@ -2474,9 +2474,14 @@ function setupNavigationButtons() {
     }
 
     document.getElementById('back-to-modelo-metodo')?.addEventListener('click', () => {
-        showScreen('modelo-metodo-section');
-        updateStepIndicator('modelo-metodo-section');
-        if (typeof initModeloMetodoSection === 'function') initModeloMetodoSection();
+        if (userSelections.userType === 'basico') {
+            showScreen('data-meteorologicos-section');
+            updateStepIndicator('data-meteorologicos-section');
+        } else { // 'experto'
+            showScreen('modelo-metodo-section');
+            updateStepIndicator('modelo-metodo-section');
+            if (typeof initModeloMetodoSection === 'function') initModeloMetodoSection();
+        }
     });
 
     // The `back-from-consumo-factura` and `next-from-consumo-factura` buttons
@@ -2613,21 +2618,23 @@ function setupNavigationButtons() {
     // }
 
     // Back button on Analisis Economico page
-    const backToPerdidasFromAnalisisBtn = document.querySelector('#analisis-economico-section .back-button');
-    if (backToPerdidasFromAnalisisBtn) { // Assuming there's a common class or a specific ID
-        // To avoid attaching multiple listeners if this code runs multiple times or if ID is generic:
-        // A more robust way would be to ensure this specific button has a unique ID like 'back-to-perdidas-from-analisis'
-        // For now, let's assume it's the only .back-button or has the specific ID 'back-to-perdidas'.
-        // If its ID is 'back-to-perdidas', this will override any previous generic listener for that ID.
-        backToPerdidasFromAnalisisBtn.addEventListener('click', (e) => {
-            e.preventDefault();
+    document.getElementById('back-from-analisis')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (userSelections.userType === 'basico') {
+            showScreen('energia-section');
+            updateStepIndicator('energia-section');
+            if (typeof initElectrodomesticosSection === 'function') {
+                initElectrodomesticosSection();
+            }
+        } else { // 'experto'
             showScreen('perdidas-section');
+            // Show the last sub-form of the 'perdidas' section
             if (frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'none';
-            if (focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block'; // Show last sub-form
+            if (focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block';
             initFocoPolvoOptions();
             updateStepIndicator('foco-polvo-subform-content');
-        });
-    }
+        }
+    });
 
     // --- Start of Paneles Sub-Form Navigation Listeners ---
 
