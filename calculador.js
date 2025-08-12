@@ -2334,21 +2334,10 @@ function setupNavigationButtons() {
     });
 
     document.getElementById('back-to-data-meteorologicos-from-superficie')?.addEventListener('click', () => {
-        if (userSelections.userType === 'experto') {
-            if (userSelections.metodoIngresoConsumoEnergia === 'boletaMensual' ||
-                userSelections.installationType === 'Comercial' ||
-                userSelections.installationType === 'PYME') {
-                showScreen('consumo-factura-section');
-                updateStepIndicator('consumo-factura-section');
-            } else { // Expert Residencial who chose detalleHogar/Horas
-                showScreen('energia-section');
-                updateStepIndicator('energia-section');
-                initElectrodomesticosSection(); // Re-show energy choices
-            }
-        } else { // Should not be reached by basic if this is expert-only section
-            showScreen('data-meteorologicos-section');
-            updateStepIndicator('data-meteorologicos-section');
-        }
+        // Corrección: Este botón siempre debe volver a la sección de datos meteorológicos.
+        // La lógica anterior saltaba hacia adelante incorrectamente para usuarios expertos.
+        showScreen('data-meteorologicos-section');
+        updateStepIndicator('data-meteorologicos-section');
     });
 
     const nextFromSuperficieButton = document.getElementById('next-to-energia-from-superficie');
@@ -2484,10 +2473,15 @@ function setupNavigationButtons() {
         console.warn("Button 'next-to-inversor-from-panels' (for Paneles to Inversor) not found. Check HTML and JS execution order.");
     }
 
-    document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => {
-        showScreen('modelo-metodo-section');
-        updateStepIndicator('modelo-metodo-section');
-        if (typeof initModeloMetodoSection === 'function') initModeloMetodoSection();
+    document.getElementById('back-to-modelo-metodo')?.addEventListener('click', () => {
+        if (userSelections.userType === 'basico') {
+            showScreen('data-meteorologicos-section');
+            updateStepIndicator('data-meteorologicos-section');
+        } else { // 'experto'
+            showScreen('modelo-metodo-section');
+            updateStepIndicator('modelo-metodo-section');
+            if (typeof initModeloMetodoSection === 'function') initModeloMetodoSection();
+        }
     });
 
     // The `back-from-consumo-factura` and `next-from-consumo-factura` buttons
@@ -2624,21 +2618,23 @@ function setupNavigationButtons() {
     // }
 
     // Back button on Analisis Economico page
-    const backToPerdidasFromAnalisisBtn = document.querySelector('#analisis-economico-section .back-button');
-    if (backToPerdidasFromAnalisisBtn) { // Assuming there's a common class or a specific ID
-        // To avoid attaching multiple listeners if this code runs multiple times or if ID is generic:
-        // A more robust way would be to ensure this specific button has a unique ID like 'back-to-perdidas-from-analisis'
-        // For now, let's assume it's the only .back-button or has the specific ID 'back-to-perdidas'.
-        // If its ID is 'back-to-perdidas', this will override any previous generic listener for that ID.
-        backToPerdidasFromAnalisisBtn.addEventListener('click', (e) => {
-            e.preventDefault();
+    document.getElementById('back-from-analisis')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (userSelections.userType === 'basico') {
+            showScreen('energia-section');
+            updateStepIndicator('energia-section');
+            if (typeof initElectrodomesticosSection === 'function') {
+                initElectrodomesticosSection();
+            }
+        } else { // 'experto'
             showScreen('perdidas-section');
+            // Show the last sub-form of the 'perdidas' section
             if (frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'none';
-            if (focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block'; // Show last sub-form
+            if (focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block';
             initFocoPolvoOptions();
             updateStepIndicator('foco-polvo-subform-content');
-        });
-    }
+        }
+    });
 
     // --- Start of Paneles Sub-Form Navigation Listeners ---
 
