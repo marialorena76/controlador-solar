@@ -225,6 +225,11 @@ function loadUserSelections() {
 
         console.log('User selections cargadas y normalizadas:', userSelections);
         updateUIFromSelections();
+        if (userSelections.userType === 'basico') {
+            document.getElementById('data-form-screen').classList.add('basic-user-mode');
+        } else {
+            document.getElementById('data-form-screen').classList.remove('basic-user-mode');
+        }
     } else {
         // No saved data, so global userSelections (which should already match defaultUserSelectionsStructure) is used.
         // Optionally, explicitly set userSelections to a deep copy of defaults here too for consistency:
@@ -2218,6 +2223,7 @@ function setupNavigationButtons() {
     if (basicUserButton) {
         basicUserButton.addEventListener('click', () => {
             userSelections.userType = 'basico';
+            document.getElementById('data-form-screen').classList.add('basic-user-mode');
             saveUserSelections();
             showMapScreenFormSection('supply-section');
         });
@@ -2226,16 +2232,10 @@ function setupNavigationButtons() {
     if (expertUserButton) {
         expertUserButton.addEventListener('click', () => {
             userSelections.userType = 'experto';
+            document.getElementById('data-form-screen').classList.remove('basic-user-mode');
             saveUserSelections();
-            // Ensure map-screen is visible, as supply-section is part of it.
-            // showScreen('map-screen'); // This might be redundant if already on map-screen and only sub-sections change.
-                                      // showMapScreenFormSection handles showing map-screen implicitly if needed or if it's better structured.
-                                      // For now, let's assume user is on map-screen when clicking this.
             showMapScreenFormSection('supply-section');
-            updateStepIndicator('map-screen'); // Or a more specific step for supply-section if created
-                                               // For now, 'map-screen' indicates they are on the first main screen.
-                                               // Or, perhaps, 'supply-section' needs its own step text.
-                                               // Let's stick to map-screen for now, step indicators for sub-map sections can be refined.
+            updateStepIndicator('map-screen');
         });
     }
 
