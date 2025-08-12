@@ -283,6 +283,14 @@
             margin-top: 0;
             margin-bottom: 2rem;
         }
+        .data-form-screen .main-content h2,
+        .data-form-screen .main-content h3 {
+            font-family: var(--font-body);
+            font-size: 1.4rem;
+            color: #000000; /* Black */
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+        }
         .data-form-screen .step-indicator {
             display: none; /* Ocultar subtítulos como "Básico, Paso X" */
         }
@@ -654,7 +662,8 @@
             <div class="main-content">
                 <div id="selection-summary" class="selection-summary"></div>
                 <div id="data-meteorologicos-section">
-                    <h1>¿En qué zona se encuentra la intalación?</h1>
+                    <h1>Datos</h1>
+                    <h2>¿En qué zona se encuentra la intalación?</h2>
                     <div class="form-group">
                         <div class="radio-group">
                             <label>
@@ -678,7 +687,8 @@
                 </div>
                 <!-- Nueva sección para Superficie Rodea -->
                 <div id="superficie-section" style="display:none;">
-                    <h1>¿Qué superficie rodea el lugar donde llevar a cabo la instalación?</h1>
+                    <h1>Datos</h1>
+                    <h2>¿Qué superficie rodea el lugar donde llevar a cabo la instalación?</h2>
                     <div class="form-group">
                         <!-- Options will be dynamically inserted here by JavaScript -->
                         <div id="superficie-options-container" class="radio-group">
@@ -698,7 +708,8 @@
                 <!-- Fin de Nueva sección para Superficie Rodea -->
                 <!-- Nueva sección para Rugosidad -->
                 <div id="rugosidad-section" style="display:none;">
-                    <h1>¿Cuál es la rugosidad de la superficie que rodea la instalación?</h1>
+                    <h1>Datos</h1>
+                    <h2>¿Cuál es la rugosidad de la superficie que rodea la instalación?</h2>
                     <div class="form-group">
                         <!-- Options will be dynamically inserted here by JavaScript -->
                         <div id="rugosidad-options-container" class="radio-group">
@@ -713,7 +724,8 @@
                 <!-- Fin de Nueva sección para Rugosidad -->
                 <!-- Nueva sección para Rotación -->
                 <div id="rotacion-section" style="display:none;">
-                    <h1>¿Con qué rotación contaría la instalación?</h1>
+                    <h1>Datos</h1>
+                    <h2>¿Con qué rotación contaría la instalación?</h2>
                     <div class="form-group">
                         <!-- Options will be dynamically inserted here by JavaScript -->
                         <div id="rotacion-options-container" class="radio-group">
@@ -723,7 +735,7 @@
 
                     <!-- Container for conditional "Fijo" angle inputs -->
                     <div id="fijo-angles-container" style="display:none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px dashed #ccc;">
-                        <h3 style="font-size: 1.1em; color: #555; margin-bottom: 1rem;">Detalles para Instalación Fija:</h3>
+                        <h3>Detalles para Instalación Fija:</h3>
                         <div class="form-group" id="form-group-inclinacion">
                             <label for="angulo-inclinacion-input">Ángulo de inclinación del panel respecto de la horizontal (°):</label>
                             <input type="number" id="angulo-inclinacion-input" name="anguloInclinacion" class="form-control" step="any" placeholder="Ej: 30">
@@ -743,7 +755,8 @@
                 <!-- Fin de Nueva sección para Rotación -->
                 <!-- Nueva sección para Altura Instalación -->
                 <div id="altura-instalacion-section" style="display:none;">
-                    <h1>¿Cuál es la altura a la cual se encontrará la instalación fotovoltaica, desde la superficie de apoyo?</h1>
+                    <h1>Datos</h1>
+                    <h2>¿Cuál es la altura a la cual se encontrará la instalación fotovoltaica, desde la superficie de apoyo?</h2>
                     <div class="form-group">
                         <label for="altura-instalacion-input">Altura (metros):</label>
                         <input type="number" id="altura-instalacion-input" name="alturaInstalacion" class="form-control" min="0" step="0.1" placeholder="Ej: 1.5">
@@ -756,7 +769,8 @@
                 <!-- Fin de Nueva sección para Altura Instalación -->
                 <!-- Nueva sección para Método de Cálculo -->
                 <div id="metodo-calculo-section" style="display:none;">
-                    <h1>¿Con qué método de cálculo de radiación desea realizar el dimensionamiento?</h1>
+                    <h1>Datos</h1>
+                    <h2>¿Con qué método de cálculo de radiación desea realizar el dimensionamiento?</h2>
                     <div class="form-group">
                         <!-- Options (select dropdown) will be dynamically inserted here by JavaScript -->
                         <div id="metodo-calculo-options-container">
@@ -771,7 +785,7 @@
                 <!-- Fin de Nueva sección para Método de Cálculo -->
                 <!-- Nueva sección para Modelo del Método -->
                 <div id="modelo-metodo-section" style="display:none;">
-                    <h1>Paso 1: Datos</h1>
+                    <h1>Datos</h1>
                     <h2>¿Con qué modelo del método desea realizar el dimensionamiento?</h2>
                     <div class="form-group">
                         <!-- Options (select dropdown) will be dynamically inserted here by JavaScript -->
@@ -786,8 +800,8 @@
                 </div>
                 <!-- Fin de Nueva sección para Modelo del Método -->
                 <div id="energia-section" style="display:none;">
-                    <h1>Paso 2: Consumo de Energía</h1> <!-- Or other title set by JS -->
-                    <p>A continuación ingrese los datos requeridos acerca de su consumo de energía eléctrica.</p> <!-- New subtitle -->
+                    <h1>Energía</h1>
+                    <p>A continuación ingrese los datos requeridos acerca de su consumo de energía eléctrica.</p>
 
                     <div id="energia-modo-seleccion-container" style="display:none;"> <!-- Initially hidden, JS will show for experts -->
                         <h2>¿Cómo desea ingresar los datos de consumo?</h2>
@@ -848,7 +862,7 @@
                 </div>
 
                 <div id="paneles-section" style="display:none;">
-                    <h1>Paso 3: Paneles</h1>
+                    <h1>Paneles</h1>
                     <!-- Old input fields for Tipo de Panel and Cantidad de Paneles were removed -->
 
                     <!-- Sub-Form 1: Marca Panel -->
@@ -922,7 +936,8 @@
                     </div>
                 </div>
                 <div id="inversor-section" style="display:none;">
-                    <h1>De las opciones disponibles,seleccione el modelo de inversor que desea instalar</h1>
+                    <h1>Inversor</h1>
+                    <h2>De las opciones disponibles,seleccione el modelo de inversor que desea instalar</h2>
                     <p style="text-align: center; font-style: italic; padding: 20px;">La selección detallada del modelo de inversor se habilitará en futuras versiones.</p>
                     <div class="form-actions">
                         <button type="button" id="back-to-paneles" class="back-button">Atrás</button>
@@ -930,7 +945,7 @@
                     </div>
                 </div>
                 <div id="perdidas-section" style="display:none;">
-                    <h1>Paso 5: Registro Pérdidas</h1>
+                    <h1>Registro de Pérdidas</h1>
 
                     <div id="frecuencia-lluvias-subform-content" style="display:none;"> <!-- Content for first sub-form -->
                         <h2>¿Cuál es la frecuencia de lluvias estimada en la locación de la instalación?</h2>
@@ -959,7 +974,7 @@
 
                 </div>
                 <div id="analisis-economico-section" style="display:none;">
-                    <h1>Paso 6: Análisis Económico</h1>
+                    <h1>Análisis Económico</h1>
                     <div class="form-group">
                         <label for="moneda">¿Qué moneda desea utilizar?</label>
                         <select id="moneda" name="moneda" required>
