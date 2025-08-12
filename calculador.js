@@ -2334,21 +2334,10 @@ function setupNavigationButtons() {
     });
 
     document.getElementById('back-to-data-meteorologicos-from-superficie')?.addEventListener('click', () => {
-        if (userSelections.userType === 'experto') {
-            if (userSelections.metodoIngresoConsumoEnergia === 'boletaMensual' ||
-                userSelections.installationType === 'Comercial' ||
-                userSelections.installationType === 'PYME') {
-                showScreen('consumo-factura-section');
-                updateStepIndicator('consumo-factura-section');
-            } else { // Expert Residencial who chose detalleHogar/Horas
-                showScreen('energia-section');
-                updateStepIndicator('energia-section');
-                initElectrodomesticosSection(); // Re-show energy choices
-            }
-        } else { // Should not be reached by basic if this is expert-only section
-            showScreen('data-meteorologicos-section');
-            updateStepIndicator('data-meteorologicos-section');
-        }
+        // Corrección: Este botón siempre debe volver a la sección de datos meteorológicos.
+        // La lógica anterior saltaba hacia adelante incorrectamente para usuarios expertos.
+        showScreen('data-meteorologicos-section');
+        updateStepIndicator('data-meteorologicos-section');
     });
 
     const nextFromSuperficieButton = document.getElementById('next-to-energia-from-superficie');
@@ -2484,7 +2473,7 @@ function setupNavigationButtons() {
         console.warn("Button 'next-to-inversor-from-panels' (for Paneles to Inversor) not found. Check HTML and JS execution order.");
     }
 
-    document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => {
+    document.getElementById('back-to-modelo-metodo')?.addEventListener('click', () => {
         showScreen('modelo-metodo-section');
         updateStepIndicator('modelo-metodo-section');
         if (typeof initModeloMetodoSection === 'function') initModeloMetodoSection();
