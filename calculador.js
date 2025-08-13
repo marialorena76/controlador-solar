@@ -1518,17 +1518,29 @@ function initElectrodomesticosSection() {
         });
 
     } else { // Basic user
+    // Default states for basic user flow within energia-section
+    modoSeleccionContainer.style.display = 'none';
+    listContainer.innerHTML = ''; // Clear appliance list content to be safe
+    listContainer.style.display = 'none'; // Hide appliance list by default
+    if (consumoFacturaSection) consumoFacturaSection.style.display = 'none'; // Hide bill form by default
+
+
         if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
-            console.log('[DEBUG] Basic Comercial/PYME: redirecting to factura consumption form.');
+        console.log('[DEBUG] Basic Comercial/PYME: showing factura consumption form within energia-section.');
             userSelections.metodoIngresoConsumoEnergia = 'boletaMensual';
             saveUserSelections();
-            showScreen('consumo-factura-section');
-            updateStepIndicator('consumo-factura-section');
-            return;
+
+        if (consumoFacturaSection) consumoFacturaSection.style.display = 'block'; // Show the monthly bill form
+        if (summaryContainer) summaryContainer.style.display = 'flex'; // Show the summary box
+        // listContainer is already hidden by default state above
+
+    } else { // Basic Residencial
+        console.log('[DEBUG] Basic Residencial: showing appliance list.');
+        listContainer.style.display = 'block'; // Show appliance list container
+        if (summaryContainer) summaryContainer.style.display = 'flex'; // Show summary
+        populateStandardApplianceList(listContainer); // Populate it with appliances
+        // consumoFacturaSection is already hidden by default state above
         }
-        modoSeleccionContainer.style.display = 'none';
-        if (summaryContainer) summaryContainer.style.display = 'flex';
-        populateStandardApplianceList(listContainer);
     }
 }
 
@@ -2334,10 +2346,21 @@ function setupNavigationButtons() {
     });
 
     document.getElementById('back-to-data-meteorologicos-from-superficie')?.addEventListener('click', () => {
-        // Corrección: Este botón siempre debe volver a la sección de datos meteorológicos.
-        // La lógica anterior saltaba hacia adelante incorrectamente para usuarios expertos.
-        showScreen('data-meteorologicos-section');
-        updateStepIndicator('data-meteorologicos-section');
+        if (userSelections.userType === 'experto') {
+            if (userSelections.metodoIngresoConsumoEnergia === 'boletaMensual' ||
+                userSelections.installationType === 'Comercial' ||
+                userSelections.installationType === 'PYME') {
+                showScreen('consumo-factura-section');
+                updateStepIndicator('consumo-factura-section');
+            } else { // Expert Residencial who chose detalleHogar/Horas
+                showScreen('energia-section');
+                updateStepIndicator('energia-section');
+                initElectrodomesticosSection(); // Re-show energy choices
+            }
+        } else { // Should not be reached by basic if this is expert-only section
+            showScreen('data-meteorologicos-section');
+            updateStepIndicator('data-meteorologicos-section');
+        }
     });
 
     const nextFromSuperficieButton = document.getElementById('next-to-energia-from-superficie');
@@ -2473,11 +2496,11 @@ function setupNavigationButtons() {
         console.warn("Button 'next-to-inversor-from-panels' (for Paneles to Inversor) not found. Check HTML and JS execution order.");
     }
 
-    document.getElementById('back-to-modelo-metodo')?.addEventListener('click', () => {
+    document.getElementById('back-to-data-meteorologicos')?.addEventListener('click', () => {
         if (userSelections.userType === 'basico') {
             showScreen('data-meteorologicos-section');
             updateStepIndicator('data-meteorologicos-section');
-        } else { // 'experto'
+        } else { // Expert user
             showScreen('modelo-metodo-section');
             updateStepIndicator('modelo-metodo-section');
             if (typeof initModeloMetodoSection === 'function') initModeloMetodoSection();
@@ -2618,23 +2641,26 @@ function setupNavigationButtons() {
     // }
 
     // Back button on Analisis Economico page
-    document.getElementById('back-from-analisis')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (userSelections.userType === 'basico') {
-            showScreen('energia-section');
-            updateStepIndicator('energia-section');
-            if (typeof initElectrodomesticosSection === 'function') {
-                initElectrodomesticosSection();
+    const backToPerdidasFromAnalisisBtn = document.querySelector('#analisis-economico-section .back-button');
+    if (backToPerdidasFromAnalisisBtn) {
+        backToPerdidasFromAnalisisBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (userSelections.userType === 'basico') {
+                showScreen('energia-section');
+                updateStepIndicator('energia-section');
+                // Re-initialize the energy section to show the correct view
+                if (typeof initElectrodomesticosSection === 'function') {
+                    initElectrodomesticosSection();
+                }
+            } else { // Expert user
+                showScreen('perdidas-section');
+                if (frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'none';
+                if (focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block'; // Show last sub-form
+                initFocoPolvoOptions();
+                updateStepIndicator('foco-polvo-subform-content');
             }
-        } else { // 'experto'
-            showScreen('perdidas-section');
-            // Show the last sub-form of the 'perdidas' section
-            if (frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'none';
-            if (focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block';
-            initFocoPolvoOptions();
-            updateStepIndicator('foco-polvo-subform-content');
-        }
-    });
+        });
+    }
 
     // --- Start of Paneles Sub-Form Navigation Listeners ---
 
