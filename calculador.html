@@ -223,11 +223,11 @@
             display: flex;
             flex-direction: row;
             width: 100%;
-            max-width: 1200px;
-            margin: 2rem auto;
+            flex-grow: 1; /* Make it take available vertical space */
+            margin: 0; /* Remove margin */
             background-color: white;
-            border-radius: 10px;
-            box-shadow: var(--shadow-subtle);
+            border-radius: 0; /* Remove border-radius */
+            box-shadow: none; /* Remove box-shadow */
             overflow: hidden;
         }
         .data-form-screen .sidebar {
@@ -282,7 +282,7 @@
         .data-form-screen .main-content {
             flex-grow: 1;
             padding: 2.5rem;
-            min-height: 480px; /* Unificar tamaño de las pantallas de formularios */
+            min-height: 650px; /* Set a fixed height to prevent resizing between steps */
         }
         .data-form-screen .main-content h1 {
             font-family: var(--font-heading);
