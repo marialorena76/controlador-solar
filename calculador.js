@@ -446,11 +446,14 @@ async function initSuperficieSection() {
             const descripcion = selectedOption.dataset.descripcion;
 
             if (valor && valor !== '') {
-                userSelections.superficieRodea.valor = parseFloat(valor);
+                const valorFloat = parseFloat(valor);
+                userSelections.superficieRodea.valor = valorFloat;
                 userSelections.superficieRodea.descripcion = descripcion;
+                escribirSuperficieEnExcel(descripcion); // Llamada a la nueva función
             } else {
                 userSelections.superficieRodea.valor = null;
                 userSelections.superficieRodea.descripcion = null;
+                escribirSuperficieEnExcel(null); // Opcional: enviar null para limpiar la celda
             }
             saveUserSelections();
             console.log('[initSuperficieSection] Superficie rodea seleccionada (select):', userSelections.superficieRodea);
@@ -1857,6 +1860,36 @@ async function escribirPotenciaPanelEnExcel(potenciaPanel) {
         }
     } catch (error) {
         console.error('Error en la solicitud fetch para escribir potencia de panel en Excel:', error);
+    }
+}
+
+// --- Nueva función para escribir la superficie seleccionada en Excel ---
+async function escribirSuperficieEnExcel(valorSuperficie) {
+    if (valorSuperficie === null || valorSuperficie === undefined) {
+        console.warn('No se proporcionó valor de superficie para escribir en Excel.');
+        return;
+    }
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/escribir_dato_excel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                dato: valorSuperficie,
+                hoja: 'Datos de Entrada',
+                celda: 'N6'
+            }),
+        });
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Valor de superficie escrito en Excel:', data.message);
+        } else {
+            const errorData = await response.json();
+            console.error('Error al escribir valor de superficie en Excel:', response.status, errorData.error);
+        }
+    } catch (error) {
+        console.error('Error en la solicitud fetch para escribir valor de superficie en Excel:', error);
     }
 }
 
