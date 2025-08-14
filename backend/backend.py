@@ -861,5 +861,35 @@ def get_panel_model_api():
         return jsonify({"error": f"Error interno del servidor al buscar modelo de panel: {str(e)}"}), 500
 
 
+# --- NUEVA RUTA: Para obtener la lista de modelos de inversores ---
+@app.route('/api/get_inverter_options', methods=['GET'])
+def get_inverter_options():
+    """
+    Lee la hoja 'Inversores genéricos' y devuelve una lista de todos los
+    inversores disponibles para poblar un dropdown en el frontend.
+    """
+    try:
+        df_inversores = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Inversores genéricos')
+        # Asegurarse que la columna 'NOMBRE' y 'Pot nom CA [W]' existen
+        if 'NOMBRE' not in df_inversores.columns or 'Pot nom CA [W]' not in df_inversores.columns:
+            return jsonify({"error": "El archivo Excel no tiene el formato esperado para los inversores."}), 500
+
+        # Convertir el dataframe a una lista de diccionarios
+        # dropna() para eliminar filas que puedan ser completamente NaN
+        inverter_list = df_inversores[['NOMBRE', 'Pot nom CA [W]']].dropna().to_dict(orient='records')
+
+        return jsonify(inverter_list)
+
+    except FileNotFoundError:
+        return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 500
+    except KeyError:
+        return jsonify({"error": "No se pudo encontrar la hoja 'Inversores genéricos' en el archivo Excel."}), 500
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/get_inverter_options: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": "Error interno del servidor al obtener opciones de inversor."}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)

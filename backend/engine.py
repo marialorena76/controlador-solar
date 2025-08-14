@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import math
 
 # --- Constants ---
 # It's good practice to define the path to the Excel file here as well,
@@ -84,18 +85,31 @@ def calculate_report(user_data, excel_data):
     panel_seleccionado = _select_panel(user_data, df_paneles_comerciales, df_paneles_genericos)
 
 
-    # --- 4. Assemble the final report ---
+    # --- 4. Calculate System Size ---
+    system_size_data = _calculate_system_size(consumo_anual, panel_seleccionado)
+    if "error" in system_size_data:
+        # If there's an error in sizing, we should probably stop and report it.
+        return system_size_data
+
+    # --- 5. Select Inverter ---
+    df_inversores = excel_data.get('Inversores genéricos')
+    if df_inversores is None:
+        return {"error": "Hoja de cálculo 'Inversores genéricos' no encontrada."}
+
+    selected_inverter = _select_inverter(system_size_data.get("total_system_power_wp", 0), df_inversores)
+
+    # --- 6. Assemble the final report ---
     # The structure of this report will evolve as we migrate more logic.
     final_report = {
         "consumo_anual_kwh": consumo_anual,
         "panel_seleccionado": panel_seleccionado,
         "orientation_params": orientation_params, # Add the calculated orientation
-        "potencia_sistema_kwp": "En desarrollo",
+        "potencia_sistema_kwp": system_size_data.get("total_system_power_wp", 0) / 1000.0, # Convert Wp to kWp
         "energia_generada_anual": "En desarrollo",
         "area_paneles_m2": "En desarrollo",
-        "numero_paneles": 0,
-        "tipo_inversor": "N/A",
-        "potencia_inversor_kwa": 0,
+        "numero_paneles": system_size_data.get("number_of_panels", 0),
+        "tipo_inversor": selected_inverter.get("NOMBRE", "No encontrado"),
+        "potencia_inversor_kwa": selected_inverter.get("Pot nom CA [W]", 0) / 1000.0, # Convert W to kVA (assuming VA=W)
         "costo_actual": 0,
         "inversion_inicial": 0,
         "mantenimiento": 0,
@@ -251,6 +265,77 @@ def _calculate_panel_orientation(user_data):
         print(f"DEBUG: Orientation description '{rotacion_desc}' not specifically handled. Using manual inputs as fallback. Tilt={final_tilt}, Azimuth={final_azimuth}")
 
     return {"tilt": final_tilt, "azimuth": final_azimuth}
+
+def _calculate_system_size(annual_consumption_kwh, selected_panel):
+    """
+    Estimates the required number of panels and total system power.
+    """
+    print(f"DEBUG: Calculating system size for annual consumption: {annual_consumption_kwh} kWh")
+
+    if not selected_panel or 'Pmax[W]' not in selected_panel:
+        return {"error": "Datos del panel seleccionado son inválidos o están ausentes."}
+
+    single_panel_power_wp = selected_panel['Pmax[W]']
+    if single_panel_power_wp <= 0:
+        return {"error": "La potencia del panel seleccionado debe ser mayor a cero."}
+
+    # --- Placeholder values based on investigation ---
+    # A more advanced implementation would look these up based on user's city.
+    # HSP (Horas Solares Pico) = kWh/m²/día. Anual = daily * 365
+    HSP_DIARIO_PROMEDIO = 4.2
+    PERFORMANCE_RATIO = 0.80 # Factor de rendimiento del sistema (80% es un valor estándar)
+
+    # Formula: Potencia Necesaria (Wp) = Consumo Anual (Wh) / (HSP Anual * PR)
+    # 1. Convertir consumo anual de kWh a Wh
+    annual_consumption_wh = annual_consumption_kwh * 1000
+    # 2. Calcular HSP anual
+    hsp_anual = HSP_DIARIO_PROMEDIO * 365
+
+    # 3. Calcular la potencia pico requerida del sistema
+    required_power_wp = annual_consumption_wh / (hsp_anual * PERFORMANCE_RATIO)
+
+    # 4. Calcular el número de paneles necesarios (redondeando hacia arriba)
+    number_of_panels = math.ceil(required_power_wp / single_panel_power_wp)
+
+    # 5. Calcular la potencia real del sistema instalado
+    total_system_power_wp = number_of_panels * single_panel_power_wp
+
+    print(f"DEBUG: System size calculated. Required Power: {required_power_wp:.2f} Wp, Panels: {number_of_panels}, Total Power: {total_system_power_wp:.2f} Wp")
+
+    return {
+        "number_of_panels": number_of_panels,
+        "total_system_power_wp": total_system_power_wp,
+        "required_power_wp": required_power_wp
+    }
+
+def _select_inverter(total_system_power_wp, df_inversores):
+    """
+    Selects the best-matching inverter from the list based on system power.
+    """
+    print(f"DEBUG: Selecting inverter for system power: {total_system_power_wp:.2f} Wp")
+
+    # The inverter's nominal AC power should be close to the panels' DC power.
+    # A common rule of thumb is a DC/AC ratio of up to 1.25.
+    # So, Inverter_AC_Power >= Panel_DC_Power / 1.25
+    min_inverter_power_w = total_system_power_wp / 1.25
+
+    # Filter for inverters that meet the minimum power requirement
+    suitable_inverters = df_inversores[df_inversores['Pot nom CA [W]'] >= min_inverter_power_w]
+
+    if suitable_inverters.empty:
+        # If no inverter is large enough, select the largest one available as a fallback
+        print("WARN: No suitable inverter found. Selecting the largest available.")
+        selected_inverter_row = df_inversores.loc[df_inversores['Pot nom CA [W]'].idxmax()]
+    else:
+        # From the suitable ones, select the one with the lowest power rating (the closest match)
+        selected_inverter_row = suitable_inverters.loc[suitable_inverters['Pot nom CA [W]'].idxmin()]
+
+    inverter_data = selected_inverter_row.to_dict()
+    inverter_data = {k: v for k, v in inverter_data.items() if pd.notna(v)}
+
+    print(f"DEBUG: Selected inverter: {inverter_data.get('NOMBRE')} with {inverter_data.get('Pot nom CA [W]')}W AC Power")
+
+    return inverter_data
 
 def get_panel_model_name(marca, potencia, excel_path):
     """
