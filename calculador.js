@@ -1401,42 +1401,71 @@ function initPotenciaPanelOptions() {
     }
 }
 
-function initInversorSection() {
-    console.log('initInversorSection called. User Type:', userSelections.userType);
+async function initInversorSection() {
+    console.log('[initInversorSection] called');
+    const container = document.getElementById('inversor-options-container');
+    if (!container) {
+        console.error("Contenedor 'inversor-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = 'Cargando opciones de inversor...';
 
-    // Get references to old input elements (or their parent form-groups)
-    const tipoInversorInput = document.getElementById('tipo-inversor');
-    const potenciaInversorInput = document.getElementById('potencia-inversor-input');
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/get_inverter_options');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        const inverterOptions = await response.json();
+        container.innerHTML = ''; // Clear loading message
 
-    // Get their parent form-group elements to hide them completely
-    const tipoInversorFormGroup = tipoInversorInput?.closest('.form-group');
-    const potenciaInversorFormGroup = potenciaInversorInput?.closest('.form-group');
+        const selectElement = document.createElement('select');
+        selectElement.id = 'inversor-select';
+        selectElement.className = 'form-control';
 
-    if (userSelections.userType === 'experto') {
-        console.log('Configuring Inversor section for EXPERT user (currently empty form).');
-        // Ensure old input fields (if they somehow still exist or are re-added) are hidden
-        if (tipoInversorFormGroup) {
-            tipoInversorFormGroup.style.display = 'none';
-        }
-        if (potenciaInversorFormGroup) {
-            potenciaInversorFormGroup.style.display = 'none';
-        }
-        // The HTML was already modified to have the correct title and placeholder P tag.
-        // No specific JS action needed here to show content for the expert's empty form,
-        // as the HTML itself defines the "empty" state with the new title and placeholder.
-        // userSelections.inversor.tipo and userSelections.inversor.potenciaNominal will not be set here for experts.
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Seleccione un modelo de inversor...';
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        selectElement.appendChild(placeholder);
 
-    } else { // Basic User (should not reach here based on current flow)
-        console.log('Configuring Inversor section for BASIC user (showing original inputs).');
-        // If basic users could reach here and old inputs were meant for them:
-        if (tipoInversorFormGroup) {
-            tipoInversorFormGroup.style.display = 'block'; // Or its default
-        }
-        if (potenciaInversorFormGroup) {
-            potenciaInversorFormGroup.style.display = 'block'; // Or its default
-        }
-        // And ensure the expert-specific title/placeholder (if managed by JS) are hidden.
-        // However, since the HTML title was changed directly, this path is less relevant now.
+        inverterOptions.forEach(inverter => {
+            const option = document.createElement('option');
+            option.value = inverter.NOMBRE;
+            // Store power in a data attribute for later use
+            option.dataset.power = inverter['Pot nom CA [W]'];
+            option.textContent = `${inverter.NOMBRE} (${(inverter['Pot nom CA [W]']/1000).toFixed(2)} kW)`;
+
+            // Pre-select if it matches the saved selection
+            if (userSelections.inversor && userSelections.inversor.tipo === inverter.NOMBRE) {
+                option.selected = true;
+                placeholder.selected = false;
+            }
+            selectElement.appendChild(option);
+        });
+
+        selectElement.addEventListener('change', (e) => {
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            const model = selectedOption.value;
+            const power = parseFloat(selectedOption.dataset.power);
+
+            if (model) {
+                userSelections.inversor = {
+                    tipo: model,
+                    potenciaNominal: isNaN(power) ? 0 : power / 1000 // Store in kW
+                };
+            } else {
+                userSelections.inversor = { tipo: null, potenciaNominal: 0 };
+            }
+            saveUserSelections();
+            console.log('Inversor seleccionado:', userSelections.inversor);
+        });
+
+        container.appendChild(selectElement);
+
+    } catch (error) {
+        console.error("Error al cargar opciones de inversor:", error);
+        container.innerHTML = '<p style="color:red;">Error al cargar los modelos de inversor.</p>';
     }
 }
 
@@ -2441,16 +2470,7 @@ function setupNavigationButtons() {
             // Optional: Add validation for the last panel sub-form (modeloTemperaturaPanel) if needed
             showScreen('inversor-section');
             updateStepIndicator('inversor-section');
-            // initInversorSection(); // initInversorSection will be defined/updated later
-                                     // For now, ensure the call is there if the function is expected to exist.
-                                     // If initInversorSection doesn't exist yet, this might cause an error.
-                                     // Let's assume it will exist or be created in a following step.
-                                     // To be safe for now if it doesn't exist:
-            if (typeof initInversorSection === 'function') {
-                initInversorSection();
-            } else {
-                console.warn('initInversorSection function not yet defined. Inversor section may not initialize correctly.');
-            }
+            initInversorSection();
         });
     } else {
         // This warning will appear if this JS runs before the 'panel-modelo-temperatura-subform' and its button
