@@ -449,11 +449,11 @@ async function initSuperficieSection() {
                 const valorFloat = parseFloat(valor);
                 userSelections.superficieRodea.valor = valorFloat;
                 userSelections.superficieRodea.descripcion = descripcion;
-                escribirSuperficieEnExcel(descripcion); // Llamada a la nueva función
+                escribirDatoEnExcel(descripcion, 'N6');
             } else {
                 userSelections.superficieRodea.valor = null;
                 userSelections.superficieRodea.descripcion = null;
-                escribirSuperficieEnExcel(null); // Opcional: enviar null para limpiar la celda
+                escribirDatoEnExcel(null, 'N6'); // Opcional: enviar null para limpiar la celda
             }
             saveUserSelections();
             console.log('[initSuperficieSection] Superficie rodea seleccionada (select):', userSelections.superficieRodea);
@@ -546,11 +546,11 @@ async function initRugosidadSection() {
             if (valor && valor !== '') {
                 userSelections.rugosidadSuperficie.valor = parseFloat(valor);
                 userSelections.rugosidadSuperficie.descripcion = descripcion;
-                escribirRugosidadEnExcel(descripcion); // Llamada a la nueva función
+                escribirDatoEnExcel(descripcion, 'N7');
             } else {
                 userSelections.rugosidadSuperficie.valor = null;
                 userSelections.rugosidadSuperficie.descripcion = null;
-                escribirRugosidadEnExcel(null); // Opcional: enviar null para limpiar la celda
+                escribirDatoEnExcel(null, 'N7'); // Opcional: enviar null para limpiar la celda
             }
             saveUserSelections();
             console.log('[initRugosidadSection] Rugosidad de superficie seleccionada (select):', userSelections.rugosidadSuperficie);
@@ -718,6 +718,7 @@ async function initRotacionSection() {
             // Call visibility update BEFORE saving, so angle data is nulled if needed
             updateAngleFieldsVisibilityAndData(descripcion);
             saveUserSelections();
+            escribirRotacionDataEnExcel();
             console.log('[initRotacionSection] Rotación de instalación seleccionada:', userSelections.rotacionInstalacion);
         });
 
@@ -737,6 +738,7 @@ async function initRotacionSection() {
                 const value = parseFloat(e.target.value);
                 userSelections.anguloInclinacion = isNaN(value) ? null : value;
                 saveUserSelections();
+                escribirRotacionDataEnExcel();
                 console.log('[initRotacionSection] anguloInclinacion input changed:', userSelections.anguloInclinacion);
             });
         }
@@ -746,6 +748,7 @@ async function initRotacionSection() {
                 let value = parseFloat(e.target.value);
                 userSelections.anguloOrientacion = isNaN(value) ? null : value;
                 saveUserSelections();
+                escribirRotacionDataEnExcel();
                 console.log('[initRotacionSection] anguloOrientacion input changed:', userSelections.anguloOrientacion);
             });
         }
@@ -1865,10 +1868,11 @@ async function escribirPotenciaPanelEnExcel(potenciaPanel) {
     }
 }
 
-// --- Nueva función para escribir la superficie seleccionada en Excel ---
-async function escribirSuperficieEnExcel(valorSuperficie) {
-    if (valorSuperficie === null || valorSuperficie === undefined) {
-        console.warn('No se proporcionó valor de superficie para escribir en Excel.');
+// --- Función Genérica para escribir un dato en una celda específica del Excel ---
+async function escribirDatoEnExcel(dato, celda) {
+    // Permite que null o strings vacíos se envíen para limpiar celdas, pero no 'undefined'.
+    if (dato === undefined) {
+        console.warn(`Se intentó escribir un valor 'undefined' en la celda ${celda}. Operación cancelada.`);
         return;
     }
     try {
@@ -1878,50 +1882,44 @@ async function escribirSuperficieEnExcel(valorSuperficie) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                dato: valorSuperficie,
+                dato: dato,
                 hoja: 'Datos de Entrada',
-                celda: 'N6'
+                celda: celda
             }),
         });
         if (response.ok) {
             const data = await response.json();
-            console.log('Valor de superficie escrito en Excel:', data.message);
+            console.log(`Dato '${dato}' escrito en la celda ${celda}. Mensaje: ${data.message}`);
         } else {
             const errorData = await response.json();
-            console.error('Error al escribir valor de superficie en Excel:', response.status, errorData.error);
+            console.error(`Error al escribir en la celda ${celda}:`, response.status, errorData.error);
         }
     } catch (error) {
-        console.error('Error en la solicitud fetch para escribir valor de superficie en Excel:', error);
+        console.error(`Error en la solicitud fetch para escribir en la celda ${celda}:`, error);
     }
 }
 
-// --- Nueva función para escribir la rugosidad seleccionada en Excel ---
-async function escribirRugosidadEnExcel(valorRugosidad) {
-    if (valorRugosidad === null || valorRugosidad === undefined) {
-        console.warn('No se proporcionó valor de rugosidad para escribir en Excel.');
-        return;
-    }
-    try {
-        const response = await fetch('http://127.0.0.1:5000/api/escribir_dato_excel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                dato: valorRugosidad,
-                hoja: 'Datos de Entrada',
-                celda: 'N7'
-            }),
-        });
-        if (response.ok) {
-            const data = await response.json();
-            console.log('Valor de rugosidad escrito en Excel:', data.message);
-        } else {
-            const errorData = await response.json();
-            console.error('Error al escribir valor de rugosidad en Excel:', response.status, errorData.error);
-        }
-    } catch (error) {
-        console.error('Error en la solicitud fetch para escribir valor de rugosidad en Excel:', error);
+// --- Nueva función para manejar la escritura de todos los datos de rotación ---
+async function escribirRotacionDataEnExcel() {
+    console.log('Actualizando datos de rotación en Excel...');
+
+    const rotacionDesc = userSelections.rotacionInstalacion.descripcion;
+    const inclinacion = userSelections.anguloInclinacion;
+    const orientacion = userSelections.anguloOrientacion;
+
+    // Siempre escribir la descripción de la rotación principal en B9
+    await escribirDatoEnExcel(rotacionDesc, 'B9');
+
+    if (rotacionDesc === 'Fijos') {
+        await escribirDatoEnExcel(inclinacion, 'E11');
+        await escribirDatoEnExcel(orientacion, 'E12');
+    } else if (rotacionDesc === 'Inclinación fija, rotación sobre un eje vertical') {
+        await escribirDatoEnExcel(inclinacion, 'E11');
+        await escribirDatoEnExcel(null, 'E12'); // Limpiar celda de orientación
+    } else {
+        // Para cualquier otra opción, limpiar las celdas de ángulo
+        await escribirDatoEnExcel(null, 'E11');
+        await escribirDatoEnExcel(null, 'E12');
     }
 }
 
