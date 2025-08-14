@@ -1910,10 +1910,13 @@ async function escribirRotacionDataEnExcel() {
     // Siempre escribir la descripción de la rotación principal en B9
     await escribirDatoEnExcel(rotacionDesc, 'B9');
 
-    if (rotacionDesc === 'Fijos') {
+    // Usar una comparación insensible a mayúsculas/minúsculas para robustez
+    const cleanRotacionDesc = rotacionDesc ? rotacionDesc.trim().toLowerCase() : "";
+
+    if (cleanRotacionDesc === 'fijos') {
         await escribirDatoEnExcel(inclinacion, 'E11');
         await escribirDatoEnExcel(orientacion, 'E12');
-    } else if (rotacionDesc === 'Inclinación fija, rotación sobre un eje vertical') {
+    } else if (cleanRotacionDesc === 'inclinación fija, rotación sobre un eje vertical') {
         await escribirDatoEnExcel(inclinacion, 'E11');
         await escribirDatoEnExcel(null, 'E12'); // Limpiar celda de orientación
     } else {
