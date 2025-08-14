@@ -4,9 +4,9 @@ const axios = require('axios');
 let server;
 
 beforeAll(done => {
-  server = spawn('python3', ['backend/backend.py'], { stdio: 'inherit' });
+  server = spawn('flask', ['--app', 'backend/backend.py', 'run', '--no-reload'], { stdio: 'inherit' });
   // give the server a moment to start
-  setTimeout(done, 1000);
+  setTimeout(done, 2000);
 });
 
 afterAll(() => {

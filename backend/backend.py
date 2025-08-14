@@ -182,12 +182,11 @@ def generar_informe():
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
 @app.route('/')
 def serve_calculador_html():
-    return send_from_directory('.', 'calculador.html')
+    return send_from_directory(PROJECT_ROOT, 'calculador.html')
 
 @app.route('/<path:path>')
 def serve_static_files(path):
-    # Asegúrate de que los archivos estén en la misma carpeta que 'backend.py'
-    return send_from_directory('.', path)
+    return send_from_directory(PROJECT_ROOT, path)
 
 
 # --- NUEVA RUTA: Para obtener opciones de superficie de instalación ---
@@ -822,10 +821,10 @@ def escribir_dato_excel():
     data = request.json
     dato_a_escribir = data.get('dato')
     hoja_destino = data.get('hoja')
-    celda_destino = data.get('celda') # Ej: "B7"
+    celda_destino = data.get('celda')
 
-    if dato_a_escribir is None or not hoja_destino or not celda_destino: # None check for dato_a_escribir
-        return jsonify({"error": "Faltan datos: 'dato', 'hoja' o 'celda' no proporcionados."}), 400
+    if 'dato' not in data or not hoja_destino or not celda_destino:
+        return jsonify({"error": "Faltan datos: se requiere 'dato', 'hoja' y 'celda'."}), 400
 
     with excel_lock:
         try:
