@@ -4,6 +4,7 @@ from flask_cors import CORS
 import pandas as pd
 import os
 import json
+from threading import Lock
 
 # --- Setup robust paths relative to this script ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -16,6 +17,7 @@ CONSUMOS_JSON_PATH = os.path.join(PROJECT_ROOT, 'consumos_electrodomesticos.json
 
 app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path='')
 CORS(app)  # Habilita CORS para permitir solicitudes desde el frontend
+excel_lock = Lock()
 
 
 # --- NUEVA RUTA: Para obtener la lista de electrodomésticos y sus consumos ---
@@ -825,49 +827,50 @@ def escribir_dato_excel():
     if dato_a_escribir is None or not hoja_destino or not celda_destino: # None check for dato_a_escribir
         return jsonify({"error": "Faltan datos: 'dato', 'hoja' o 'celda' no proporcionados."}), 400
 
-    try:
-        print(f"DEBUG: Solicitud a /api/escribir_dato_excel. Dato: {dato_a_escribir}, Hoja: {hoja_destino}, Celda: {celda_destino}")
+    with excel_lock:
+        try:
+            print(f"DEBUG: Solicitud a /api/escribir_dato_excel. Dato: {dato_a_escribir}, Hoja: {hoja_destino}, Celda: {celda_destino}")
 
-        # Usar openpyxl para leer y escribir para preservar el archivo existente tanto como sea posible
-        import openpyxl
+            # Usar openpyxl para leer y escribir para preservar el archivo existente tanto como sea posible
+            import openpyxl
 
-        # Verificar si el archivo existe
-        if not os.path.exists(EXCEL_FILE_PATH):
-            print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO para escritura: {EXCEL_FILE_PATH}")
-            return jsonify({"error": f"Archivo Excel '{EXCEL_FILE_PATH}' no encontrado en el servidor."}), 500
+            # Verificar si el archivo existe
+            if not os.path.exists(EXCEL_FILE_PATH):
+                print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO para escritura: {EXCEL_FILE_PATH}")
+                return jsonify({"error": f"Archivo Excel '{EXCEL_FILE_PATH}' no encontrado en el servidor."}), 500
 
-        workbook = openpyxl.load_workbook(EXCEL_FILE_PATH)
+            workbook = openpyxl.load_workbook(EXCEL_FILE_PATH)
 
-        if hoja_destino not in workbook.sheetnames:
-            print(f"ERROR: Hoja '{hoja_destino}' no encontrada en el archivo Excel.")
-            return jsonify({"error": f"Hoja '{hoja_destino}' no encontrada."}), 400
+            if hoja_destino not in workbook.sheetnames:
+                print(f"ERROR: Hoja '{hoja_destino}' no encontrada en el archivo Excel.")
+                return jsonify({"error": f"Hoja '{hoja_destino}' no encontrada."}), 400
 
-        sheet = workbook[hoja_destino]
+            sheet = workbook[hoja_destino]
 
-        # Validar la celda (simple validación de formato, openpyxl maneja errores de celda inválida)
-        if not isinstance(celda_destino, str) or not celda_destino:
-             print(f"ERROR: Formato de celda inválido: {celda_destino}")
-             return jsonify({"error": "Formato de celda inválido."}), 400
+            # Validar la celda (simple validación de formato, openpyxl maneja errores de celda inválida)
+            if not isinstance(celda_destino, str) or not celda_destino:
+                 print(f"ERROR: Formato de celda inválido: {celda_destino}")
+                 return jsonify({"error": "Formato de celda inválido."}), 400
 
-        sheet[celda_destino] = dato_a_escribir
+            sheet[celda_destino] = dato_a_escribir
 
-        workbook.save(EXCEL_FILE_PATH)
-        print(f"DEBUG: Dato '{dato_a_escribir}' escrito en Hoja '{hoja_destino}', Celda '{celda_destino}' exitosamente.")
+            workbook.save(EXCEL_FILE_PATH)
+            print(f"DEBUG: Dato '{dato_a_escribir}' escrito en Hoja '{hoja_destino}', Celda '{celda_destino}' exitosamente.")
 
-        return jsonify({"message": f"Dato '{dato_a_escribir}' escrito correctamente en {hoja_destino}!{celda_destino}."})
+            return jsonify({"message": f"Dato '{dato_a_escribir}' escrito correctamente en {hoja_destino}!{celda_destino}."})
 
-    except FileNotFoundError: # Aunque ya chequeamos arriba, por si acaso durante el load_workbook
-        print(f"ERROR en /api/escribir_dato_excel: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
-        return jsonify({"error": "Archivo Excel de configuración no encontrado durante la operación."}), 500
-    except KeyError as e: # Podría ser por hoja_destino si el chequeo inicial falla de alguna forma
-        print(f"ERROR en /api/escribir_dato_excel: Hoja '{hoja_destino}' no encontrada? Error: {e}")
-        return jsonify({"error": f"Error de clave, Hoja '{hoja_destino}' no encontrada: {e}"}), 400
-    except Exception as e:
-        import traceback
-        print(f"ERROR GENERAL en /api/escribir_dato_excel: {e}")
-        print(traceback.format_exc())
-        # Evitar exponer detalles internos en el mensaje de error al cliente
-        return jsonify({"error": "Error interno del servidor al intentar escribir en el archivo Excel."}), 500
+        except FileNotFoundError: # Aunque ya chequeamos arriba, por si acaso durante el load_workbook
+            print(f"ERROR en /api/escribir_dato_excel: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+            return jsonify({"error": "Archivo Excel de configuración no encontrado durante la operación."}), 500
+        except KeyError as e: # Podría ser por hoja_destino si el chequeo inicial falla de alguna forma
+            print(f"ERROR en /api/escribir_dato_excel: Hoja '{hoja_destino}' no encontrada? Error: {e}")
+            return jsonify({"error": f"Error de clave, Hoja '{hoja_destino}' no encontrada: {e}"}), 400
+        except Exception as e:
+            import traceback
+            print(f"ERROR GENERAL en /api/escribir_dato_excel: {e}")
+            print(traceback.format_exc())
+            # Evitar exponer detalles internos en el mensaje de error al cliente
+            return jsonify({"error": "Error interno del servidor al intentar escribir en el archivo Excel."}), 500
 
 # --- NUEVA RUTA: Para obtener el modelo de panel desde la celda C83 ---
 @app.route('/api/get_modelo_panel', methods=['GET'])

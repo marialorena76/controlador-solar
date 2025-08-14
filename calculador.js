@@ -546,9 +546,11 @@ async function initRugosidadSection() {
             if (valor && valor !== '') {
                 userSelections.rugosidadSuperficie.valor = parseFloat(valor);
                 userSelections.rugosidadSuperficie.descripcion = descripcion;
+                escribirRugosidadEnExcel(descripcion); // Llamada a la nueva función
             } else {
                 userSelections.rugosidadSuperficie.valor = null;
                 userSelections.rugosidadSuperficie.descripcion = null;
+                escribirRugosidadEnExcel(null); // Opcional: enviar null para limpiar la celda
             }
             saveUserSelections();
             console.log('[initRugosidadSection] Rugosidad de superficie seleccionada (select):', userSelections.rugosidadSuperficie);
@@ -1890,6 +1892,36 @@ async function escribirSuperficieEnExcel(valorSuperficie) {
         }
     } catch (error) {
         console.error('Error en la solicitud fetch para escribir valor de superficie en Excel:', error);
+    }
+}
+
+// --- Nueva función para escribir la rugosidad seleccionada en Excel ---
+async function escribirRugosidadEnExcel(valorRugosidad) {
+    if (valorRugosidad === null || valorRugosidad === undefined) {
+        console.warn('No se proporcionó valor de rugosidad para escribir en Excel.');
+        return;
+    }
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/escribir_dato_excel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                dato: valorRugosidad,
+                hoja: 'Datos de Entrada',
+                celda: 'N7'
+            }),
+        });
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Valor de rugosidad escrito en Excel:', data.message);
+        } else {
+            const errorData = await response.json();
+            console.error('Error al escribir valor de rugosidad en Excel:', response.status, errorData.error);
+        }
+    } catch (error) {
+        console.error('Error en la solicitud fetch para escribir valor de rugosidad en Excel:', error);
     }
 }
 
