@@ -718,7 +718,6 @@ async function initRotacionSection() {
             // Call visibility update BEFORE saving, so angle data is nulled if needed
             updateAngleFieldsVisibilityAndData(descripcion);
             saveUserSelections();
-            escribirRotacionDataEnExcel();
             console.log('[initRotacionSection] Rotación de instalación seleccionada:', userSelections.rotacionInstalacion);
         });
 
@@ -1202,7 +1201,6 @@ async function initMarcaPanelOptions() {
             const selectedValue = event.target.value;
             if (selectedValue && selectedValue !== '') {
                 userSelections.marcaPanel = selectedValue;
-                escribirMarcaPanelEnExcel(selectedValue);
             } else {
                 userSelections.marcaPanel = null;
             }
@@ -1776,155 +1774,6 @@ function calcularConsumo() {
     if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = userSelections.totalAnnualConsumption.toFixed(2);
 }
 
-// --- Nueva función para escribir el código de ciudad en Excel ---
-async function escribirCodigoCiudadEnExcel(codigoCiudad) {
-    if (!codigoCiudad) {
-        console.warn('No se proporcionó código de ciudad para escribir en Excel.');
-        return;
-    }
-    try {
-        const response = await fetch('http://127.0.0.1:5000/api/escribir_dato_excel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                dato: codigoCiudad,
-                hoja: 'Datos de Entrada', // Nombre de la hoja
-                celda: 'B7' // Celda específica
-            }),
-        });
-        if (response.ok) {
-            const data = await response.json();
-            console.log('Respuesta del backend (escribir_dato_excel):', data.message);
-        } else {
-            const errorData = await response.json();
-            console.error('Error al escribir dato en Excel (backend):', response.status, errorData.error);
-            alert(`Error al actualizar el archivo de datos: ${errorData.error}`);
-        }
-    } catch (error) {
-        console.error('Error en la solicitud fetch para escribir_dato_excel:', error);
-        alert('Error de conexión al intentar actualizar el archivo de datos.');
-    }
-}
-
-// --- Nueva función para escribir la marca de panel seleccionada en Excel ---
-async function escribirMarcaPanelEnExcel(marcaPanel) {
-    if (!marcaPanel) {
-        console.warn('No se proporcionó marca de panel para escribir en Excel.');
-        return;
-    }
-    try {
-        const response = await fetch('http://127.0.0.1:5000/api/escribir_dato_excel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                dato: marcaPanel,
-                hoja: 'Datos de Entrada',
-                celda: 'C81'
-            }),
-        });
-        if (response.ok) {
-            const data = await response.json();
-            console.log('Marca de panel escrita en Excel:', data.message);
-        } else {
-            const errorData = await response.json();
-            console.error('Error al escribir marca de panel en Excel:', response.status, errorData.error);
-        }
-    } catch (error) {
-        console.error('Error en la solicitud fetch para escribir marca de panel en Excel:', error);
-    }
-}
-
-// --- Nueva función para escribir la potencia de panel deseada en Excel ---
-async function escribirPotenciaPanelEnExcel(potenciaPanel) {
-    if (potenciaPanel === null || potenciaPanel === undefined || potenciaPanel === '') {
-        console.warn('No se proporcionó potencia de panel para escribir en Excel.');
-        return;
-    }
-    try {
-        const response = await fetch('http://127.0.0.1:5000/api/escribir_dato_excel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                dato: potenciaPanel,
-                hoja: 'Datos de Entrada',
-                celda: 'C82'
-            }),
-        });
-        if (response.ok) {
-            const data = await response.json();
-            console.log('Potencia de panel escrita en Excel:', data.message);
-        } else {
-            const errorData = await response.json();
-            console.error('Error al escribir potencia de panel en Excel:', response.status, errorData.error);
-        }
-    } catch (error) {
-        console.error('Error en la solicitud fetch para escribir potencia de panel en Excel:', error);
-    }
-}
-
-// --- Función Genérica para escribir un dato en una celda específica del Excel ---
-async function escribirDatoEnExcel(dato, celda) {
-    // Permite que null o strings vacíos se envíen para limpiar celdas, pero no 'undefined'.
-    if (dato === undefined) {
-        console.warn(`Se intentó escribir un valor 'undefined' en la celda ${celda}. Operación cancelada.`);
-        return;
-    }
-    try {
-        const response = await fetch('http://127.0.0.1:5000/api/escribir_dato_excel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                dato: dato,
-                hoja: 'Datos de Entrada',
-                celda: celda
-            }),
-        });
-        if (response.ok) {
-            const data = await response.json();
-            console.log(`Dato '${dato}' escrito en la celda ${celda}. Mensaje: ${data.message}`);
-        } else {
-            const errorData = await response.json();
-            console.error(`Error al escribir en la celda ${celda}:`, response.status, errorData.error);
-        }
-    } catch (error) {
-        console.error(`Error en la solicitud fetch para escribir en la celda ${celda}:`, error);
-    }
-}
-
-// --- Nueva función para manejar la escritura de todos los datos de rotación ---
-async function escribirRotacionDataEnExcel() {
-    console.log('Actualizando datos de rotación en Excel...');
-
-    const rotacionDesc = userSelections.rotacionInstalacion.descripcion;
-    const inclinacion = userSelections.anguloInclinacion;
-    const orientacion = userSelections.anguloOrientacion;
-
-    // Siempre escribir la descripción de la rotación principal en B9
-    await escribirDatoEnExcel(rotacionDesc, 'B9');
-
-    // Usar una comparación insensible a mayúsculas/minúsculas para robustez
-    const cleanRotacionDesc = rotacionDesc ? rotacionDesc.trim().toLowerCase() : "";
-
-    if (cleanRotacionDesc === 'fijos') {
-        await escribirDatoEnExcel(inclinacion, 'E11');
-        await escribirDatoEnExcel(orientacion, 'E12');
-    } else if (cleanRotacionDesc === 'inclinación fija, rotación sobre un eje vertical') {
-        await escribirDatoEnExcel(inclinacion, 'E11');
-        await escribirDatoEnExcel(null, 'E12'); // Limpiar celda de orientación
-    } else {
-        // Para cualquier otra opción, limpiar las celdas de ángulo
-        await escribirDatoEnExcel(null, 'E11');
-        await escribirDatoEnExcel(null, 'E12');
-    }
-}
 
 
 // Utilidad para extraer la ciudad de una dirección con formato
