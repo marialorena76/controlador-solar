@@ -1198,6 +1198,7 @@ async function initMarcaPanelOptions() {
         }
 
         selectElement.addEventListener('change', (event) => {
+            console.log("[DEBUG] Marca panel listener fired.");
             const selectedValue = event.target.value;
             if (selectedValue && selectedValue !== '') {
                 userSelections.marcaPanel = selectedValue;
@@ -1276,9 +1277,10 @@ function initModeloTemperaturaPanelOptions() {
 }
 
 async function updatePanelModel() {
-    console.log("updatePanelModel triggered.");
+    console.log("[DEBUG] updatePanelModel function started.");
     const marca = userSelections.marcaPanel;
     const potencia = userSelections.potenciaPanelDeseada;
+    console.log(`[DEBUG] Current values - Marca: ${marca}, Potencia: ${potencia}`);
     const modeloPanelInput = document.getElementById('modelo-panel-input');
 
     if (!modeloPanelInput) {
@@ -1287,6 +1289,7 @@ async function updatePanelModel() {
     }
 
     if (marca && potencia) {
+        console.log("[DEBUG] Both marca and potencia are present. Proceeding to fetch.");
         console.log(`Fetching model for: ${marca}, ${potencia}W`);
         modeloPanelInput.value = 'Buscando modelo...'; // Show loading state
 
@@ -1385,6 +1388,7 @@ function initPotenciaPanelOptions() {
         }
 
         selectElement.addEventListener('change', (event) => {
+            console.log("[DEBUG] Potencia panel listener fired.");
             const value = parseInt(event.target.value, 10);
             userSelections.potenciaPanelDeseada = isNaN(value) ? null : value;
             saveUserSelections();
