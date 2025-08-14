@@ -251,3 +251,40 @@ def _calculate_panel_orientation(user_data):
         print(f"DEBUG: Orientation description '{rotacion_desc}' not specifically handled. Using manual inputs as fallback. Tilt={final_tilt}, Azimuth={final_azimuth}")
 
     return {"tilt": final_tilt, "azimuth": final_azimuth}
+
+def get_panel_model_name(marca, potencia, excel_path):
+    """
+    A dedicated public function to look up a panel model name based on brand and power.
+    This is used for real-time feedback in the UI.
+    """
+    try:
+        df_comerciales = pd.read_excel(excel_path, sheet_name='Paneles comerciales', engine='openpyxl')
+        df_genericos = pd.read_excel(excel_path, sheet_name='Paneles genéricos', engine='openpyxl')
+    except Exception as e:
+        print(f"ERROR: Could not read panel sheets from Excel file. Reason: {e}")
+        return {"error": "Could not read panel data sheets."}
+
+    # This logic is a simplified version of _select_panel
+    potencia = int(potencia) # Ensure potencia is an integer for comparison
+
+    if marca == 'GENERICOS':
+        df_paneles = df_genericos
+    else:
+        # Filter by brand
+        df_paneles = df_comerciales.loc[df_comerciales['Marca'] == marca]
+
+    if df_paneles.empty:
+        print(f"WARN: No panels found for brand '{marca}' in get_panel_model_name. Falling back to generic.")
+        df_paneles = df_genericos
+
+    # Find the panel with the power closest to the user's selection
+    df_paneles['diff'] = (df_paneles['Pmax[W]'] - potencia).abs()
+
+    # Get the row with the minimum difference
+    panel_seleccionado_row = df_paneles.loc[df_paneles['diff'].idxmin()]
+
+    model_name = panel_seleccionado_row.get('Modelo', 'No encontrado')
+
+    print(f"DEBUG: Looked up panel model for {marca}/{potencia}W. Found: {model_name}")
+
+    return model_name
