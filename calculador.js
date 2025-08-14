@@ -1594,7 +1594,7 @@ function populateStandardApplianceList(listContainerElement) {
             });
             const consumoDiario = item.consumo_diario_kwh || 0;
             const consumoLabel = document.createElement('span');
-            consumoLabel.textContent = `${consumoDiario.toFixed(3)} kWh/día`;
+            consumoLabel.textContent = `${parseFloat(consumoDiario.toFixed(3))} kWh/día`;
             row.appendChild(name);
             row.appendChild(consumoLabel);
             row.appendChild(input);
