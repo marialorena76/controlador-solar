@@ -449,11 +449,9 @@ async function initSuperficieSection() {
                 const valorFloat = parseFloat(valor);
                 userSelections.superficieRodea.valor = valorFloat;
                 userSelections.superficieRodea.descripcion = descripcion;
-                escribirDatoEnExcel(descripcion, 'N6');
             } else {
                 userSelections.superficieRodea.valor = null;
                 userSelections.superficieRodea.descripcion = null;
-                escribirDatoEnExcel(null, 'N6'); // Opcional: enviar null para limpiar la celda
             }
             saveUserSelections();
             console.log('[initSuperficieSection] Superficie rodea seleccionada (select):', userSelections.superficieRodea);
@@ -546,11 +544,9 @@ async function initRugosidadSection() {
             if (valor && valor !== '') {
                 userSelections.rugosidadSuperficie.valor = parseFloat(valor);
                 userSelections.rugosidadSuperficie.descripcion = descripcion;
-                escribirDatoEnExcel(descripcion, 'N7');
             } else {
                 userSelections.rugosidadSuperficie.valor = null;
                 userSelections.rugosidadSuperficie.descripcion = null;
-                escribirDatoEnExcel(null, 'N7'); // Opcional: enviar null para limpiar la celda
             }
             saveUserSelections();
             console.log('[initRugosidadSection] Rugosidad de superficie seleccionada (select):', userSelections.rugosidadSuperficie);
