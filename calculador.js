@@ -1207,10 +1207,16 @@ async function initMarcaPanelOptions() {
             saveUserSelections();
             console.log('Marca de panel seleccionada:', userSelections.marcaPanel);
 
-            // Re-initialize potencia panel options
+            // When brand changes, we must reset power and model, then update.
+            userSelections.potenciaPanelDeseada = null;
+            saveUserSelections();
+
+            // Re-initialize potencia panel options, which will show the correct range
             if (typeof initPotenciaPanelOptions === 'function') {
                 initPotenciaPanelOptions();
             }
+            // Also trigger the model update (it will be blank until power is selected)
+            updatePanelModel();
         });
         container.appendChild(selectElement);
 
@@ -1284,6 +1290,62 @@ function initModeloTemperaturaPanelOptions() {
     });
 }
 
+async function updatePanelModel() {
+    console.log("updatePanelModel triggered.");
+    const marca = userSelections.marcaPanel;
+    const potencia = userSelections.potenciaPanelDeseada;
+    const modeloPanelInput = document.getElementById('modelo-panel-input');
+
+    if (!modeloPanelInput) {
+        console.error("Input 'modelo-panel-input' no encontrado.");
+        return;
+    }
+
+    if (marca && potencia) {
+        console.log(`Fetching model for: ${marca}, ${potencia}W`);
+        modeloPanelInput.value = 'Buscando modelo...'; // Show loading state
+
+        try {
+            const response = await fetch('http://127.0.0.1:5000/api/get_panel_model', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ marca: marca, potencia: potencia }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.model_name) {
+                modeloPanelInput.value = data.model_name;
+                // Also save it to the main userSelections object
+                if (userSelections.panelesSolares) {
+                    userSelections.panelesSolares.modelo = data.model_name;
+                    saveUserSelections();
+                }
+            } else {
+                modeloPanelInput.value = 'Modelo no encontrado.';
+            }
+
+        } catch (error) {
+            console.error('Error fetching panel model:', error);
+            modeloPanelInput.value = 'Error al buscar modelo.';
+        }
+
+    } else {
+        // If brand or power is not selected, clear the model input
+        modeloPanelInput.value = '';
+        if (userSelections.panelesSolares) {
+            userSelections.panelesSolares.modelo = null;
+            saveUserSelections();
+        }
+    }
+}
+
 function initPotenciaPanelOptions() {
     const marcaSeleccionada = userSelections.marcaPanel;
     const container = document.getElementById('panel-potencia-subform'); // The whole subform container
@@ -1341,6 +1403,7 @@ function initPotenciaPanelOptions() {
             const value = parseInt(event.target.value, 10);
             userSelections.potenciaPanelDeseada = isNaN(value) ? null : value;
             saveUserSelections();
+            updatePanelModel(); // Call the new function
         });
 
         // Insert the select after the label

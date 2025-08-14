@@ -832,5 +832,34 @@ def get_modelo_panel():
         return jsonify({"error": f"Error interno del servidor al obtener el modelo de panel: {str(e)}"}), 500
 
 
+# --- NUEVA RUTA: Para obtener el modelo de panel dinámicamente ---
+@app.route('/api/get_panel_model', methods=['POST'])
+def get_panel_model_api():
+    """
+    Obtiene el nombre de un modelo de panel basado en la marca y potencia.
+    """
+    data = request.json
+    marca = data.get('marca')
+    potencia = data.get('potencia')
+
+    if not marca or not potencia:
+        return jsonify({"error": "Se requiere 'marca' y 'potencia'."}), 400
+
+    try:
+        print(f"DEBUG: API call to /api/get_panel_model. Marca: {marca}, Potencia: {potencia}")
+        model_name = engine.get_panel_model_name(marca, potencia, EXCEL_FILE_PATH)
+
+        if isinstance(model_name, dict) and "error" in model_name:
+            return jsonify(model_name), 500
+
+        return jsonify({"model_name": model_name})
+
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/get_panel_model: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno del servidor al buscar modelo de panel: {str(e)}"}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)
