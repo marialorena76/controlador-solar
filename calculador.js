@@ -1228,32 +1228,17 @@ async function initMarcaPanelOptions() {
     }
 }
 
-async function initModeloPanelOptions() {
+function initModeloPanelOptions() {
     const inputElement = document.getElementById('modelo-panel-input');
     if (!inputElement) {
         console.error("Input 'modelo-panel-input' no encontrado.");
         return;
     }
-    inputElement.value = 'Cargando...'; // Indicate loading state
-    try {
-        const resp = await fetch('http://127.0.0.1:5000/api/get_modelo_panel');
-        if (!resp.ok) {
-            throw new Error(`HTTP ${resp.status}`);
-        }
-        const data = await resp.json();
-        const valor = data.valor ?? '';
-        inputElement.value = valor;
-
-        // Also update the value in our state object
-        if(userSelections.panelesSolares) {
-            userSelections.panelesSolares.modelo = valor;
-            saveUserSelections();
-        }
-
-    } catch (error) {
-        console.error('Error al cargar el modelo de panel desde Excel:', error);
-        inputElement.value = 'Error al cargar modelo';
-    }
+    // This function should only prepare the field.
+    // The actual model is now populated by updatePanelModel().
+    // We set it to the saved value, or empty if there's no saved value.
+    const savedModel = userSelections.panelesSolares?.modelo;
+    inputElement.value = savedModel || ''; // Show saved model or clear it
 }
 
 function initModeloTemperaturaPanelOptions() {
