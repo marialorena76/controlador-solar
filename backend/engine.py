@@ -354,7 +354,7 @@ def _calculate_panel_orientation(user_data):
 
     return {"tilt": final_tilt, "azimuth": final_azimuth}
 
-def _calculate_system_size(annual_consumption_kwh, selected_panel):
+def _calculate_system_size(annual_consumption_kwh, selected_panel, hsp_diario_promedio):
     """
     Estimates the required number of panels and total system power.
     """
@@ -371,7 +371,7 @@ def _calculate_system_size(annual_consumption_kwh, selected_panel):
     # 1. Convertir consumo anual de kWh a Wh
     annual_consumption_wh = annual_consumption_kwh * 1000
     # 2. Calcular HSP anual
-    hsp_anual = HSP_DIARIO_PROMEDIO * 365
+    hsp_anual = hsp_diario_promedio * 365
 
     # 3. Calcular la potencia pico requerida del sistema
     required_power_wp = annual_consumption_wh / (hsp_anual * PERFORMANCE_RATIO)
@@ -419,7 +419,7 @@ def _select_inverter(total_system_power_wp, df_inversores):
 
     return inverter_data
 
-def _calculate_energy_generation(total_system_power_wp, annual_consumption_kwh):
+def _calculate_energy_generation(total_system_power_wp, annual_consumption_kwh, hsp_diario_promedio):
     """
     Calculates the annual energy generation, self-consumption, and grid injection.
     """
@@ -430,7 +430,7 @@ def _calculate_energy_generation(total_system_power_wp, annual_consumption_kwh):
     # Convert system power from Wp to kWp
     total_system_power_kwp = total_system_power_wp / 1000.0
     # Calculate annual HSP
-    hsp_anual = HSP_DIARIO_PROMEDIO * 365
+    hsp_anual = hsp_diario_promedio * 365
 
     generacion_anual_kwh = total_system_power_kwp * hsp_anual * PERFORMANCE_RATIO
 
