@@ -1,18 +1,18 @@
 import pandas as pd
 
-def explore_sheet_raw(file_path, sheet_name):
+def explore_sheets(file_path):
     try:
-        print(f"\n--- Raw exploration of sheet: {sheet_name} ---")
-        # Read the sheet with no header
-        df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
-        # Print the first 20 rows so I can see the structure
-        print(df.head(20))
+        print("\n--- Exploring Paneles comerciales ---")
+        df_paneles = pd.read_excel(file_path, sheet_name='Paneles comerciales')
+        print(df_paneles.columns)
+
+        print("\n--- Exploring Inversores genéricos ---")
+        df_inversores = pd.read_excel(file_path, sheet_name='Inversores genéricos')
+        print(df_inversores.columns)
 
     except Exception as e:
-        print(f"An error occurred while reading {sheet_name}: {e}")
+        print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     excel_file = 'backend/Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx'
-
-    # Let's inspect 'base de datos (3)' raw
-    explore_sheet_raw(excel_file, 'base de datos (3)')
+    explore_sheets(excel_file)
