@@ -98,25 +98,39 @@ def calculate_report(user_data, excel_data):
 
     selected_inverter = _select_inverter(system_size_data.get("total_system_power_wp", 0), df_inversores)
 
-    # --- 6. Assemble the final report ---
+    # --- 6. Calculate Energy Generation ---
+    energy_generation_data = _calculate_energy_generation(
+        system_size_data.get("total_system_power_wp", 0),
+        consumo_anual
+    )
+
+    # --- 7. Calculate Economics ---
+    economics_data = _calculate_economics(user_data, system_size_data, energy_generation_data)
+
+    # --- 8. Calculate Environmental Impact ---
+    environmental_data = _calculate_environmental_impact(energy_generation_data.get("generacion_anual_kwh", 0))
+
+    # --- 9. Assemble the final report ---
     # The structure of this report will evolve as we migrate more logic.
     final_report = {
         "consumo_anual_kwh": consumo_anual,
         "panel_seleccionado": panel_seleccionado,
-        "orientation_params": orientation_params, # Add the calculated orientation
-        "potencia_sistema_kwp": system_size_data.get("total_system_power_wp", 0) / 1000.0, # Convert Wp to kWp
-        "energia_generada_anual": "En desarrollo",
-        "area_paneles_m2": "En desarrollo",
+        "orientation_params": orientation_params,
+        "potencia_sistema_kwp": system_size_data.get("total_system_power_wp", 0) / 1000.0,
+        "energia_generada_anual": energy_generation_data.get("generacion_anual_kwh"),
+        "autoconsumo": energy_generation_data.get("autoconsumo_kwh"),
+        "inyectada_red": energy_generation_data.get("inyectada_red_kwh"),
+        "area_paneles_m2": system_size_data.get("number_of_panels", 0) * panel_seleccionado.get('Area (m2)', 0),
         "numero_paneles": system_size_data.get("number_of_panels", 0),
         "tipo_inversor": selected_inverter.get("NOMBRE", "No encontrado"),
-        "potencia_inversor_kwa": selected_inverter.get("Pot nom CA [W]", 0) / 1000.0, # Convert W to kVA (assuming VA=W)
-        "costo_actual": 0,
-        "inversion_inicial": 0,
-        "mantenimiento": 0,
-        "costo_futuro": 0,
-        "ingreso_red": 0,
-        "resumen_economico": "Cálculo en desarrollo...",
-        "emisiones": 0,
+        "potencia_inversor_kwa": selected_inverter.get("Pot nom CA [W]", 0) / 1000.0,
+        "costo_actual": economics_data.get("costo_actual"),
+        "inversion_inicial": economics_data.get("inversion_inicial"),
+        "mantenimiento": economics_data.get("mantenimiento"),
+        "costo_futuro": economics_data.get("costo_futuro"),
+        "ingreso_red": economics_data.get("ingreso_red"),
+        "resumen_economico": economics_data.get("resumen_economico"),
+        "emisiones": environmental_data.get("emisiones_evitadas_tco2"),
         "moneda": user_data.get('selectedCurrency', 'Pesos argentinos')
     }
 
@@ -336,6 +350,130 @@ def _select_inverter(total_system_power_wp, df_inversores):
     print(f"DEBUG: Selected inverter: {inverter_data.get('NOMBRE')} with {inverter_data.get('Pot nom CA [W]')}W AC Power")
 
     return inverter_data
+
+def _calculate_energy_generation(total_system_power_wp, annual_consumption_kwh):
+    """
+    Calculates the annual energy generation, self-consumption, and grid injection.
+    """
+    print(f"DEBUG: Calculating energy generation for system power: {total_system_power_wp} Wp")
+
+    # --- Placeholder values based on investigation ---
+    HSP_DIARIO_PROMEDIO = 4.2
+    PERFORMANCE_RATIO = 0.80
+
+    # 1. Calculate Annual Generation
+    # Generation (kWh) = System Power (kWp) * HSP (kWh/kWp/year) * PR
+    # Convert system power from Wp to kWp
+    total_system_power_kwp = total_system_power_wp / 1000.0
+    # Calculate annual HSP
+    hsp_anual = HSP_DIARIO_PROMEDIO * 365
+
+    generacion_anual_kwh = total_system_power_kwp * hsp_anual * PERFORMANCE_RATIO
+
+    # 2. Calculate Self-consumption
+    autoconsumo_kwh = min(annual_consumption_kwh, generacion_anual_kwh)
+
+    # 3. Calculate Grid Injection
+    inyectada_red_kwh = max(0, generacion_anual_kwh - annual_consumption_kwh)
+
+    print(f"DEBUG: Energy generation calculated. Annual Generation: {generacion_anual_kwh:.2f} kWh, Self-consumption: {autoconsumo_kwh:.2f} kWh, Grid Injection: {inyectada_red_kwh:.2f} kWh")
+
+    return {
+        "generacion_anual_kwh": generacion_anual_kwh,
+        "autoconsumo_kwh": autoconsumo_kwh,
+        "inyectada_red_kwh": inyectada_red_kwh
+    }
+
+def _calculate_economics(user_data, system_data, generation_data):
+    """
+    Calculates all economic indicators for the report.
+    """
+    print("DEBUG: Calculating economics.")
+
+    # --- Extract data from inputs ---
+    annual_consumption_kwh = system_data.get("consumo_anual_kwh", 0)
+    inyectada_red_kwh = generation_data.get("inyectada_red_kwh", 0)
+    total_system_power_wp = system_data.get("total_system_power_wp", 0)
+    selected_currency = user_data.get('selectedCurrency', 'Pesos argentinos')
+
+    # --- Hardcoded economic parameters from Excel analysis ---
+    TARIFA_CONSUMO_PROMEDIO_ARS = 97.66
+    TARIFA_INYECCION_PROMEDIO_ARS = 55.95
+    COSTO_INVERSION_USD_POR_W = 0.780 # From 780 USD/kW
+    COSTO_MANTENIMIENTO_USD_POR_W_ANUAL = 0.00701 # From 7.01 USD/kW/Year
+    TASA_CAMBIO_USD_ARS = 1150.00
+
+    # --- Perform calculations ---
+    # 1. Costo Actual Anual
+    costo_actual_anual = annual_consumption_kwh * TARIFA_CONSUMO_PROMEDIO_ARS
+
+    # 2. Inversión Inicial
+    inversion_inicial_usd = total_system_power_wp * COSTO_INVERSION_USD_POR_W
+    inversion_inicial_ars = inversion_inicial_usd * TASA_CAMBIO_USD_ARS
+
+    # 3. Mantenimiento Anual
+    mantenimiento_anual_usd = total_system_power_wp * COSTO_MANTENIMIENTO_USD_POR_W_ANUAL
+    mantenimiento_anual_ars = mantenimiento_anual_usd * TASA_CAMBIO_USD_ARS
+
+    # 4. Ingreso Anual por Inyección
+    ingreso_red_anual_ars = inyectada_red_kwh * TARIFA_INYECCION_PROMEDIO_ARS
+
+    # 5. Costo Futuro de Energía (lo que aún se compra de la red)
+    # autoconsumo = min(annual_consumption_kwh, generation_data.get("generacion_anual_kwh", 0))
+    # energia_comprada = annual_consumption_kwh - autoconsumo
+    # costo_futuro_anual = energia_comprada * TARIFA_CONSUMO_PROMEDIO_ARS
+    # Simplified: it's the same as `ingreso_red` if generation > consumption, otherwise it's 0. Let's use a clearer variable.
+    energia_comprada_kwh = max(0, annual_consumption_kwh - generation_data.get("generacion_anual_kwh", 0))
+    costo_futuro_anual_ars = energia_comprada_kwh * TARIFA_CONSUMO_PROMEDIO_ARS
+
+    # The frontend expects values in the selected currency.
+    if selected_currency == 'Dólares':
+        costo_actual_anual = costo_actual_anual / TASA_CAMBIO_USD_ARS
+        inversion_inicial = inversion_inicial_usd
+        mantenimiento_anual = mantenimiento_anual_usd
+        ingreso_red_anual = ingreso_red_anual_ars / TASA_CAMBIO_USD_ARS
+        costo_futuro_anual = costo_futuro_anual_ars / TASA_CAMBIO_USD_ARS
+    else: # Pesos argentinos
+        inversion_inicial = inversion_inicial_ars
+        mantenimiento_anual = mantenimiento_anual_ars
+        ingreso_red_anual = ingreso_red_anual_ars
+        costo_futuro_anual = costo_futuro_anual_ars
+
+    # Placeholder for the summary text
+    resumen_economico = "El análisis detallado del flujo de fondos y el período de repago estará disponible en futuras versiones."
+
+    print(f"DEBUG: Economics calculated. Initial Investment: {inversion_inicial:.2f} {selected_currency}")
+
+    return {
+        "costo_actual": costo_actual_anual,
+        "inversion_inicial": inversion_inicial,
+        "mantenimiento": mantenimiento_anual,
+        "costo_futuro": costo_futuro_anual,
+        "ingreso_red": ingreso_red_anual,
+        "resumen_economico": resumen_economico,
+    }
+
+def _calculate_environmental_impact(generacion_anual_kwh):
+    """
+    Calculates the avoided CO2 emissions.
+    """
+    print(f"DEBUG: Calculating environmental impact for annual generation: {generacion_anual_kwh:.2f} kWh")
+
+    # Standard emission factor for Argentina's grid in tonnes of CO2 per MWh.
+    # This would ideally be a configurable value.
+    FACTOR_EMISION_TCO2_POR_MWH = 0.4
+
+    # Convert annual generation from kWh to MWh
+    generacion_anual_mwh = generacion_anual_kwh / 1000.0
+
+    # Calculate avoided emissions
+    emisiones_evitadas_tco2 = generacion_anual_mwh * FACTOR_EMISION_TCO2_POR_MWH
+
+    print(f"DEBUG: Environmental impact calculated. Avoided Emissions: {emisiones_evitadas_tco2:.2f} tCO2")
+
+    return {
+        "emisiones_evitadas_tco2": emisiones_evitadas_tco2
+    }
 
 def get_panel_model_name(marca, potencia, excel_path):
     """
