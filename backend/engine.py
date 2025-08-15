@@ -111,11 +111,11 @@ def calculate_report(user_data, excel_data):
     environmental_data = _calculate_environmental_impact(energy_generation_data.get("generacion_anual_kwh", 0))
 
     # --- 9. Assemble the final report ---
-    # The structure of this report will evolve as we migrate more logic.
+    # This dictionary is structured to provide all the necessary data for the report page.
     final_report = {
         "consumo_anual_kwh": consumo_anual,
         "panel_seleccionado": panel_seleccionado,
-        "orientation_params": orientation_params,
+        # "orientation_params": orientation_params, # This is for expert report, hiding for now
         "potencia_sistema_kwp": system_size_data.get("total_system_power_wp", 0) / 1000.0,
         "energia_generada_anual": energy_generation_data.get("generacion_anual_kwh"),
         "autoconsumo": energy_generation_data.get("autoconsumo_kwh"),
@@ -129,6 +129,7 @@ def calculate_report(user_data, excel_data):
         "mantenimiento": economics_data.get("mantenimiento"),
         "costo_futuro": economics_data.get("costo_futuro"),
         "ingreso_red": economics_data.get("ingreso_red"),
+        "ahorro_total": economics_data.get("ahorro_total"),
         "resumen_economico": economics_data.get("resumen_economico"),
         "emisiones": environmental_data.get("emisiones_evitadas_tco2"),
         "moneda": user_data.get('selectedCurrency', 'Pesos argentinos')
@@ -439,6 +440,17 @@ def _calculate_economics(user_data, system_data, generation_data):
         ingreso_red_anual = ingreso_red_anual_ars
         costo_futuro_anual = costo_futuro_anual_ars
 
+    # 6. Ahorro económico acumulado
+    VIDA_UTIL_ANOS = 25
+    beneficios_totales = (costo_actual_anual * VIDA_UTIL_ANOS) + (ingreso_red_anual_ars * VIDA_UTIL_ANOS)
+    costos_totales = inversion_inicial_ars + (mantenimiento_anual_ars * VIDA_UTIL_ANOS)
+
+    # Convert to selected currency for the final value
+    if selected_currency == 'Dólares':
+        ahorro_total = (beneficios_totales - costos_totales) / TASA_CAMBIO_USD_ARS
+    else:
+        ahorro_total = beneficios_totales - costos_totales
+
     # Placeholder for the summary text
     resumen_economico = "El análisis detallado del flujo de fondos y el período de repago estará disponible en futuras versiones."
 
@@ -450,6 +462,7 @@ def _calculate_economics(user_data, system_data, generation_data):
         "mantenimiento": mantenimiento_anual,
         "costo_futuro": costo_futuro_anual,
         "ingreso_red": ingreso_red_anual,
+        "ahorro_total": ahorro_total,
         "resumen_economico": resumen_economico,
     }
 
