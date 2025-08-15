@@ -2751,6 +2751,10 @@ function setupNavigationButtons() {
                 }
                 const informeFinal = await response.json();
                 console.log('Informe recibido del backend:', informeFinal);
+
+                // Add userType to the report data before saving
+                informeFinal.userType = userSelections.userType;
+
                 localStorage.setItem('informeSolar', JSON.stringify(informeFinal));
                 window.location.href = 'informe.html';
             } catch (error) {

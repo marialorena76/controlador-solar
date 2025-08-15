@@ -120,98 +120,181 @@
 </head>
 <body>
   <div class="solar-report">
-    <div class="report-title">
-      Datos técnicos del dimensionamiento
+    <div class="report-title" id="report-main-title">
+      <!-- Title will be set by JS -->
     </div>
 
-    <div class="report-section">
-      <div class="section-header">• Consumo y generación</div>
-      <table class="report-table">
-        <tr>
-          <td>Consumo anual de energía eléctrica</td>
-          <td><span id="consumo_anual_kwh"></span> (kWh/año)</td>
-        </tr>
-        <tr>
-          <td>Generación anual de energía eléctrica</td>
-          <td><span id="energia_generada_anual"></span> (kWh/año)</td>
-        </tr>
-        <tr>
-          <td>Energía para autoconsumo</td>
-          <td><span id="autoconsumo"></span> (kWh/año)</td>
-        </tr>
-        <tr>
-          <td>Energía inyectada a la red</td>
-          <td><span id="inyectada_red"></span> (kWh/año)</td>
-        </tr>
-      </table>
-    </div>
-
-    <div class="report-section">
-      <div class="section-header">• Detalles de la instalación</div>
-      <table class="report-table">
-        <tr>
-          <td>Potencia de paneles sugerida</td>
-          <td><span id="potencia_panel_sugerida"></span> W</td>
-        </tr>
-        <tr>
-          <td>Cantidad paneles necesarios</td>
-          <td><span id="numero_paneles"></span></td>
-        </tr>
-        <tr>
-          <td>Superficie necesaria</td>
-          <td><span id="area_paneles_m2"></span> m2</td>
-        </tr>
-      </table>
-    </div>
-
-    <div class="report-section">
-        <table class="report-table">
+    <!-- Basic User Report Sections -->
+    <div id="basic-report-sections">
+        <div class="report-section">
+          <div class="section-header">• Consumo y generación</div>
+          <table class="report-table">
             <tr>
-                <td>Vida útil del proyecto (años)</td>
-                <td><span id="vida_util"></span></td>
+              <td>Consumo anual de energía eléctrica</td>
+              <td><span id="basico_consumo_anual_kwh"></span> (kWh/año)</td>
             </tr>
-        </table>
+            <tr>
+              <td>Generación anual de energía eléctrica</td>
+              <td><span id="basico_energia_generada_anual"></span> (kWh/año)</td>
+            </tr>
+            <tr>
+              <td>Energía para autoconsumo</td>
+              <td><span id="basico_autoconsumo"></span> (kWh/año)</td>
+            </tr>
+            <tr>
+              <td>Energía inyectada a la red</td>
+              <td><span id="basico_inyectada_red"></span> (kWh/año)</td>
+            </tr>
+          </table>
+        </div>
+        <div class="report-section">
+          <div class="section-header">• Detalles de la instalación</div>
+          <table class="report-table">
+            <tr>
+              <td>Potencia de paneles sugerida</td>
+              <td><span id="basico_potencia_panel_sugerida"></span> W</td>
+            </tr>
+            <tr>
+              <td>Cantidad paneles necesarios</td>
+              <td><span id="basico_numero_paneles"></span></td>
+            </tr>
+            <tr>
+              <td>Superficie necesaria</td>
+              <td><span id="basico_area_paneles_m2"></span> m2</td>
+            </tr>
+          </table>
+        </div>
+        <div class="report-section">
+            <table class="report-table">
+                <tr>
+                    <td>Vida útil del proyecto (años)</td>
+                    <td><span id="basico_vida_util"></span></td>
+                </tr>
+            </table>
+        </div>
+        <div class="report-section">
+          <div class="section-header">Resultados económicos</div>
+          <div class="section-header" style="font-size: 1.1rem; background: none; color: #333;">"• Lo que gastas actualmente en energía eléctrica en un año (no contempla impuestos)"</div>
+          <table class="report-table">
+            <tr>
+              <td>Costo actual anual en Energía Eléctrica (sin instalación fotovoltaica)</td>
+              <td><span id="basico_moneda_1"></span> <span id="basico_costo_actual"></span></td>
+            </tr>
+          </table>
+          <div class="section-header" style="font-size: 1.1rem; background: none; color: #333;">• Costos e ingresos relacionados a la instalación fotovoltaica</div>
+          <table class="report-table">
+            <tr>
+              <td>Inversión inicial a realizar en año cero</td>
+              <td><span id="basico_moneda_2"></span> <span id="basico_inversion_inicial"></span></td>
+            </tr>
+            <tr>
+              <td>Costo de mantenimiento anual</td>
+              <td><span id="basico_moneda_3"></span> <span id="basico_mantenimiento"></span></td>
+            </tr>
+            <tr>
+              <td>Costo futuro de energía eléctrica consumida de la red</td>
+              <td><span id="basico_moneda_4"></span> <span id="basico_costo_futuro"></span></td>
+            </tr>
+            <tr>
+              <td>Ingreso anual por inyección de energía a la red</td>
+              <td><span id="basico_moneda_5"></span> <span id="basico_ingreso_red"></span></td>
+            </tr>
+          </table>
+        </div>
+        <div class="report-section">
+          <div class="section-header">• Contribución a la mitigación del cambio climático</div>
+          <table class="report-table">
+            <tr>
+              <td>Emisiones de gases de efecto invernadero evitadas con la instalación</td>
+              <td><span id="basico_emisiones"></span> tCO2</td>
+            </tr>
+          </table>
+        </div>
     </div>
 
-    <div class="report-section">
-      <div class="section-header">Resultados económicos</div>
-      <div class="section-header" style="font-size: 1.1rem; background: none; color: #333;">"• Lo que gastas actualmente en energía eléctrica en un año (no contempla impuestos)"</div>
-      <table class="report-table">
-        <tr>
-          <td>Costo actual anual en Energía Eléctrica (sin instalación fotovoltaica)</td>
-          <td><span id="moneda-display-1"></span> <span id="costo_actual"></span></td>
-        </tr>
-      </table>
-
-      <div class="section-header" style="font-size: 1.1rem; background: none; color: #333;">• Costos e ingresos relacionados a la instalación fotovoltaica</div>
-      <table class="report-table">
-        <tr>
-          <td>Inversión inicial a realizar en año cero</td>
-          <td><span id="moneda-display-2"></span> <span id="inversion_inicial"></span></td>
-        </tr>
-        <tr>
-          <td>Costo de mantenimiento anual</td>
-          <td><span id="moneda-display-3"></span> <span id="mantenimiento"></span></td>
-        </tr>
-        <tr>
-          <td>Costo futuro de energía eléctrica consumida de la red</td>
-          <td><span id="moneda-display-4"></span> <span id="costo_futuro"></span></td>
-        </tr>
-        <tr>
-          <td>Ingreso anual por inyección de energía a la red</td>
-          <td><span id="moneda-display-5"></span> <span id="ingreso_red"></span></td>
-        </tr>
-      </table>
-    </div>
-
-    <div class="report-section">
-      <div class="section-header">• Contribución a la mitigación del cambio climático</div>
-      <table class="report-table">
-        <tr>
-          <td>Emisiones de gases de efecto invernadero evitadas con la instalación</td>
-          <td><span id="emisiones"></span> tCO2</td>
-        </tr>
-      </table>
+    <!-- Expert User Report Sections -->
+    <div id="expert-report-sections" style="display: none;">
+        <!-- Radiación -->
+        <div class="report-section">
+            <div class="section-header">• Radiación:</div>
+            <table class="report-table">
+                <tr>
+                    <td>Radiación Anual Incidente:</td>
+                    <td><span id="experto_radiacion_anual"></span> kWh/m2/año</td>
+                </tr>
+                <tr>
+                    <td>Incremento respecto de un plano horizontal</td>
+                    <td><span id="experto_incremento_radiacion"></span> %</td>
+                </tr>
+            </table>
+        </div>
+        <!-- Consumo (similar to basic) -->
+        <div class="report-section">
+            <div class="section-header">• Consumo:</div>
+            <table class="report-table">
+                <tr>
+                    <td>Consumo anual de energía eléctrica</td>
+                    <td><span id="experto_consumo_anual"></span> (kWh/año)</td>
+                </tr>
+            </table>
+        </div>
+        <!-- Panel/es -->
+        <div class="report-section">
+            <div class="section-header">• Panel/es:</div>
+            <table class="report-table">
+                <tr><td>Marca</td><td><span id="experto_panel_marca"></span></td></tr>
+                <tr><td>Potencia</td><td><span id="experto_panel_potencia"></span> W</td></tr>
+                <tr><td>Modelo</td><td><span id="experto_panel_modelo"></span></td></tr>
+                <tr><td>Eficiencia informada por el fabricante del panel</td><td><span id="experto_panel_eficiencia"></span> %</td></tr>
+                <tr><td>Cantidad Paneles Necesarios</td><td><span id="experto_cantidad_paneles"></span></td></tr>
+                <tr><td>Superficie necesaria</td><td><span id="experto_superficie"></span> m2</td></tr>
+                <tr><td>Potencia Instalada W</td><td><span id="experto_potencia_instalada"></span> W</td></tr>
+            </table>
+        </div>
+        <!-- Inversor/es -->
+        <div class="report-section">
+            <div class="section-header">• Inversor/es:</div>
+            <table class="report-table">
+                <tr><td>Inversores sugeridos</td><td><span id="experto_inversor_sugerido"></span></td></tr>
+                <tr><td>Potencia</td><td><span id="experto_inversor_potencia"></span> W</td></tr>
+                <tr><td>Eficiencia informada por el fabricante del INV.</td><td><span id="experto_inversor_eficiencia"></span> %</td></tr>
+                <tr><td>Cantidad de Inversores</td><td><span id="experto_cantidad_inversores"></span></td></tr>
+            </table>
+        </div>
+        <!-- Datos económicos del proyecto -->
+        <div class="report-section">
+            <div class="section-header">Datos económicos del proyecto:</div>
+            <div class="section-header" style="font-size: 1.1rem; background: none; color: #333;">• Resultado económico sin realizar la instalación fotovoltaica</div>
+            <table class="report-table">
+                <tr><td>CARGO VARIABLE POR ENERGÍA DEMANDADA EN PICO</td><td><span id="experto_moneda_1"></span> <span id="experto_cargo_pico"></span></td></tr>
+                <tr><td>CARGO VARIABLE POR ENERGÍA DEMANDADA FUERA DE PICO</td><td><span id="experto_moneda_2"></span> <span id="experto_cargo_fuera_pico"></span></td></tr>
+                <tr><td>Costo actual anual en Energía Eléctrica (sin instalación fotovoltaica)</td><td><span id="experto_moneda_3"></span> <span id="experto_costo_actual"></span></td></tr>
+                <tr><td>Costo total actualizado del consumo Energía Eléctrica</td><td><span id="experto_moneda_4"></span> <span id="experto_costo_total_actualizado"></span></td></tr>
+            </table>
+            <div class="section-header" style="font-size: 1.1rem; background: none; color: #333;">• Resultado económico realizando la instalación fotovoltaica</div>
+            <table class="report-table">
+                <tr><td>Inversión inicial:</td><td><span id="experto_moneda_5"></span> <span id="experto_inversion_inicial"></span></td></tr>
+                <tr><td>Costo de mantenimiento por año:</td><td><span id="experto_moneda_6"></span> <span id="experto_mantenimiento"></span></td></tr>
+                <tr><td>Tarifa inyección de Energía Eléctrica:</td><td><span id="experto_moneda_7"></span> <span id="experto_tarifa_inyeccion"></span></td></tr>
+                <tr><td>Costo futuro de energía eléctrica consumida de la red</td><td><span id="experto_moneda_8"></span> <span id="experto_costo_futuro"></span></td></tr>
+                <tr><td>Ahorro total actualizado en energía eléctrica consumida</td><td><span id="experto_moneda_9"></span> <span id="experto_ahorro_actualizado"></span></td></tr>
+                <tr><td>Ingreso anual por inyección de energía a la red</td><td><span id="experto_moneda_10"></span> <span id="experto_ingreso_anual_inyeccion"></span></td></tr>
+                <tr><td>Ingreso total por inyección de energía a la red actualizado</td><td><span id="experto_moneda_11"></span> <span id="experto_ingreso_total_inyeccion"></span></td></tr>
+            </table>
+            <div class="section-header" style="font-size: 1.1rem; background: none; color: #333;">Resultado económico actualizado del proyecto</div>
+            <table class="report-table">
+                <tr><td>Ahorro neto logrado durante la vida util del proyecto</td><td><span id="experto_moneda_12"></span> <span id="experto_ahorro_neto"></span></td></tr>
+            </table>
+        </div>
+        <!-- Emisiones -->
+        <div class="report-section">
+          <div class="section-header">• Contribución a la mitigación del cambio climático</div>
+          <table class="report-table">
+            <tr><td>Emisiones de Gases de Efecto Invernadero evitadas</td><td></td></tr>
+            <tr><td>Primer Año</td><td><span id="experto_emisiones_primer_ano"></span> Toneladas CO2</td></tr>
+            <tr><td>Totales</td><td><span id="experto_emisiones_totales"></span> Toneladas CO2</td></tr>
+          </table>
+        </div>
     </div>
 
     <div class="informe-btns">
