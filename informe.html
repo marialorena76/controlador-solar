@@ -129,11 +129,11 @@
       <table class="report-table">
         <tr>
           <td>Consumo anual de energía eléctrica</td>
-          <td><span id="consumo-anual"></span> kWh/año</td>
+          <td><span id="consumo_anual_kwh"></span> kWh/año</td>
         </tr>
         <tr>
           <td>Generación anual de energía eléctrica</td>
-          <td><span id="generacion-anual"></span> kWh/año</td>
+          <td><span id="energia_generada_anual"></span> kWh/año</td>
         </tr>
         <tr>
           <td>Energía para autoconsumo</td>
@@ -141,7 +141,7 @@
         </tr>
         <tr>
           <td>Energía Inyectada a la Red</td>
-          <td><span id="inyectada-red"></span> kWh/año</td>
+          <td><span id="inyectada_red"></span> kWh/año</td>
         </tr>
       </table>
     </div>
@@ -150,44 +150,36 @@
       <div class="section-header">Datos de la Instalación Propuesta</div>
       <table class="report-table">
         <tr>
+            <td>Marca del Panel</td>
+            <td><span id="panel_marca"></span></td>
+        </tr>
+        <tr>
+            <td>Modelo del Panel</td>
+            <td><span id="panel_modelo"></span></td>
+        </tr>
+        <tr>
           <td>Potencia Total de los Paneles</td>
-          <td><span id="potencia-paneles"></span> kWp</td>
+          <td><span id="potencia_sistema_kwp"></span> kWp</td>
         </tr>
         <tr>
           <td>Cantidad de Paneles</td>
-          <td><span id="cantidad-paneles"></span> unidades</td>
+          <td><span id="numero_paneles"></span> unidades</td>
         </tr>
         <tr>
           <td>Superficie de Instalación Requerida</td>
-          <td><span id="superficie"></span> m²</td>
-        </tr>
-        <tr>
-          <td>Vida Útil Estimada del Sistema</td>
-          <td><span id="vida-util"></span> años</td>
-        </tr>
-        <tr>
-            <td>Tipo de Panel</td>
-            <td id="tipo-panel-informe"></td>
+          <td><span id="area_paneles_m2"></span> m²</td>
         </tr>
         <tr>
             <td>Tipo de Inversor</td>
-            <td id="tipo-inversor-informe"></td>
+            <td><span id="tipo_inversor"></span></td>
         </tr>
         <tr>
             <td>Potencia Nominal del Inversor</td>
-            <td id="potencia-inversor-informe"></td>
+            <td><span id="potencia_inversor_kwa"></span> kW</td>
         </tr>
         <tr>
-            <td>Eficiencia del Panel</td>
-            <td id="eficiencia-panel-informe"></td>
-        </tr>
-        <tr>
-            <td>Eficiencia del Inversor</td>
-            <td id="eficiencia-inversor-informe"></td>
-        </tr>
-        <tr>
-            <td>Factor de Pérdidas</td>
-            <td id="factor-perdidas-informe"></td>
+          <td>Vida Útil Estimada del Sistema</td>
+          <td><span id="vida_util"></span> años</td>
         </tr>
       </table>
     </div>
@@ -196,27 +188,31 @@
       <div class="section-header">Análisis Económico</div>
       <table class="report-table">
         <tr>
-          <td>Costo actual de energía eléctrica</td>
-          <td><span id="moneda-display-1"></span> <span id="costo-actual"></span></td>
+          <td>Costo actual de energía eléctrica (anual)</td>
+          <td><span id="moneda-display-1"></span> <span id="costo_actual"></span></td>
         </tr>
         <tr>
           <td>Inversión inicial estimada</td>
-          <td><span id="moneda-display-2"></span> <span id="inversion-inicial"></span></td>
+          <td><span id="moneda-display-2"></span> <span id="inversion_inicial"></span></td>
         </tr>
         <tr>
           <td>Costo de mantenimiento anual</td>
           <td><span id="moneda-display-3"></span> <span id="mantenimiento"></span></td>
         </tr>
         <tr>
-          <td>Costo futuro de energía eléctrica consumida (ahorro)</td>
-          <td class="result-blue"><span id="moneda-display-4"></span> <span id="costo-futuro"></span></td>
+          <td>Costo futuro de energía comprada a la red (anual)</td>
+          <td class="result-blue"><span id="moneda-display-4"></span> <span id="costo_futuro"></span></td>
         </tr>
         <tr>
           <td>Ingreso anual por inyección de energía a la red</td>
-          <td class="result-green"><span id="moneda-display-5"></span> <span id="ingreso-red"></span></td>
+          <td class="result-green"><span id="moneda-display-5"></span> <span id="ingreso_red"></span></td>
+        </tr>
+        <tr>
+          <td><strong>Ahorro total al final de la vida útil</strong></td>
+          <td class="result-green"><strong><span id="moneda-display-6"></span> <span id="ahorro_total"></span></strong></td>
         </tr>
       </table>
-      <div class="result-box" id="resumen-economico"></div>
+      <div class="result-box" id="resumen_economico"></div>
     </div>
 
     <div class="report-section">

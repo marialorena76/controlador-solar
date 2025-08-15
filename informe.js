@@ -47,41 +47,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Poblar los datos del informe en el HTML
-    // Resumen General
-    setTextContent('consumo-anual', datos.consumo_anual?.toFixed(2) || 'N/A');
-    setTextContent('generacion-anual', datos.generacion_anual?.toFixed(2) || 'N/A');
+    // Consumo y generación
+    setTextContent('consumo_anual_kwh', datos.consumo_anual_kwh?.toFixed(2) || 'N/A');
+    setTextContent('energia_generada_anual', datos.energia_generada_anual?.toFixed(2) || 'N/A');
     setTextContent('autoconsumo', datos.autoconsumo?.toFixed(2) || 'N/A');
-    setTextContent('inyectada-red', datos.inyectada_red?.toFixed(2) || 'N/A');
+    setTextContent('inyectada_red', datos.inyectada_red?.toFixed(2) || 'N/A');
 
     // Datos de la Instalación Propuesta
-    setTextContent('potencia-paneles', datos.potencia_paneles?.toFixed(2) || 'N/A');
-    setTextContent('cantidad-paneles', datos.cantidad_paneles || 'N/A');
-    setTextContent('superficie', datos.superficie?.toFixed(2) || 'N/A');
-    setTextContent('vida-util', datos.vida_util || 'N/A');
+    setTextContent('panel_marca', datos.panel_seleccionado?.Marca || 'N/A');
+    setTextContent('panel_modelo', datos.panel_seleccionado?.Modelo || 'N/A');
+    setTextContent('potencia_sistema_kwp', datos.potencia_sistema_kwp?.toFixed(2) || 'N/A');
+    setTextContent('numero_paneles', datos.numero_paneles || 'N/A');
+    setTextContent('area_paneles_m2', datos.area_paneles_m2?.toFixed(2) || 'N/A');
+    setTextContent('tipo_inversor', datos.tipo_inversor || 'N/A');
+    setTextContent('potencia_inversor_kwa', datos.potencia_inversor_kwa?.toFixed(2) || 'N/A');
+    setTextContent('vida_util', datos.vida_util || '25'); // Fallback a 25 si no viene del backend
 
-    // Nuevos campos del Paso 5, 6 y 7
-    setTextContent('tipo-panel-informe', datos.panelesSolares?.tipo || 'N/A');
-    setTextContent('potencia-inversor-informe', (datos.inversor?.potenciaNominal?.toFixed(2) || 'N/A') + ' kW');
-    setTextContent('tipo-inversor-informe', datos.inversor?.tipo || 'N/A');
-    setTextContent('eficiencia-panel-informe', (datos.perdidas?.eficienciaPanel?.toFixed(1) || 'N/A') + '%');
-    setTextContent('eficiencia-inversor-informe', (datos.perdidas?.eficienciaInversor?.toFixed(1) || 'N/A') + '%');
-    setTextContent('factor-perdidas-informe', (datos.perdidas?.factorPerdidas?.toFixed(1) || 'N/A') + '%');
-
-
-    // Análisis Económico - Asegurarse de que la moneda se muestre correctamente
-    const monedaSimbolo = datos.moneda === 'Dólares' ? 'U$D' : '$'; // O el símbolo que prefieras para Pesos Argentinos
+    // Análisis Económico
+    const monedaSimbolo = datos.moneda === 'Dólares' ? 'U$D' : '$';
     const currencyElements = document.querySelectorAll('[id^="moneda-display"]');
     currencyElements.forEach(el => {
         el.textContent = monedaSimbolo;
     });
 
-    setTextContent('costo-actual', datos.costo_actual?.toFixed(2) || 'N/A');
-    setTextContent('inversion-inicial', datos.inversion_inicial?.toFixed(2) || 'N/A');
+    setTextContent('costo_actual', datos.costo_actual?.toFixed(2) || 'N/A');
+    setTextContent('inversion_inicial', datos.inversion_inicial?.toFixed(2) || 'N/A');
     setTextContent('mantenimiento', datos.mantenimiento?.toFixed(2) || 'N/A');
-    setTextContent('costo-futuro', datos.costo_futuro?.toFixed(2) || 'N/A');
-    setTextContent('ingreso-red', datos.ingreso_red?.toFixed(2) || 'N/A');
-    setTextContent('resumen-economico', datos.resumen_economico || 'N/A');
-
+    setTextContent('costo_futuro', datos.costo_futuro?.toFixed(2) || 'N/A');
+    setTextContent('ingreso_red', datos.ingreso_red?.toFixed(2) || 'N/A');
+    setTextContent('ahorro_total', datos.ahorro_total?.toFixed(2) || 'N/A');
+    setTextContent('resumen_economico', datos.resumen_economico || 'Cálculo de período de repago y otros indicadores avanzados estarán disponibles en futuras versiones.');
 
     // Contribución al Cambio Climático
     setTextContent('emisiones', datos.emisiones?.toFixed(2) || 'N/A');
