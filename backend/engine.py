@@ -54,6 +54,56 @@ def run_calculation_engine(user_data, excel_path):
     return calculate_report(user_data, all_sheets)
 
 
+def _get_hsp_for_location(lat, lon, df_radiacion_raw):
+    """
+    Finds the closest location in the radiation DataFrame and returns the average HSP
+    for the ALLSKY_SFC_SW_DWN parameter.
+    """
+    try:
+        # Find the index of the row that contains '-END HEADER-'
+        header_end_index = df_radiacion_raw[df_radiacion_raw[0].astype(str).str.contains('-END HEADER-', na=False)].index[0]
+
+        # The real header is the row after '-END HEADER-'
+        header_row_index = header_end_index + 1
+        df_header = df_radiacion_raw.iloc[header_row_index]
+
+        # The data starts two rows after '-END HEADER-'
+        data_start_index = header_end_index + 2
+        df_data = df_radiacion_raw.iloc[data_start_index:].copy()
+        df_data.columns = df_header
+
+        # Convert to numeric, coercing errors
+        df_data = df_data.apply(pd.to_numeric, errors='coerce')
+
+        # There are 6 parameters per location. We are interested in the 3rd one, which is ALLSKY_SFC_SW_DWN.
+        # So we can filter the dataframe to only include every 6th row, starting from the 3rd data row.
+        # This is brittle, but it's the only way without a proper parameter column.
+        # The parameters are T2M, KT_CLEAR, ALLSKY_SFC_SW_DWN, WS10M, KT, CLRSKY_SFC_SW_DWN
+        df_allsky = df_data.iloc[2::6].copy()
+
+        # Calculate distance to find the closest lat/lon
+        df_allsky['distance'] = ((df_allsky['LAT'] - lat)**2 + (df_allsky['LON'] - lon)**2)**0.5
+
+        # Get the row with the minimum distance
+        closest_row = df_allsky.loc[df_allsky['distance'].idxmin()]
+
+        # Get the annual average from the 'ANN' column
+        hsp = closest_row.get('ANN')
+
+        # If 'ANN' is not valid, calculate from monthly data
+        if pd.isna(hsp) or hsp <= 0:
+            monthly_cols = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+            monthly_values = closest_row[monthly_cols]
+            hsp = monthly_values.mean()
+
+        return hsp if pd.notna(hsp) and hsp > 0 else HSP_DIARIO_PROMEDIO
+
+    except (IndexError, KeyError, Exception) as e:
+        print(f"ERROR: Could not parse radiation data from 'base de datos (3)'. Error: {e}")
+        # Fallback to the default value if anything goes wrong
+        return HSP_DIARIO_PROMEDIO
+
+
 def calculate_report(user_data, excel_data):
     """
     Main function to perform all calculations based on user input and excel data.
@@ -76,11 +126,16 @@ def calculate_report(user_data, excel_data):
     # --- 2. Access relevant dataframes from the loaded excel data ---
     df_tablas = excel_data.get('Tablas')
     df_datos_entrada = excel_data.get('Datos de Entrada')
+    df_radiacion = excel_data.get('base de datos (3)')
 
-    if df_tablas is None or df_datos_entrada is None:
-        return {"error": "Una o más hojas de cálculo necesarias (Tablas, Datos de Entrada) no se encontraron."}
+    if df_tablas is None or df_datos_entrada is None or df_radiacion is None:
+        return {"error": "Una o más hojas de cálculo necesarias (Tablas, Datos de Entrada, base de datos (3)) no se encontraron."}
 
     # --- 3. Start replicating the calculation logic ---
+
+    # Get city-specific HSP
+    hsp_diario_promedio = _get_hsp_for_location(latitud, longitud, df_radiacion.copy())
+    print(f"DEBUG: Calculated HSP for location ({latitud}, {longitud}) is {hsp_diario_promedio}")
 
     # Calculate Annual Consumption
     consumo_anual = _calculate_annual_consumption(user_data, df_datos_entrada, df_tablas)
@@ -97,7 +152,7 @@ def calculate_report(user_data, excel_data):
 
 
     # --- 4. Calculate System Size ---
-    system_size_data = _calculate_system_size(consumo_anual, panel_seleccionado)
+    system_size_data = _calculate_system_size(consumo_anual, panel_seleccionado, hsp_diario_promedio)
     if "error" in system_size_data:
         # If there's an error in sizing, we should probably stop and report it.
         return system_size_data
@@ -112,7 +167,8 @@ def calculate_report(user_data, excel_data):
     # --- 6. Calculate Energy Generation ---
     energy_generation_data = _calculate_energy_generation(
         system_size_data.get("total_system_power_wp", 0),
-        consumo_anual
+        consumo_anual,
+        hsp_diario_promedio
     )
 
     # --- 7. Calculate Economics ---
