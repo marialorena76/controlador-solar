@@ -47,39 +47,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Poblar los datos del informe en el HTML
-    // Consumo y generación
-    setTextContent('consumo_anual_kwh', datos.consumo_anual_kwh?.toFixed(2) || 'N/A');
-    setTextContent('energia_generada_anual', datos.energia_generada_anual?.toFixed(2) || 'N/A');
-    setTextContent('autoconsumo', datos.autoconsumo?.toFixed(2) || 'N/A');
-    setTextContent('inyectada_red', datos.inyectada_red?.toFixed(2) || 'N/A');
 
-    // Datos de la Instalación Propuesta
-    setTextContent('panel_marca', datos.panel_seleccionado?.Marca || 'N/A');
-    setTextContent('panel_modelo', datos.panel_seleccionado?.Modelo || 'N/A');
-    setTextContent('potencia_sistema_kwp', datos.potencia_sistema_kwp?.toFixed(2) || 'N/A');
+    // • Consumo y generación
+    setTextContent('consumo_anual_kwh', datos.consumo_anual_kwh?.toFixed(0) || 'N/A');
+    setTextContent('energia_generada_anual', datos.energia_generada_anual?.toFixed(0) || 'N/A');
+    setTextContent('autoconsumo', datos.autoconsumo?.toFixed(0) || 'N/A');
+    setTextContent('inyectada_red', datos.inyectada_red?.toFixed(0) || 'N/A');
+
+    // • Detalles de la instalación
+    setTextContent('potencia_panel_sugerida', datos.panel_seleccionado?.['Pmax[W]'] || 'N/A');
     setTextContent('numero_paneles', datos.numero_paneles || 'N/A');
     setTextContent('area_paneles_m2', datos.area_paneles_m2?.toFixed(2) || 'N/A');
-    setTextContent('tipo_inversor', datos.tipo_inversor || 'N/A');
-    setTextContent('potencia_inversor_kwa', datos.potencia_inversor_kwa?.toFixed(2) || 'N/A');
-    setTextContent('vida_util', datos.vida_util || '25'); // Fallback a 25 si no viene del backend
 
-    // Análisis Económico
+    // Vida útil
+    setTextContent('vida_util', datos.vida_util || '25');
+
+    // Resultados económicos
     const monedaSimbolo = datos.moneda === 'Dólares' ? 'U$D' : '$';
     const currencyElements = document.querySelectorAll('[id^="moneda-display"]');
     currencyElements.forEach(el => {
         el.textContent = monedaSimbolo;
     });
 
-    setTextContent('costo_actual', datos.costo_actual?.toFixed(2) || 'N/A');
-    setTextContent('inversion_inicial', datos.inversion_inicial?.toFixed(2) || 'N/A');
-    setTextContent('mantenimiento', datos.mantenimiento?.toFixed(2) || 'N/A');
-    setTextContent('costo_futuro', datos.costo_futuro?.toFixed(2) || 'N/A');
-    setTextContent('ingreso_red', datos.ingreso_red?.toFixed(2) || 'N/A');
-    setTextContent('ahorro_total', datos.ahorro_total?.toFixed(2) || 'N/A');
-    setTextContent('resumen_economico', datos.resumen_economico || 'Cálculo de período de repago y otros indicadores avanzados estarán disponibles en futuras versiones.');
+    const formatNumber = (num) => num?.toLocaleString('es-AR', { maximumFractionDigits: 0 }) || 'N/A';
 
-    // Contribución al Cambio Climático
-    setTextContent('emisiones', datos.emisiones?.toFixed(2) || 'N/A');
+    setTextContent('costo_actual', formatNumber(datos.costo_actual));
+    setTextContent('inversion_inicial', formatNumber(datos.inversion_inicial));
+    setTextContent('mantenimiento', formatNumber(datos.mantenimiento));
+    setTextContent('costo_futuro', formatNumber(datos.costo_futuro));
+    setTextContent('ingreso_red', formatNumber(datos.ingreso_red));
+
+    // • Contribución a la mitigación del cambio climático
+    setTextContent('emisiones', datos.emisiones?.toFixed(1) || 'N/A');
 
 
     // Descargar PDF con html2pdf.js
