@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: controlador-solar-backend
+    env: python
+    plan: free   # o starter/pro según lo que elijas en Render
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn backend:app
+    envVars:
+      - key: EXCEL_PATH
+        value: Calculador Solar - web 06-24_con ayuda - modificaciones 2025_4.xlsx
+      - key: PORT
+        value: 10000   # Render lo setea automáticamente, pero lo dejamos explícito
+    autoDeploy: true
+
+  - type: web
+    name: controlador-solar-frontend
+    env: static
+    buildCommand: ""   # no hace falta build, solo HTML/JS
+    staticPublishPath: .   # carpeta raíz (donde tenés index.html, calculador.html, js, css)
+    autoDeploy: true
