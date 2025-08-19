@@ -15,7 +15,13 @@ EXCEL_FILE_PATH = os.path.join(SCRIPT_DIR, DEFAULT_EXCEL_FILENAME)
 CONSUMOS_JSON_PATH = os.path.join(PROJECT_ROOT, 'consumos_electrodomesticos.json')
 
 
-app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path='')
+# Define el path a la carpeta 'dist' donde estará el frontend compilado
+DIST_DIR = os.path.join(PROJECT_ROOT, 'dist')
+
+# Configura Flask para servir archivos estáticos desde la carpeta 'dist' del frontend.
+# static_url_path='/' asegura que las rutas a los assets (ej. /assets/index.js)
+# se resuelvan correctamente desde la raíz del dominio.
+app = Flask(__name__, static_folder=DIST_DIR, static_url_path='/')
 CORS(app)  # Habilita CORS para permitir solicitudes desde el frontend
 
 
@@ -105,14 +111,25 @@ def generar_informe():
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor al generar informe: {str(e)}"}), 500
 
-# Opcional: Rutas para servir los archivos estáticos de tu frontend
-@app.route('/')
-def serve_calculador_html():
-    return send_from_directory(PROJECT_ROOT, 'calculador.html')
+# --- Sirviendo la Aplicación React en Producción ---
+# La siguiente sección se asegura de que Flask sirva la aplicación React compilada.
 
-@app.route('/<path:path>')
-def serve_static_files(path):
-    return send_from_directory(PROJECT_ROOT, path)
+# Esta ruta sirve el archivo principal (index.html) de la aplicación React.
+# Flask automáticamente buscará otros archivos estáticos (como CSS y JS) en la carpeta
+# definida en 'static_folder' (que ahora es nuestra carpeta 'dist').
+@app.route('/')
+def serve_index():
+    return send_from_directory(app.static_folder, 'index.html')
+
+# Este manejador de errores sirve 'index.html' para cualquier ruta no encontrada (404).
+# Esto es esencial para que el enrutamiento del lado del cliente (React Router) funcione,
+# permitiendo al usuario refrescar la página en cualquier ruta de la aplicación sin errores.
+@app.errorhandler(404)
+def not_found(e):
+    # Asegurarnos de que las solicitudes a la API que no se encuentren no devuelvan el index.html
+    if request.path.startswith('/api/'):
+        return jsonify(error='Recurso no encontrado'), 404
+    return send_from_directory(app.static_folder, 'index.html')
 
 
 # --- NUEVA RUTA: Para obtener opciones de superficie de instalación ---
