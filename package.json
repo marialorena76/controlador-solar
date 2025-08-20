@@ -16,7 +16,7 @@
   "description": "\"# controlador-solar\"",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "export API_URL=http://127.0.0.1:5000/ && jest"
   },
   "repository": {
     "type": "git",
