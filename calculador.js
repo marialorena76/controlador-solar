@@ -284,16 +284,6 @@ function updateUIFromSelections() {
     //     incomeLevelSelect.value = userSelections.incomeLevel;
     // }
 
-    const zonaInstalacionExpertSelect = document.getElementById('zona-instalacion-expert');
-    if (zonaInstalacionExpertSelect && userSelections.zonaInstalacionExpert) {
-        zonaInstalacionExpertSelect.value = userSelections.zonaInstalacionExpert;
-    }
-
-    // const zonaInstalacionBasicSelect = document.getElementById('zona-instalacion-basic');
-    // if (zonaInstalacionBasicSelect && userSelections.zonaInstalacionBasic) {
-    //     zonaInstalacionBasicSelect.value = userSelections.zonaInstalacionBasic;
-    // }
-
     const monedaSelect = document.getElementById('moneda');
     if (monedaSelect && userSelections.selectedCurrency) {
         monedaSelect.value = userSelections.selectedCurrency;
@@ -302,34 +292,6 @@ function updateUIFromSelections() {
     // Actualizar displays de consumo (se recalcularán con calcularConsumo después de cargar electrodomésticos)
     if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = userSelections.totalMonthlyConsumption.toFixed(2);
     if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = userSelections.totalAnnualConsumption.toFixed(2);
-
-    // Si tienes inputs para paneles, inversor o pérdidas que guardas en userSelections, actualízalos aquí también
-    const tipoPanelInput = document.getElementById('tipo-panel'); // Asegúrate que este ID exista en tu HTML
-    if (tipoPanelInput && userSelections.panelesSolares?.tipo) {
-        tipoPanelInput.value = userSelections.panelesSolares.tipo;
-    }
-    // ... y así para otros campos de paneles, inversor, pérdidas si los tienes en userSelections
-    const cantidadPanelesInput = document.getElementById('cantidad-paneles-input'); // Si tienes un input para cantidad
-    if (cantidadPanelesInput && userSelections.panelesSolares?.cantidad) {
-        cantidadPanelesInput.value = userSelections.panelesSolares.cantidad;
-    }
-
-    const potenciaInversorInput = document.getElementById('potencia-inversor-input'); // Si tienes un input para potencia de inversor
-    if (potenciaInversorInput && userSelections.inversor?.potenciaNominal) {
-        potenciaInversorInput.value = userSelections.inversor.potenciaNominal;
-    }
-    const eficienciaPanelInput = document.getElementById('eficiencia-panel-input');
-    if (eficienciaPanelInput && userSelections.perdidas?.eficienciaPanel) {
-        eficienciaPanelInput.value = userSelections.perdidas.eficienciaPanel;
-    }
-    const eficienciaInversorInput = document.getElementById('eficiencia-inversor-input');
-    if (eficienciaInversorInput && userSelections.perdidas?.eficienciaInversor) {
-        eficienciaInversorInput.value = userSelections.perdidas.eficienciaInversor;
-    }
-    const factorPerdidasInput = document.getElementById('factor-perdidas-input');
-    if (factorPerdidasInput && userSelections.perdidas?.factorPerdidas) {
-        factorPerdidasInput.value = userSelections.perdidas.factorPerdidas;
-    }
 
     const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
     if (alturaInstalacionInput && userSelections.alturaInstalacion !== null) {
@@ -2114,8 +2076,6 @@ function setupNavigationButtons() {
     const incomeHighButton = document.getElementById('income-high-button');
     const incomeLowButton = document.getElementById('income-low-button');
     const incomeMediumButton = document.getElementById('income-medium-button'); // Add this
-    
-    const expertDataForm = document.getElementById('expert-data-form'); // Form itself
 
     if (basicUserButton) {
         basicUserButton.addEventListener('click', () => {
@@ -2203,51 +2163,8 @@ function setupNavigationButtons() {
         });
     }
     
-    if (expertDataForm) {
-        expertDataForm.addEventListener('submit', (event) => {
-            event.preventDefault();
-            console.log('Formulario experto guardado (simulado), procediendo a data-form-screen.');
-            showScreen('data-form-screen');
-        });
-    }
-
-    document.getElementById('zona-instalacion-expert')?.addEventListener('change', (e) => {
-        userSelections.zonaInstalacionExpert = e.target.value;
-        saveUserSelections();
-    });
     document.getElementById('moneda')?.addEventListener('change', (e) => {
         userSelections.selectedCurrency = e.target.value;
-        saveUserSelections();
-    });
-
-    document.getElementById('tipo-panel')?.addEventListener('change', (e) => {
-        userSelections.panelesSolares.tipo = e.target.value;
-        saveUserSelections();
-    });
-    document.getElementById('cantidad-paneles-input')?.addEventListener('input', (e) => {
-        userSelections.panelesSolares.cantidad = parseInt(e.target.value) || 0;
-        saveUserSelections();
-    });
-
-    document.getElementById('tipo-inversor')?.addEventListener('change', (e) => {
-        userSelections.inversor.tipo = e.target.value;
-        saveUserSelections();
-    });
-    document.getElementById('potencia-inversor-input')?.addEventListener('input', (e) => {
-        userSelections.inversor.potenciaNominal = parseFloat(e.target.value) || 0;
-        saveUserSelections();
-    });
-
-    document.getElementById('eficiencia-panel-input')?.addEventListener('input', (e) => {
-        userSelections.perdidas.eficienciaPanel = parseFloat(e.target.value) || 0;
-        saveUserSelections();
-    });
-    document.getElementById('eficiencia-inversor-input')?.addEventListener('input', (e) => {
-        userSelections.perdidas.eficienciaInversor = parseFloat(e.target.value) || 0;
-        saveUserSelections();
-    });
-    document.getElementById('factor-perdidas-input')?.addEventListener('input', (e) => {
-        userSelections.perdidas.factorPerdidas = parseFloat(e.target.value) || 0;
         saveUserSelections();
     });
 
@@ -2543,7 +2460,6 @@ function setupNavigationButtons() {
         });
     }
 
-    document.getElementById('back-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
 
     // Listener for "Next" button on Inversor section (going to Perdidas)
     document.getElementById('next-to-perdidas')?.addEventListener('click', () => {
@@ -2612,18 +2528,6 @@ function setupNavigationButtons() {
     }
 
     // Main "Back" button for perdidas-section (REMOVED as buttons are now in sub-forms)
-    // const backFromPerdidasBtn = document.getElementById('back-from-perdidas');
-    // if (backFromPerdidasBtn) {
-    //     backFromPerdidasBtn.addEventListener('click', () => {
-    //         showScreen('inversor-section');
-    //         updateStepIndicator('inversor-section');
-    //         if (typeof initInversorSection === 'function') {
-    //             initInversorSection();
-    //         } else {
-    //             console.warn('initInversorSection function not yet defined.');
-    //         }
-    //     });
-    // }
 
     // Back button on Analisis Economico page
     const backToPerdidasFromAnalisisBtn = document.querySelector('#analisis-economico-section .back-button');
@@ -2874,15 +2778,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 // }
 
 // // Ejemplo de cómo podrías actualizar userSelections en otras secciones
-// document.getElementById('tipo-panel').addEventListener('change', (e) => {
-//     userSelections.panelesSolares.tipo = e.target.value;
-//     saveUserSelections();
-// });
-// document.getElementById('potencia-panel').addEventListener('input', (e) => {
-//     userSelections.panelesSolares.potenciaNominal = parseFloat(e.target.value);
-//     saveUserSelections();
-// });
-
 // // Si tienes funciones que se llamaban en cada "next" button, deberían seguir haciéndolo.
 // // Por ejemplo, si al pasar de "Energía" a "Paneles" querías validar algo o calcular
 // // ciertos valores, esa lógica debería seguir en los listeners de los botones "next".
