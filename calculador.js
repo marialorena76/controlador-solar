@@ -1,6 +1,6 @@
 console.log('🤖 calculador.js cargado - flujo de controlador ajustado y persistencia de datos');
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = 'http://localhost:8000';
 
 let map, marker;
 let userLocation = { lat: -34.6037, lng: -58.3816 }; // Buenos Aires por defecto
