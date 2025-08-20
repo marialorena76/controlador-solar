@@ -1,5 +1,7 @@
 console.log('🤖 calculador.js cargado - flujo de controlador ajustado y persistencia de datos');
 
+const API_URL = 'http://69.62.103.109:8001';
+
 let map, marker;
 let userLocation = { lat: -34.6037, lng: -58.3816 }; // Buenos Aires por defecto
 
@@ -387,7 +389,7 @@ async function initSuperficieSection() {
     }
     container.innerHTML = '';
 
-    const apiUrl = 'http://127.0.0.1:5000/api/superficie_options';
+    const apiUrl = `${API_URL}/api/superficie_options`;
     console.log('[initSuperficieSection] fetching from:', apiUrl); // Before fetch
 
     try {
@@ -484,7 +486,7 @@ async function initRugosidadSection() {
     }
     container.innerHTML = '';
 
-    const apiUrl = 'http://127.0.0.1:5000/api/rugosidad_options';
+    const apiUrl = `${API_URL}/api/rugosidad_options`;
     console.log('[initRugosidadSection] fetching from:', apiUrl);
 
     try {
@@ -645,7 +647,7 @@ async function initRotacionSection() {
         }
     }
 
-    const apiUrl = 'http://127.0.0.1:5000/api/rotacion_options';
+    const apiUrl = `${API_URL}/api/rotacion_options`;
     console.log('[initRotacionSection] fetching from:', apiUrl);
 
     try {
@@ -988,7 +990,7 @@ async function initFrecuenciaLluviasOptions() {
     selectElement.appendChild(placeholderOption);
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/frecuencia_lluvias_options');
+        const response = await fetch(`${API_URL}/api/frecuencia_lluvias_options`);
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
@@ -1153,7 +1155,7 @@ async function initMarcaPanelOptions() {
     selectElement.appendChild(placeholderOption);
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/marca_panel_options');
+        const response = await fetch(`${API_URL}/api/marca_panel_options`);
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
@@ -1290,7 +1292,7 @@ async function updatePanelModel() {
         modeloPanelInput.value = 'Buscando modelo...'; // Show loading state
 
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/get_panel_model', {
+            const response = await fetch(`${API_URL}/api/get_panel_model`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1411,7 +1413,7 @@ async function initInversorSection() {
     container.innerHTML = 'Cargando opciones de inversor...';
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/get_inverter_options');
+        const response = await fetch(`${API_URL}/api/get_inverter_options`);
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
         }
@@ -1473,7 +1475,7 @@ async function initInversorSection() {
 
 async function cargarElectrodomesticosDesdeBackend() {
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/electrodomesticos');
+        const response = await fetch(`${API_URL}/api/electrodomesticos`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -1956,7 +1958,7 @@ function initMap() {
 // --- Nueva función para buscar el código de la ciudad ---
 async function buscarCodigoCiudad(ciudad) {
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/buscar_ciudad', {
+        const response = await fetch(`${API_URL}/api/buscar_ciudad`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2738,7 +2740,7 @@ function setupNavigationButtons() {
             console.log('Finalizar Cálculo clickeado. Enviando datos al backend para generar informe...');
             saveUserSelections();
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/generar_informe', {
+                const response = await fetch(`${API_URL}/api/generar_informe`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
