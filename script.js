@@ -1,18 +1,21 @@
 // Lógica para los botones de tipo de usuario
 const userBasicCard = document.getElementById('user-basic-card');
+if (userBasicCard) {
+    userBasicCard.addEventListener('click', () => {
+        alert('Has seleccionado "Usuario Básico". Implementaremos la lógica de redirección aquí.');
+        // Aquí puedes redirigir a una página de ingreso de datos simplificada
+        // window.location.href = 'calculador-basico.html';
+    });
+}
+
 const userExpertCard = document.getElementById('user-expert-card');
-
-userBasicCard.addEventListener('click', () => {
-    alert('Has seleccionado "Usuario Básico". Implementaremos la lógica de redirección aquí.');
-    // Aquí puedes redirigir a una página de ingreso de datos simplificada
-    // window.location.href = 'calculador-basico.html';
-});
-
-userExpertCard.addEventListener('click', () => {
-    alert('Has seleccionado "Usuario Experto". Implementaremos la lógica de redirección aquí.');
-    // Aquí puedes redirigir a la página del calculador principal con más opciones (tu actual RF1)
-    // window.location.href = 'calculador-experto.html';
-});
+if (userExpertCard) {
+    userExpertCard.addEventListener('click', () => {
+        alert('Has seleccionado "Usuario Experto". Implementaremos la lógica de redirección aquí.');
+        // Aquí puedes redirigir a la página del calculador principal con más opciones (tu actual RF1)
+        // window.location.href = 'calculador-experto.html';
+    });
+}
 
 // Lógica para los botones del header (Registro/Ingresar)
 const registerButton = document.querySelector('.register-button');
@@ -39,15 +42,17 @@ loginButton.addEventListener('click', (e) => {
 const botonMostrarAvanzado = document.getElementById('mostrar-avanzado');
 const datosAvanzados = document.getElementById('datos-avanzados');
 
-botonMostrarAvanzado.addEventListener('click', () => {
-    if (datosAvanzados.style.display === 'none') {
-        datosAvanzados.style.display = 'block';
-        botonMostrarAvanzado.textContent = 'Ocultar Datos Avanzados';
-    } else {
-        datosAvanzados.style.display = 'none';
-        botonMostrarAvanzado.textContent = 'Mostrar Datos Avanzados';
-    }
-});
+if (botonMostrarAvanzado && datosAvanzados) {
+    botonMostrarAvanzado.addEventListener('click', () => {
+        if (datosAvanzados.style.display === 'none') {
+            datosAvanzados.style.display = 'block';
+            botonMostrarAvanzado.textContent = 'Ocultar Datos Avanzados';
+        } else {
+            datosAvanzados.style.display = 'none';
+            botonMostrarAvanzado.textContent = 'Mostrar Datos Avanzados';
+        }
+    });
+}
 
 // Referencias a los elementos donde se mostrarán los datos del clima
 const latitudSpan = document.getElementById('latitud');
@@ -60,11 +65,8 @@ const humedadSpan = document.getElementById('humedad');
 // Asegúrate de que 'mapa-container' existe en el HTML antes de que este script se ejecute
 const mapaContainer = document.getElementById('mapa-container');
 
-// VERIFICACIÓN CRÍTICA: Asegurarse de que mapaContainer no es null
-if (!mapaContainer) {
-    console.error("Error: El elemento con ID 'mapa-container' no fue encontrado en el HTML.");
-    // Podrías mostrar un mensaje al usuario aquí si lo deseas
-} else {
+// VERIFICACIÓN CRÍTICA: Asegurarse de que mapaContainer existe
+if (mapaContainer) {
     // Si el contenedor existe, inicializa el mapa
     const mapa = L.map(mapaContainer).setView([-34.6037, -58.3816], 13); // Coordenadas de ejemplo (Buenos Aires)
 
@@ -114,21 +116,24 @@ if (!mapaContainer) {
                 console.log("Datos del clima:", data);
 
                 // Actualizar la interfaz con los datos del clima
-                latitudSpan.textContent = lat.toFixed(4); // Limitar decimales
-                longitudSpan.textContent = lng.toFixed(4); // Limitar decimales
-                temperaturaSpan.textContent = `${data.main.temp}°C`;
-                condicionSpan.textContent = data.weather[0].description;
-                humedadSpan.textContent = `${data.main.humidity}%`;
+                if (latitudSpan) latitudSpan.textContent = lat.toFixed(4); // Limitar decimales
+                if (longitudSpan) longitudSpan.textContent = lng.toFixed(4); // Limitar decimales
+                if (temperaturaSpan) temperaturaSpan.textContent = `${data.main.temp}°C`;
+                if (condicionSpan) condicionSpan.textContent = data.weather[0].description;
+                if (humedadSpan) humedadSpan.textContent = `${data.main.humidity}%`;
 
             })
             .catch(error => {
                 console.error("Error al obtener los datos del clima:", error);
                 // Mostrar un mensaje de error al usuario en la interfaz si lo deseas
-                latitudSpan.textContent = 'Error';
-                longitudSpan.textContent = 'Error';
-                temperaturaSpan.textContent = 'Error';
-                condicionSpan.textContent = 'Error al cargar';
-                humedadSpan.textContent = 'Error';
+                if (latitudSpan) latitudSpan.textContent = 'Error';
+                if (longitudSpan) longitudSpan.textContent = 'Error';
+                if (temperaturaSpan) temperaturaSpan.textContent = 'Error';
+                if (condicionSpan) condicionSpan.textContent = 'Error al cargar';
+                if (humedadSpan) humedadSpan.textContent = 'Error';
             });
     }
+} else {
+    console.error("Error: El elemento con ID 'mapa-container' no fue encontrado en el HTML.");
+    // Podrías mostrar un mensaje al usuario aquí si lo deseas
 } // Fin del bloque 'if (mapaContainer)'
