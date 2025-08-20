@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 
 function App() {
   const [message, setMessage] = useState('Cargando...')
+  const BASE_URL = import.meta.env.VITE_API_URL
 
   useEffect(() => {
-    fetch('http://localhost:5000/')
+    fetch(`${BASE_URL}/`)
       .then(res => res.json())
       .then(data => setMessage(data.message))
       .catch(() => setMessage('Error al conectar con el backend'))
@@ -18,3 +19,4 @@ function App() {
 }
 
 export default App
+
