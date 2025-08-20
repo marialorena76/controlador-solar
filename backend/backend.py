@@ -6,95 +6,6 @@ import os
 import json
 from . import engine
 
-from flask import Flask, jsonify
-from flask_cors import CORS
-import pandas as pd
-import os
-
-app = Flask(__name__)
-CORS(app)
-
-# === Config Excel ===
-# Usa variable de entorno EXCEL_PATH si existe (Render), o tu ruta por defecto
-EXCEL_PATH = os.environ.get(
-    'EXCEL_PATH',
-    'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx'
-)
-
-# === Healthcheck para Render ===
-@app.get("/health")
-def health():
-    return "ok", 200
-
-
-@app.route('/api/electrodomesticos', methods=['GET'])
-def get_electrodomesticos():
-    # Leemos toda la hoja Datos de entrada
-    try:
-        df = pd.read_excel(EXCEL_PATH, sheet_name='Datos de Entrada', engine='openpyxl')
-    except Exception as e:
-        # Si falla (archivo no existe o nombre de hoja distinto), devolvemos error legible
-        return jsonify({"error": f"No se pudo leer el Excel '{EXCEL_PATH}': {str(e)}"}), 500
-
-    # El rango es filas 46 a 64, columnas H a Q (índices 45:64, 7:17 en pandas)
-    df_rango = df.iloc[45:64, 7:17]  # (se mantiene aunque no se use explícitamente)
-    # Encabezados de columna
-    headers = list(df.columns[7:17])
-
-    # Localizamos columna de 'Promedio consumo diario media estación'
-    try:
-        col_promedio = headers.index("Promedio consumo diario Media estación (kWh/día)") + 7
-    except ValueError:
-        # Si no la encuentra por nombre exacto, busca parcial
-        col_promedio = None
-        for idx, h in enumerate(headers):
-            if "media estación" in str(h).lower():
-                col_promedio = idx + 7
-                break
-        if col_promedio is None:
-            return jsonify({"error": "No se encontró la columna de promedio consumo diario Media estación"}), 400
-
-    # Detectar nombre de columna de electrodoméstico y de categoría (ajustá esto si el archivo tiene otro nombre)
-    col_nombre = 7  # H
-    col_categoria = 8  # I (por ejemplo, si está en I). AJUSTÁ según cómo esté tu archivo!
-
-    # Si no existe categoría, simplemente lo ponemos como "General"
-    categorias = {}
-    for idx in range(45, 64):
-        nombre = df.iloc[idx, col_nombre]
-        categoria = df.iloc[idx, col_categoria] if not pd.isna(df.iloc[idx, col_categoria]) else "General"
-        consumo_diario = df.iloc[idx, col_promedio]
-        if pd.isna(nombre) or pd.isna(consumo_diario):
-            continue
-        categoria = str(categoria)
-        if categoria not in categorias:
-            categorias[categoria] = []
-        categorias[categoria].append({
-            "nombre": str(nombre),
-            "consumo_diario": float(consumo_diario)
-        })
-
-    return jsonify({"categorias": categorias})
-
-
-def _print_headers_debug():
-    """Imprime encabezados para depurar (opcional)."""
-    try:
-        df = pd.read_excel(EXCEL_PATH, sheet_name='Datos de Entrada', engine='openpyxl')
-        headers = list(df.columns[7:17])
-        print("Encabezados:", headers, flush=True)
-    except Exception as e:
-        print(f"[WARN] No se pudieron imprimir encabezados: {e}", flush=True)
-
-
-if __name__ == "__main__":
-    # Solo en ejecución directa (no al importar con Gunicorn en Render)
-    if os.environ.get("PRINT_HEADERS", "0") == "1":
-        _print_headers_debug()
-
-    port = int(os.environ.get("PORT", 5000))  # Render inyecta PORT
-    app.run(host="0.0.0.0", port=port, debug=False)
-
 
 # --- Setup robust paths relative to this script ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -113,6 +24,12 @@ DIST_DIR = os.path.join(PROJECT_ROOT, 'dist')
 # se resuelvan correctamente desde la raíz del dominio.
 app = Flask(__name__, static_folder=DIST_DIR, static_url_path='/')
 CORS(app)  # Habilita CORS para permitir solicitudes desde el frontend
+
+
+# === Healthcheck para Render ===
+@app.get("/health")
+def health():
+    return "ok", 200
 
 
 # --- NUEVA RUTA: Para obtener la lista de electrodomésticos y sus consumos ---
