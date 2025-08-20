@@ -18,5 +18,5 @@ afterAll(() => {
 test('GET / should return HTML page', async () => {
   const res = await axios.get('http://127.0.0.1:5000/');
   expect(res.status).toBe(200);
-  expect(res.data).toContain('<!DOCTYPE html>');
+  expect(res.data.toLowerCase()).toContain('<!doctype html>');
 });
