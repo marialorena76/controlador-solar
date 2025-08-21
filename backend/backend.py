@@ -4,12 +4,7 @@ from flask_cors import CORS
 import pandas as pd
 import os
 import json
-<<<<<<< Updated upstream
 from . import engine
-
-=======
-import engine
->>>>>>> Stashed changes
 
 # --- Setup robust paths relative to this script ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -22,12 +17,6 @@ CONSUMOS_JSON_PATH = os.path.join(PROJECT_ROOT, 'consumos_electrodomesticos.json
 
 app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path='')
 CORS(app)  # Habilita CORS para permitir solicitudes desde el frontend
-
-
-# === Healthcheck para Render ===
-@app.get("/health")
-def health():
-    return "ok", 200
 
 
 # --- NUEVA RUTA: Para obtener la lista de electrodomésticos y sus consumos ---
@@ -62,8 +51,8 @@ def get_electrodomesticos_consumos():
                 consumo_diario_kwh = (watts * hours) / 1000.0
 
                 appliance_entry = {
-                    "nombre": item.get('name', 'Sin Nombre'),
-                    "consumo_diario": consumo_diario_kwh,
+                    "name": item.get('name', 'Sin Nombre'),
+                    "consumo_diario_kwh": consumo_diario_kwh,
                     "watts": watts
                 }
                 categorized_appliances[category].append(appliance_entry)
@@ -81,7 +70,7 @@ def get_electrodomesticos_consumos():
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
 # --- Ruta para generar informe (EXISTENTE) ---
-@app.route('/generar_informe', methods=['POST'])
+@app.route('/api/generar_informe', methods=['POST'])
 def generar_informe():
     user_data = request.json
     print("DEBUG: Datos recibidos del frontend para informe:", user_data)

@@ -4,7 +4,7 @@ const axios = require('axios');
 let server;
 
 beforeAll(done => {
-  server = spawn('flask', ['--app', 'wsgi:app', 'run', '--port', '8000', '--no-reload'], { stdio: 'inherit' });
+  server = spawn('flask', ['--app', 'backend/backend.py', 'run', '--no-reload'], { stdio: 'inherit' });
   // give the server a moment to start
   setTimeout(done, 2000);
 });
@@ -16,8 +16,7 @@ afterAll(() => {
 });
 
 test('GET / should return HTML page', async () => {
-  const apiUrl = process.env.API_URL || 'http://127.0.0.1:8000/';
-  const res = await axios.get(apiUrl);
+  const res = await axios.get('http://127.0.0.1:5000/');
   expect(res.status).toBe(200);
-  expect(res.data.toLowerCase()).toContain('<!doctype html>');
+  expect(res.data).toContain('<!DOCTYPE html>');
 });
