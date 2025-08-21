@@ -1,7 +1,5 @@
 console.log('🤖 calculador.js cargado - flujo de controlador ajustado y persistencia de datos');
 
-const API_URL = 'http://localhost:8000';
-
 let map, marker;
 let userLocation = { lat: -34.6037, lng: -58.3816 }; // Buenos Aires por defecto
 
@@ -351,7 +349,7 @@ async function initSuperficieSection() {
     }
     container.innerHTML = '';
 
-    const apiUrl = `${API_URL}/api/superficie_options`;
+    const apiUrl = `/api/superficie_options`;
     console.log('[initSuperficieSection] fetching from:', apiUrl); // Before fetch
 
     try {
@@ -448,7 +446,7 @@ async function initRugosidadSection() {
     }
     container.innerHTML = '';
 
-    const apiUrl = `${API_URL}/api/rugosidad_options`;
+    const apiUrl = `/api/rugosidad_options`;
     console.log('[initRugosidadSection] fetching from:', apiUrl);
 
     try {
@@ -609,7 +607,7 @@ async function initRotacionSection() {
         }
     }
 
-    const apiUrl = `${API_URL}/api/rotacion_options`;
+    const apiUrl = `/api/rotacion_options`;
     console.log('[initRotacionSection] fetching from:', apiUrl);
 
     try {
@@ -952,7 +950,7 @@ async function initFrecuenciaLluviasOptions() {
     selectElement.appendChild(placeholderOption);
 
     try {
-        const response = await fetch(`${API_URL}/api/frecuencia_lluvias_options`);
+        const response = await fetch(`/api/frecuencia_lluvias_options`);
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
@@ -1117,7 +1115,7 @@ async function initMarcaPanelOptions() {
     selectElement.appendChild(placeholderOption);
 
     try {
-        const response = await fetch(`${API_URL}/api/marca_panel_options`);
+        const response = await fetch(`/api/marca_panel_options`);
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
@@ -1254,7 +1252,7 @@ async function updatePanelModel() {
         modeloPanelInput.value = 'Buscando modelo...'; // Show loading state
 
         try {
-            const response = await fetch(`${API_URL}/api/get_panel_model`, {
+            const response = await fetch(`/api/get_panel_model`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1375,7 +1373,7 @@ async function initInversorSection() {
     container.innerHTML = 'Cargando opciones de inversor...';
 
     try {
-        const response = await fetch(`${API_URL}/api/get_inverter_options`);
+        const response = await fetch(`/api/get_inverter_options`);
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
         }
@@ -1437,7 +1435,7 @@ async function initInversorSection() {
 
 async function cargarElectrodomesticosDesdeBackend() {
     try {
-        const response = await fetch(`${API_URL}/api/electrodomesticos`);
+        const response = await fetch(`/api/electrodomesticos`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -1617,15 +1615,15 @@ function populateStandardApplianceList(listContainerElement) {
             const row = document.createElement('div');
             row.className = 'electrodomestico-row';
             const name = document.createElement('span');
-            name.textContent = item.name;
+            name.textContent = item.nombre;
             const input = document.createElement('input');
             input.type = 'number';
             input.min = '0';
-            input.value = userSelections.electrodomesticos[item.name]?.cantidad || 0;
-            input.id = `cant-${item.name.replace(/\s+/g, '-')}`;
+            input.value = userSelections.electrodomesticos[item.nombre]?.cantidad || 0;
+            input.id = `cant-${item.nombre.replace(/\s+/g, '-')}`;
             input.className = 'electrodomestico-input';
             input.addEventListener('change', (e) => {
-                const itemName = item.name;
+                const itemName = item.nombre;
                 if (!userSelections.electrodomesticos[itemName]) {
                     userSelections.electrodomesticos[itemName] = { cantidad: 0, horasVerano: null, horasInvierno: null };
                 }
@@ -1633,7 +1631,7 @@ function populateStandardApplianceList(listContainerElement) {
                 calcularConsumo();
                 saveUserSelections();
             });
-            const consumoDiario = item.consumo_diario_kwh || 0;
+            const consumoDiario = item.consumo_diario || 0;
             const consumoLabel = document.createElement('span');
             consumoLabel.textContent = `${parseFloat(consumoDiario.toFixed(3))} kWh/día`;
             row.appendChild(name);
@@ -1675,7 +1673,7 @@ function populateDetailedApplianceList(listContainerElement) {
         itemsDiv.style.display = 'none';
 
         electrodomesticosCategorias[categoria].forEach(item => {
-            const itemName = item.name;
+            const itemName = item.nombre;
             const applianceData = userSelections.electrodomesticos[itemName] || { cantidad: 0, horasVerano: null, horasInvierno: null };
 
             const row = document.createElement('div');
@@ -1802,9 +1800,9 @@ function calcularConsumo() {
     for (const categoria in electrodomesticosCategorias) {
         if (electrodomesticosCategorias.hasOwnProperty(categoria)) {
             electrodomesticosCategorias[categoria].forEach(item => {
-                const cant = userSelections.electrodomesticos[item.name]?.cantidad || 0;
+                const cant = userSelections.electrodomesticos[item.nombre]?.cantidad || 0;
                 // Ajusta esta lógica si tu backend solo da 'consumo_diario'
-                const consumoDiarioItem = item.consumo_diario_kwh || 0;
+                const consumoDiarioItem = item.consumo_diario || 0;
                 totalDiario += consumoDiarioItem * cant;
             });
         }
@@ -1920,7 +1918,7 @@ function initMap() {
 // --- Nueva función para buscar el código de la ciudad ---
 async function buscarCodigoCiudad(ciudad) {
     try {
-        const response = await fetch(`${API_URL}/api/buscar_ciudad`, {
+        const response = await fetch(`/api/buscar_ciudad`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2644,7 +2642,7 @@ function setupNavigationButtons() {
             console.log('Finalizar Cálculo clickeado. Enviando datos al backend para generar informe...');
             saveUserSelections();
             try {
-                const response = await fetch(`${API_URL}/api/generar_informe`, {
+                const response = await fetch(`/generar_informe`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

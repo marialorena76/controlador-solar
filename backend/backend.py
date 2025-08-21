@@ -64,8 +64,8 @@ def get_electrodomesticos_consumos():
                 consumo_diario_kwh = (watts * hours) / 1000.0
 
                 appliance_entry = {
-                    "name": item.get('name', 'Sin Nombre'),
-                    "consumo_diario_kwh": consumo_diario_kwh,
+                    "nombre": item.get('name', 'Sin Nombre'),
+                    "consumo_diario": consumo_diario_kwh,
                     "watts": watts
                 }
                 categorized_appliances[category].append(appliance_entry)
@@ -83,7 +83,7 @@ def get_electrodomesticos_consumos():
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
 # --- Ruta para generar informe (EXISTENTE) ---
-@app.route('/api/generar_informe', methods=['POST'])
+@app.route('/generar_informe', methods=['POST'])
 def generar_informe():
     user_data = request.json
     print("DEBUG: Datos recibidos del frontend para informe:", user_data)
