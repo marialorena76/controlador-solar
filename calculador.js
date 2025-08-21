@@ -1435,7 +1435,11 @@ async function initInversorSection() {
 
 async function cargarElectrodomesticosDesdeBackend() {
     try {
+<<<<<<< Updated upstream
         const response = await fetch(`/api/electrodomesticos`);
+=======
+        const response = await fetch('/api/electrodomesticos');
+>>>>>>> Stashed changes
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
