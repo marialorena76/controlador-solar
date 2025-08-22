@@ -4,7 +4,7 @@ from flask_cors import CORS
 import pandas as pd
 import os
 import json
-from backend import engine
+from . import engine
 
 # --- Setup robust paths relative to this script ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
