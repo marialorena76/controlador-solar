@@ -1,6 +1,6 @@
 console.log('🤖 calculador.js cargado - flujo de controlador ajustado y persistencia de datos');
 
-let map, marker;
+let map, marker, geocoderControlInstance;
 let userLocation = { lat: -34.6037, lng: -58.3816 }; // Buenos Aires por defecto
 
 // Objeto para almacenar todas las selecciones del usuario
@@ -733,7 +733,6 @@ async function initRotacionSection() {
                 const value = parseFloat(e.target.value);
                 userSelections.anguloInclinacion = isNaN(value) ? null : value;
                 saveUserSelections();
-                escribirRotacionDataEnExcel();
                 console.log('[initRotacionSection] anguloInclinacion input changed:', userSelections.anguloInclinacion);
             });
         }
@@ -743,7 +742,6 @@ async function initRotacionSection() {
                 let value = parseFloat(e.target.value);
                 userSelections.anguloOrientacion = isNaN(value) ? null : value;
                 saveUserSelections();
-                escribirRotacionDataEnExcel();
                 console.log('[initRotacionSection] anguloOrientacion input changed:', userSelections.anguloOrientacion);
             });
         }
@@ -1867,6 +1865,7 @@ function extraerCiudadDeDireccion(direccion) {
 // --- Lógica del Mapa (EXISTENTE, CON PEQUEÑAS MEJORAS) ---
 
 function initMap() {
+    console.log('--- initMap CALLED ---');
     // CORRECCIÓN: Si el mapa ya está inicializado, lo destruimos para evitar errores de doble inicialización
     if (map) {
         map.remove();
@@ -1892,7 +1891,7 @@ function initMap() {
 
     // Asegúrate de que el geocodificador esté importado correctamente en tu HTML
     // <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-    const geocoderControlInstance = L.Control.geocoder({
+    geocoderControlInstance = L.Control.geocoder({
         placeholder: 'Ej: Buchardo 3232, Olavarría', // Nuevo placeholder
         errorMessage: 'No se encontró la dirección.',
         defaultMarkGeocode: false
@@ -1935,10 +1934,11 @@ function initMap() {
                     } else if (parts.length === 1) {
                         city = parts[0].trim();
                     }
-                    if (city && city.toLowerCase().startsWith('partido de ')) {
-                        city = city.substring('partido de '.length).trim();
-                    }
                 }
+            }
+
+            if (city && city.toLowerCase().startsWith('partido de ')) {
+                city = city.substring('partido de '.length).trim();
             }
 
             if (city) {
@@ -1951,6 +1951,7 @@ function initMap() {
             }
         }
     }).addTo(map);
+
 }
 
 // --- Nueva función para buscar el código de la ciudad ---
@@ -1968,7 +1969,6 @@ async function buscarCodigoCiudad(ciudad) {
             if (data.codigo_ciudad) {
                 console.log('Código de ciudad recibido:', data.codigo_ciudad);
                 userSelections.codigoCiudad = data.codigo_ciudad;
-                await escribirCodigoCiudadEnExcel(data.codigo_ciudad);
             } else {
                 console.warn('No se encontró código para la ciudad:', ciudad, data.message);
                 userSelections.codigoCiudad = null;
@@ -1994,17 +1994,6 @@ async function buscarCodigoCiudad(ciudad) {
         saveUserSelections();
     }
 
-    // Relocate the geocoder DOM element
-    const geocoderElement = geocoderControlInstance.getContainer();
-    const customGeocoderContainer = document.getElementById('geocoder-container');
-    
-    if (customGeocoderContainer && geocoderElement) {
-        customGeocoderContainer.innerHTML = ''; // Clear the container first if it has placeholder content or old controls
-        customGeocoderContainer.appendChild(geocoderElement);
-    } else {
-        if (!customGeocoderContainer) console.error('Custom geocoder container (geocoder-container) not found.');
-        if (!geocoderElement) console.error('Geocoder control element (geocoderElement) not found.');
-    }
 }
 
 
@@ -2259,7 +2248,6 @@ function setupNavigationButtons() {
                 const value = parseFloat(valueStr);
                 if (!isNaN(value) && value >= 0) {
                     userSelections.potenciaPanelDeseada = value;
-                    escribirPotenciaPanelEnExcel(value);
                 }
                 // If input is invalid (e.g. negative or non-numeric and not empty),
                 // userSelections.potenciaPanelDeseada retains its previous valid value or null.
