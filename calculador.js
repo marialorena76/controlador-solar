@@ -1081,6 +1081,54 @@ function initFocoPolvoOptions() {
     });
 }
 
+async function fetchAndDisplayPanelModel() {
+    console.log('[DEBUG] fetchAndDisplayPanelModel called. Fetching full report to get panel model...');
+    const modeloPanelInput = document.getElementById('modelo-panel-input');
+    if (!modeloPanelInput) {
+        console.error("Elemento 'modelo-panel-input' no encontrado.");
+        return;
+    }
+
+    modeloPanelInput.value = 'Calculando...'; // Show loading state
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/generar_informe', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(userSelections)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Error del servidor: ${response.status}`);
+        }
+
+        const informe = await response.json();
+        console.log('[DEBUG] Reporte recibido para obtener modelo de panel:', informe);
+
+        const modelName = informe?.panel_seleccionado?.Modelo;
+
+        if (modelName && modelName.trim() !== '') {
+            modeloPanelInput.value = modelName;
+            // Opcional: guardar el modelo en userSelections también
+            if (userSelections.panelesSolares) {
+                userSelections.panelesSolares.modelo = modelName;
+                saveUserSelections();
+            }
+        } else {
+            modeloPanelInput.value = 'No hay modelo disponible';
+        }
+
+    } catch (error) {
+        console.error('Error al generar informe para obtener el modelo del panel:', error);
+        modeloPanelInput.value = 'Error al obtener modelo';
+        // Opcionalmente, mostrar un alert al usuario
+        // alert('No se pudo obtener el modelo de panel. Por favor, revise los datos ingresados o intente más tarde.');
+    }
+}
+
 function initPanelesSectionExpert() {
     console.log('[DEBUG] initPanelesSectionExpert: Called.');
     console.log('[DEBUG] panelMarcaSubform:', typeof panelMarcaSubform !== 'undefined' ? panelMarcaSubform : 'NOT DEFINED');
@@ -1211,7 +1259,7 @@ async function initMarcaPanelOptions() {
                 initPotenciaPanelOptions();
             }
             // Also trigger the model update (it will be blank until power is selected)
-            updatePanelModel();
+            // updatePanelModel(); // This is now handled by the "Next" button logic.
         });
         container.appendChild(selectElement);
 
@@ -1268,64 +1316,6 @@ function initModeloTemperaturaPanelOptions() {
         userSelections.modeloTemperaturaPanel = value || null;
         saveUserSelections();
     });
-}
-
-async function updatePanelModel() {
-    console.log("[DEBUG] updatePanelModel function started.");
-    const marca = userSelections.marcaPanel;
-    const potencia = userSelections.potenciaPanelDeseada;
-    console.log(`[DEBUG] Current values - Marca: ${marca}, Potencia: ${potencia}`);
-    const modeloPanelInput = document.getElementById('modelo-panel-input');
-
-    if (!modeloPanelInput) {
-        console.error("Input 'modelo-panel-input' no encontrado.");
-        return;
-    }
-
-    if (marca && potencia) {
-        console.log("[DEBUG] Both marca and potencia are present. Proceeding to fetch.");
-        console.log(`Fetching model for: ${marca}, ${potencia}W`);
-        modeloPanelInput.value = 'Buscando modelo...'; // Show loading state
-
-        try {
-            const response = await fetch('http://127.0.0.1:5000/api/get_panel_model', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ marca: marca, potencia: potencia }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP error ${response.status}`);
-            }
-
-            const data = await response.json();
-            if (data.model_name) {
-                modeloPanelInput.value = data.model_name;
-                // Also save it to the main userSelections object
-                if (userSelections.panelesSolares) {
-                    userSelections.panelesSolares.modelo = data.model_name;
-                    saveUserSelections();
-                }
-            } else {
-                modeloPanelInput.value = 'Modelo no encontrado.';
-            }
-
-        } catch (error) {
-            console.error('Error fetching panel model:', error);
-            modeloPanelInput.value = 'Error al buscar modelo.';
-        }
-
-    } else {
-        // If brand or power is not selected, clear the model input
-        modeloPanelInput.value = '';
-        if (userSelections.panelesSolares) {
-            userSelections.panelesSolares.modelo = null;
-            saveUserSelections();
-        }
-    }
 }
 
 function initPotenciaPanelOptions() {
@@ -1386,7 +1376,7 @@ function initPotenciaPanelOptions() {
             const value = parseInt(event.target.value, 10);
             userSelections.potenciaPanelDeseada = isNaN(value) ? null : value;
             saveUserSelections();
-            updatePanelModel(); // Call the new function
+            // The model will be fetched when the user clicks "Next", so no call is needed here.
         });
 
         // Insert the select after the label
@@ -2667,11 +2657,12 @@ function setupNavigationButtons() {
     });
 
     // 3. From "Potencia Deseada" to "Modelo Panel"
-    document.getElementById('next-from-panel-potencia')?.addEventListener('click', () => {
+    document.getElementById('next-from-panel-potencia')?.addEventListener('click', async () => {
         if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
         if (panelModeloSubform) panelModeloSubform.style.display = 'block';
-        initModeloPanelOptions();
         updateStepIndicator('panel-modelo-subform');
+        // Fetch and display the panel model when the user proceeds to this step.
+        await fetchAndDisplayPanelModel();
     });
 
     // 4. From "Modelo Panel" back to "Potencia Deseada"
