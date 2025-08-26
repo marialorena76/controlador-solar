@@ -891,5 +891,39 @@ def get_inverter_options():
         return jsonify({"error": "Error interno del servidor al obtener opciones de inversor."}), 500
 
 
+# --- NUEVA RUTA: Para obtener una lista filtrada de inversores adecuados ---
+@app.route('/api/get_suitable_inverters', methods=['POST'])
+def get_suitable_inverters_api():
+    """
+    Recibe los datos del usuario, calcula los requisitos del sistema y devuelve una lista
+    de inversores adecuados.
+    """
+    user_data = request.json
+    if not user_data:
+        return jsonify({"error": "No se proporcionaron datos en la solicitud."}), 400
+
+    try:
+        print("DEBUG: API call to /api/get_suitable_inverters.")
+        # Cargar todas las hojas del archivo Excel
+        all_sheets = engine.load_excel_data()
+        if all_sheets is None:
+            return jsonify({"error": "No se pudo cargar el archivo Excel en el servidor."}), 500
+
+        # Llamar a la nueva función del motor para obtener la lista de inversores adecuados
+        suitable_inverters = engine.get_suitable_inverters_list(user_data, all_sheets)
+
+        if isinstance(suitable_inverters, dict) and "error" in suitable_inverters:
+            # Propagar errores desde el motor
+            return jsonify(suitable_inverters), 500
+
+        return jsonify(suitable_inverters)
+
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/get_suitable_inverters: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno del servidor al buscar inversores adecuados: {str(e)}"}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)

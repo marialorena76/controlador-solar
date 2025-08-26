@@ -547,6 +547,60 @@ def _calculate_environmental_impact(generacion_anual_kwh):
         "emisiones_evitadas_tco2": emisiones_evitadas_tco2
     }
 
+def get_suitable_inverters_list(user_data, all_sheets):
+    """
+    Calculates required system power and returns a list of suitable inverters.
+    """
+    print("DEBUG: Engine: Getting suitable inverters list.")
+
+    # --- 1. Perform preliminary calculations to get system size ---
+    df_datos_entrada = all_sheets.get('Datos de Entrada')
+    df_tablas = all_sheets.get('Tablas')
+    df_radiacion = all_sheets.get('base de datos (3)')
+    df_paneles_comerciales = all_sheets.get('Paneles comerciales')
+    df_paneles_genericos = all_sheets.get('Paneles genéricos')
+    df_inversores = all_sheets.get('Inversores genéricos')
+
+    if any(df is None for df in [df_datos_entrada, df_tablas, df_radiacion, df_paneles_comerciales, df_paneles_genericos, df_inversores]):
+        return {"error": "Una o más hojas de cálculo necesarias no se encontraron para el cálculo de inversores."}
+
+    latitud = user_data.get('location', {}).get('lat', 0)
+    longitud = user_data.get('location', {}).get('lng', 0)
+
+    consumo_anual = _calculate_annual_consumption(user_data, df_datos_entrada, df_tablas)
+    panel_seleccionado = _select_panel(user_data, df_paneles_comerciales, df_paneles_genericos)
+    hsp_diario_promedio = _get_hsp_for_location(latitud, longitud, df_radiacion.copy())
+    system_size_data = _calculate_system_size(consumo_anual, panel_seleccionado, hsp_diario_promedio)
+
+    if "error" in system_size_data:
+        return system_size_data
+
+    total_system_power_wp = system_size_data.get("total_system_power_wp", 0)
+
+    # --- 2. Filter the inverters list ---
+    print(f"DEBUG: Filtering inverters for system power: {total_system_power_wp:.2f} Wp")
+    min_inverter_power_w = total_system_power_wp / 1.25
+    suitable_inverters_df = df_inversores[df_inversores['Pot nom CA [W]'] >= min_inverter_power_w].copy()
+
+    if suitable_inverters_df.empty:
+        print("WARN: No suitable inverter found. Returning empty list.")
+        return []
+
+    # Sort by power to show the smallest suitable inverter first
+    suitable_inverters_df.sort_values(by='Pot nom CA [W]', ascending=True, inplace=True)
+
+    # Convert dataframe to a list of dictionaries for JSON response
+    inverter_list = suitable_inverters_df.to_dict(orient='records')
+
+    # Clean up NaN values from the list of dicts
+    cleaned_list = []
+    for inverter in inverter_list:
+        cleaned_list.append({k: v for k, v in inverter.items() if pd.notna(v)})
+
+    print(f"DEBUG: Found {len(cleaned_list)} suitable inverters.")
+    return cleaned_list
+
+
 def get_panel_model_name(marca, potencia, excel_path):
     """
     A dedicated public function to look up a panel model name based on brand and power.

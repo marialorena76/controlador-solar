@@ -1396,15 +1396,33 @@ async function initInversorSection() {
         console.error("Contenedor 'inversor-options-container' no encontrado.");
         return;
     }
-    container.innerHTML = 'Cargando opciones de inversor...';
+    container.innerHTML = 'Cargando opciones de inversor adecuadas...';
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/get_inverter_options');
+        const response = await fetch('http://127.0.0.1:5000/api/get_suitable_inverters', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userSelections),
+        });
+
         if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
+            const errorData = await response.json().catch(() => ({ error: `Error HTTP: ${response.status}` }));
+            throw new Error(errorData.error || `Error HTTP: ${response.status}`);
         }
+
         const inverterOptions = await response.json();
         container.innerHTML = ''; // Clear loading message
+
+        if (!Array.isArray(inverterOptions)) {
+             throw new Error("La respuesta del servidor para los inversores no es una lista válida.");
+        }
+
+        if (inverterOptions.length === 0) {
+            container.innerHTML = '<p style="color:orange; font-size:0.9em;">No se encontraron inversores adecuados para la potencia del sistema calculada. Puede continuar, pero la selección del inversor no estará disponible y el informe puede no ser preciso.</p>';
+            return;
+        }
 
         const selectElement = document.createElement('select');
         selectElement.id = 'inversor-select';
@@ -1420,11 +1438,9 @@ async function initInversorSection() {
         inverterOptions.forEach(inverter => {
             const option = document.createElement('option');
             option.value = inverter.NOMBRE;
-            // Store power in a data attribute for later use
             option.dataset.power = inverter['Pot nom CA [W]'];
             option.textContent = `${inverter.NOMBRE} (${(inverter['Pot nom CA [W]']/1000).toFixed(2)} kW)`;
 
-            // Pre-select if it matches the saved selection
             if (userSelections.inversor && userSelections.inversor.tipo === inverter.NOMBRE) {
                 option.selected = true;
                 placeholder.selected = false;
@@ -1452,8 +1468,8 @@ async function initInversorSection() {
         container.appendChild(selectElement);
 
     } catch (error) {
-        console.error("Error al cargar opciones de inversor:", error);
-        container.innerHTML = '<p style="color:red;">Error al cargar los modelos de inversor.</p>';
+        console.error("Error al cargar opciones de inversor adecuadas:", error);
+        container.innerHTML = `<p style="color:red;">Error al cargar los modelos de inversor: ${error.message}</p>`;
     }
 }
 
