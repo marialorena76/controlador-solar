@@ -1889,10 +1889,31 @@ function initMap() {
         userLocation.lat = e.latlng.lat;
         userLocation.lng = e.latlng.lng;
         marker.setLatLng(userLocation);
-        // if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6); // Eliminado
-        // if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6); // Eliminado
-        userSelections.location = userLocation; // Guardar la ubicación en userSelections
-        saveUserSelections(); // Guardar las selecciones en localStorage
+        userSelections.location = userLocation;
+        // La llamada a saveUserSelections() se mueve para ser consistente con el geocodificador de búsqueda.
+
+        // Realizar geocodificación inversa para encontrar la ciudad
+        if (geocoderControlInstance && geocoderControlInstance.options.geocoder) {
+            geocoderControlInstance.options.geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom()), function(results) {
+                const r = results[0];
+                if (r && r.name) {
+                    console.log('Reverse geocode result from click:', r.name);
+                    buscarCodigoCiudad(r.name); // Esta función ya guarda las selecciones.
+                } else {
+                    const locationDisplay = document.getElementById('location-display');
+                    if (locationDisplay) {
+                        locationDisplay.textContent = 'No se pudo identificar la ubicación. Intente de nuevo.';
+                        locationDisplay.style.backgroundColor = '#fbe9e7';
+                    }
+                    // Si no se encuentra un nombre, nos aseguramos de que el código de ciudad sea nulo y guardamos.
+                    userSelections.codigoCiudad = null;
+                    saveUserSelections();
+                }
+            });
+        } else {
+            // Si no hay geocodificador, al menos guardamos la lat/lng.
+            saveUserSelections();
+        }
     });
 
     // Asegúrate de que el geocodificador esté importado correctamente en tu HTML
@@ -1931,6 +1952,12 @@ function initMap() {
 
 // --- Nueva función para buscar el código de la ciudad (modificada) ---
 async function buscarCodigoCiudad(fullAddress) {
+    const locationDisplay = document.getElementById('location-display');
+    if (locationDisplay) {
+        locationDisplay.textContent = 'Buscando ciudad...';
+        locationDisplay.style.backgroundColor = '#e3f2fd'; // Blue for searching
+    }
+
     try {
         const response = await fetch('http://127.0.0.1:5000/api/buscar_ciudad', {
             method: 'POST',
@@ -1939,36 +1966,59 @@ async function buscarCodigoCiudad(fullAddress) {
             },
             body: JSON.stringify({ full_address: fullAddress }),
         });
-        if (response.ok) {
-            const data = await response.json();
-            if (data.codigo_ciudad) {
-                console.log('Código de ciudad recibido:', data.codigo_ciudad);
-                userSelections.codigoCiudad = data.codigo_ciudad;
-            } else {
-                console.warn('No se encontró código para la ciudad:', ciudad, data.message);
-                userSelections.codigoCiudad = null;
-                setTimeout(() => {
-                    alert("La ciudad ingresada (" + ciudad + ") no se encontró en nuestra base de datos. Por favor, verifique el nombre o intente con una ciudad cercana.");
-                }, 0);
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Error del servidor: ${response.status}`);
+        }
+
+        const data = await response.json();
+        // MODIFICACIÓN: Comprobar explícitamente que no sea null o undefined.
+        // Esto evita problemas si el código de ciudad es 0 (aunque ya vimos que no es el caso)
+        // y es una comprobación más robusta.
+        if (data.codigo_ciudad !== null && data.codigo_ciudad !== undefined) {
+            console.log(`Ciudad encontrada: ${data.nombre_ciudad}, Código: ${data.codigo_ciudad}`);
+            userSelections.codigoCiudad = data.codigo_ciudad;
+
+            if (locationDisplay) {
+                locationDisplay.textContent = `Ubicación seleccionada: ${data.nombre_ciudad}`;
+                locationDisplay.style.backgroundColor = '#e9f5e9'; // Green for success
             }
+
+            // Escribir la ciudad encontrada en la celda B7 de "Datos de Entrada"
+            const writeResponse = await fetch('http://127.0.0.1:5000/api/escribir_dato_excel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    dato: data.nombre_ciudad,
+                    hoja: 'Datos de Entrada',
+                    celda: 'B7'
+                })
+            });
+
+            if (!writeResponse.ok) {
+                console.error('Error al escribir la ciudad en el archivo Excel.');
+                // Opcional: notificar al usuario que la escritura falló pero la selección está hecha.
+            }
+
         } else {
-            const errorData = await response.json();
-            setTimeout(() => {
-                alert("Error al buscar la ciudad. Por favor, intente de nuevo.");
-            }, 0);
-            console.error('Error al buscar ciudad en backend:', response.status, errorData.error);
+            console.warn('No se encontró código para la dirección:', fullAddress);
             userSelections.codigoCiudad = null;
+            if (locationDisplay) {
+                locationDisplay.textContent = 'No se pudo encontrar la ciudad en la base de datos.';
+                locationDisplay.style.backgroundColor = '#fbe9e7'; // Red for failure
+            }
         }
     } catch (error) {
-        console.error('Error en la solicitud fetch para buscar_ciudad:', error);
+        console.error('Error en la búsqueda de ciudad:', error);
+        if (locationDisplay) {
+            locationDisplay.textContent = 'Error al buscar la ciudad.';
+            locationDisplay.style.backgroundColor = '#fbe9e7';
+        }
         userSelections.codigoCiudad = null;
-        setTimeout(() => {
-            alert("Error de conexión al buscar la ciudad. Por favor, verifique su conexión e intente de nuevo.");
-        }, 0);
     } finally {
         saveUserSelections();
     }
-
 }
 
 

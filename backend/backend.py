@@ -4,7 +4,10 @@ from flask_cors import CORS
 import pandas as pd
 import os
 import json
+from threading import Lock
 from . import engine
+
+excel_lock = Lock()
 
 # --- Setup robust paths relative to this script ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -667,6 +670,10 @@ def normalizar_texto(texto):
     if texto is None:
         return ""
     texto = texto.lower().strip()
+    # Eliminar prefijos comunes como "partido de "
+    if texto.startswith('partido de '):
+        texto = texto[len('partido de '):]
+
     # Reemplazos para vocales acentuadas y diéresis comunes en español
     reemplazos = {
         'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
@@ -714,14 +721,19 @@ def buscar_ciudad():
 
             # Comparar cada parte de la dirección con la ciudad actual de la lista
             for part in address_parts:
-                part_normalizada = normalizar_texto(part)
+                # Limpiar y normalizar la parte de la dirección
+                part_cleaned = part.lower().strip()
+                if part_cleaned.startswith("partido de "):
+                    part_cleaned = part_cleaned.replace("partido de ", "", 1).strip()
+
+                part_normalizada = normalizar_texto(part_cleaned)
                 if not part_normalizada:
                     continue
 
                 # Si la parte de la dirección coincide con una ciudad de la lista, la hemos encontrado
                 if part_normalizada == nombre_ciudad_excel_normalizado:
                     print(f"DEBUG: Coincidencia encontrada. Parte de la dirección: '{part}' -> Ciudad en Excel: '{nombre_ciudad_excel}'. Código: {codigo_ciudad}")
-                    return jsonify({"codigo_ciudad": codigo_ciudad, "message": f"Ciudad encontrada: {nombre_ciudad_excel}"}), 200
+                    return jsonify({"codigo_ciudad": codigo_ciudad, "nombre_ciudad": nombre_ciudad_excel, "message": f"Ciudad encontrada: {nombre_ciudad_excel}"}), 200
 
         print(f"WARN: No se encontró ninguna ciudad coincidente para la dirección: '{full_address}'")
         return jsonify({"codigo_ciudad": None, "message": f"No se pudo encontrar una ciudad válida en la dirección proporcionada."}), 200
@@ -920,6 +932,31 @@ def get_suitable_inverters_api():
         print(f"ERROR GENERAL en /api/get_suitable_inverters: {e}")
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor al buscar inversores adecuados: {str(e)}"}), 500
+
+
+# --- Temporary Verification Endpoint ---
+@app.route('/api/verificar_celda', methods=['GET'])
+def verificar_celda():
+    with excel_lock:
+        try:
+            hoja_nombre = request.args.get('hoja', 'Datos de Entrada')
+            celda_ref = request.args.get('celda', 'B7')
+
+            # Usar openpyxl para leer el valor
+            import openpyxl
+            workbook = openpyxl.load_workbook(EXCEL_FILE_PATH)
+
+            if hoja_nombre not in workbook.sheetnames:
+                return jsonify({"error": f"La hoja '{hoja_nombre}' no existe."}), 404
+
+            sheet = workbook[hoja_nombre]
+            valor_celda = sheet[celda_ref].value
+
+            return jsonify({"hoja": hoja_nombre, "celda": celda_ref, "valor": valor_celda})
+
+        except Exception as e:
+            app.logger.error(f"Error al verificar celda: {e}")
+            return jsonify({"error": f"Error interno del servidor al verificar la celda: {str(e)}"}), 500
 
 
 if __name__ == '__main__':

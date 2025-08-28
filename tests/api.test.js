@@ -1,22 +1,18 @@
-const { spawn } = require('child_process');
 const axios = require('axios');
 
-let server;
-
-beforeAll(done => {
-  server = spawn('flask', ['--app', 'backend/backend.py', 'run', '--no-reload'], { stdio: 'inherit' });
-  // give the server a moment to start
-  setTimeout(done, 2000);
-});
-
-afterAll(() => {
-  if (server) {
-    server.kill();
-  }
-});
+// The server is now started and stopped by the global setup and teardown scripts
+// defined in jest.config.js.
 
 test('GET / should return HTML page', async () => {
-  const res = await axios.get('http://127.0.0.1:5000/');
-  expect(res.status).toBe(200);
-  expect(res.data).toContain('<!DOCTYPE html>');
+  let response;
+  try {
+    response = await axios.get('http://127.0.0.1:5000/');
+    expect(response.status).toBe(200);
+    expect(response.data).toContain('<!DOCTYPE html>');
+  } catch (error) {
+    // If the server isn't ready, the test might fail.
+    // This provides more context than a generic timeout error.
+    console.error('Error connecting to the test server. Is it running?', error.message);
+    throw error;
+  }
 });
