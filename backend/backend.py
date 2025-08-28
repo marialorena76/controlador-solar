@@ -750,61 +750,8 @@ def buscar_ciudad():
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor al buscar ciudad: {str(e)}"}), 500
 
-# --- NUEVA RUTA: Para escribir un dato en una celda específica del Excel ---
-@app.route('/api/escribir_dato_excel', methods=['POST'])
-def escribir_dato_excel():
-    data = request.json
-    dato_a_escribir = data.get('dato')
-    hoja_destino = data.get('hoja')
-    celda_destino = data.get('celda')
-
-    if 'dato' not in data or not hoja_destino or not celda_destino:
-        return jsonify({"error": "Faltan datos: se requiere 'dato', 'hoja' y 'celda'."}), 400
-
-    with excel_lock:
-        try:
-            print(f"DEBUG: Solicitud a /api/escribir_dato_excel. Dato: {dato_a_escribir}, Hoja: {hoja_destino}, Celda: {celda_destino}")
-
-            # Usar openpyxl para leer y escribir para preservar el archivo existente tanto como sea posible
-            import openpyxl
-
-            # Verificar si el archivo existe
-            if not os.path.exists(EXCEL_FILE_PATH):
-                print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO para escritura: {EXCEL_FILE_PATH}")
-                return jsonify({"error": f"Archivo Excel '{EXCEL_FILE_PATH}' no encontrado en el servidor."}), 500
-
-            workbook = openpyxl.load_workbook(EXCEL_FILE_PATH)
-
-            if hoja_destino not in workbook.sheetnames:
-                print(f"ERROR: Hoja '{hoja_destino}' no encontrada en el archivo Excel.")
-                return jsonify({"error": f"Hoja '{hoja_destino}' no encontrada."}), 400
-
-            sheet = workbook[hoja_destino]
-
-            # Validar la celda (simple validación de formato, openpyxl maneja errores de celda inválida)
-            if not isinstance(celda_destino, str) or not celda_destino:
-                 print(f"ERROR: Formato de celda inválido: {celda_destino}")
-                 return jsonify({"error": "Formato de celda inválido."}), 400
-
-            sheet[celda_destino] = dato_a_escribir
-
-            workbook.save(EXCEL_FILE_PATH)
-            print(f"DEBUG: Dato '{dato_a_escribir}' escrito en Hoja '{hoja_destino}', Celda '{celda_destino}' exitosamente.")
-
-            return jsonify({"message": f"Dato '{dato_a_escribir}' escrito correctamente en {hoja_destino}!{celda_destino}."})
-
-        except FileNotFoundError: # Aunque ya chequeamos arriba, por si acaso durante el load_workbook
-            print(f"ERROR en /api/escribir_dato_excel: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
-            return jsonify({"error": "Archivo Excel de configuración no encontrado durante la operación."}), 500
-        except KeyError as e: # Podría ser por hoja_destino si el chequeo inicial falla de alguna forma
-            print(f"ERROR en /api/escribir_dato_excel: Hoja '{hoja_destino}' no encontrada? Error: {e}")
-            return jsonify({"error": f"Error de clave, Hoja '{hoja_destino}' no encontrada: {e}"}), 400
-        except Exception as e:
-            import traceback
-            print(f"ERROR GENERAL en /api/escribir_dato_excel: {e}")
-            print(traceback.format_exc())
-            # Evitar exponer detalles internos en el mensaje de error al cliente
-            return jsonify({"error": "Error interno del servidor al intentar escribir en el archivo Excel."}), 500
+# --- La ruta /api/escribir_dato_excel se ha eliminado para prevenir la corrupción de archivos.
+# --- La lógica ahora maneja los datos en memoria en lugar de escribir en el archivo Excel. ---
 
 # --- NUEVA RUTA: Para obtener el modelo de panel desde la celda C83 ---
 @app.route('/api/get_modelo_panel', methods=['GET'])
@@ -934,29 +881,7 @@ def get_suitable_inverters_api():
         return jsonify({"error": f"Error interno del servidor al buscar inversores adecuados: {str(e)}"}), 500
 
 
-# --- Temporary Verification Endpoint ---
-@app.route('/api/verificar_celda', methods=['GET'])
-def verificar_celda():
-    with excel_lock:
-        try:
-            hoja_nombre = request.args.get('hoja', 'Datos de Entrada')
-            celda_ref = request.args.get('celda', 'B7')
-
-            # Usar openpyxl para leer el valor
-            import openpyxl
-            workbook = openpyxl.load_workbook(EXCEL_FILE_PATH)
-
-            if hoja_nombre not in workbook.sheetnames:
-                return jsonify({"error": f"La hoja '{hoja_nombre}' no existe."}), 404
-
-            sheet = workbook[hoja_nombre]
-            valor_celda = sheet[celda_ref].value
-
-            return jsonify({"hoja": hoja_nombre, "celda": celda_ref, "valor": valor_celda})
-
-        except Exception as e:
-            app.logger.error(f"Error al verificar celda: {e}")
-            return jsonify({"error": f"Error interno del servidor al verificar la celda: {str(e)}"}), 500
+# --- El endpoint temporal /api/verificar_celda ha sido eliminado. ---
 
 
 if __name__ == '__main__':
