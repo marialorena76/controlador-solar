@@ -1,0 +1,23 @@
+{
+    "consumo_anual_kwh": 26911.274321556575,
+    "energia_generada_anual": null,
+    "autoconsumo": null,
+    "inyectada_red": null,
+    "potencia_panel_sugerida": 590,
+    "numero_paneles": null,
+    "area_paneles_m2": null,
+    "vida_util": 25,
+    "costo_actual": 2259200.8365987497,
+    "inversion_inicial": null,
+    "mantenimiento": null,
+    "costo_futuro": null,
+    "ingreso_red": null,
+    "emisiones": null,
+    "userType": "basico",
+    "moneda": "Pesos",
+    "panel_seleccionado": {
+        "Marca": "ASTRONERGY",
+        "Pmax[W]": 590,
+        "Modelo": null
+    }
+}
