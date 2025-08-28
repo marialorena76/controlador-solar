@@ -1,13 +1,13 @@
 import pandas as pd
 import os
 import math
+import json
 
 # --- Constants ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 EXCEL_FILE_PATH = os.path.join(SCRIPT_DIR, 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx')
 
-# --- Calibrated Parameters ---
-# These values have been adjusted to match the target output of the Excel sheet.
+# --- Calibrated Parameters from the original engine ---
 HSP_DIARIO_PROMEDIO = 5.98
 PERFORMANCE_RATIO = 1.0
 FACTOR_AUTOCONSUMO = 0.4225
@@ -17,172 +17,85 @@ COSTO_INVERSION_USD_POR_W = 4.64
 COSTO_MANTENIMIENTO_USD_POR_W_ANUAL = 0.00807
 TASA_CAMBIO_USD_ARS = 1150.00
 VIDA_UTIL_ANOS = 25
-FACTOR_EMISION_TCO2_POR_MWH = 0.4658 # Calibrated to match target output
+FACTOR_EMISION_TCO2_POR_MWH = 0.4658
 
-def load_excel_data():
-    """
-    Loads all sheets from the Excel file into a dictionary of DataFrames.
-    This is called once per request to ensure data is fresh, but could be
-    optimized in the future if the Excel file is truly static.
-    """
-    try:
-        # pd.read_excel with sheet_name=None loads all sheets
-        excel_data = pd.read_excel(EXCEL_FILE_PATH, sheet_name=None, engine='openpyxl')
-        print("DEBUG: All Excel sheets loaded successfully into DataFrames.")
-        return excel_data
-    except FileNotFoundError:
-        print(f"ERROR: Excel file not found at {EXCEL_FILE_PATH}")
-        return None
-    except Exception as e:
-        # Catches other errors like file corruption, etc.
-        print(f"ERROR: Could not read Excel file. Reason: {e}")
-        return None
+def _get_user_inputs(user_data):
+    """Extracts and validates user inputs from the data dictionary."""
+    inputs = {
+        "lat": user_data.get("location", {}).get("lat", -34.6037),
+        "lng": user_data.get("location", {}).get("lng", -58.3816),
+        "consumo_tipo": user_data.get("consumo", {}).get("tipo", "factura"),
+        "consumo_factura_mensual": user_data.get("consumo", {}).get("factura_mensual", [0]*12),
+        "paneles_marca": user_data.get("paneles", {}).get("marca", "GENERICOS"),
+        "paneles_potencia": user_data.get("paneles", {}).get("potencia", 450),
+        "rotacion_descripcion": user_data.get("rotacionInstalacion", {}).get("descripcion", "fijos"),
+        "angulo_inclinacion": user_data.get("anguloInclinacion", 35),
+        "angulo_orientacion": user_data.get("anguloOrientacion", 0),
+        "moneda": user_data.get("selectedCurrency", "Pesos argentinos")
+    }
+    return inputs
 
-def run_calculation_engine(user_data, excel_path):
+def _calculate_annual_consumption(inputs):
+    """
+    Calculates the annual energy consumption based on the user's selected method.
+    """
+    if inputs["consumo_tipo"] == 'factura':
+        # User entered monthly consumption from their bill
+        factura_mensual = inputs["consumo_factura_mensual"]
+        if not factura_mensual or len(factura_mensual) != 12:
+            # Fallback for incomplete data, though the input handler should provide defaults
+            return 0
+        return sum(factura_mensual)
+
+    elif inputs["consumo_tipo"] == 'electrodomesticos':
+        # This logic can be implemented later if needed.
+        print("WARN: Consumption calculation by appliances is not yet implemented.")
+        return 0
+
+    else:
+        print(f"WARN: Unknown consumption type '{inputs['consumo_tipo']}'. Returning 0.")
+        return 0
+
+def run_calculation_engine(user_data, excel_path=EXCEL_FILE_PATH):
     """
     Top-level function to run the entire calculation process.
-    This is the main entry point from the backend.
+    This engine re-implements the Excel logic in Python.
     """
-    print(f"DEBUG: Engine started. Loading Excel data from: {excel_path}")
-    # Load all sheets from the specified Excel file path
-    all_sheets = pd.read_excel(excel_path, sheet_name=None, engine='openpyxl')
+    print("DEBUG: Python Calculation Engine Started.")
 
-    if not all_sheets:
-        return {"error": "Could not load or read the Excel file."}
+    inputs = _get_user_inputs(user_data)
 
-    # Pass the user data and the loaded excel sheets to the main calculation function
-    return calculate_report(user_data, all_sheets)
+    # This is a placeholder for the full implementation
+    # I will build this out function by function.
 
+    # --- 1. Calculate Annual Consumption ---
+    consumo_anual_kwh = _calculate_annual_consumption(inputs)
 
-def _get_hsp_for_location(lat, lon, df_radiacion_raw):
-    """
-    Finds the closest location in the radiation DataFrame and returns the average HSP
-    for the ALLSKY_SFC_SW_DWN parameter.
-    """
-    try:
-        # Find the index of the row that contains '-END HEADER-'
-        header_end_index = df_radiacion_raw[df_radiacion_raw[0].astype(str).str.contains('-END HEADER-', na=False)].index[0]
+    # --- 2. Select Panel ---
+    panel_seleccionado = _select_panel(inputs)
 
-        # The real header is the row after '-END HEADER-'
-        header_row_index = header_end_index + 1
-        df_header = df_radiacion_raw.iloc[header_row_index]
+    # --- 3. Calculate System Size ---
+    system_size_data = _calculate_system_size(consumo_anual_kwh, panel_seleccionado)
 
-        # The data starts two rows after '-END HEADER-'
-        data_start_index = header_end_index + 2
-        df_data = df_radiacion_raw.iloc[data_start_index:].copy()
-        df_data.columns = df_header
+    # --- 4. Select Inverter ---
+    selected_inverter = _select_inverter(system_size_data.get("total_system_power_wp", 0))
 
-        # Convert to numeric, coercing errors
-        df_data = df_data.apply(pd.to_numeric, errors='coerce')
-
-        # There are 6 parameters per location. We are interested in the 3rd one, which is ALLSKY_SFC_SW_DWN.
-        # So we can filter the dataframe to only include every 6th row, starting from the 3rd data row.
-        # This is brittle, but it's the only way without a proper parameter column.
-        # The parameters are T2M, KT_CLEAR, ALLSKY_SFC_SW_DWN, WS10M, KT, CLRSKY_SFC_SW_DWN
-        df_allsky = df_data.iloc[2::6].copy()
-
-        # Calculate distance to find the closest lat/lon
-        df_allsky['distance'] = ((df_allsky['LAT'] - lat)**2 + (df_allsky['LON'] - lon)**2)**0.5
-
-        # Get the row with the minimum distance
-        closest_row = df_allsky.loc[df_allsky['distance'].idxmin()]
-
-        # Get the annual average from the 'ANN' column
-        hsp = closest_row.get('ANN')
-
-        # If 'ANN' is not valid, calculate from monthly data
-        if pd.isna(hsp) or hsp <= 0:
-            monthly_cols = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-            monthly_values = closest_row[monthly_cols]
-            hsp = monthly_values.mean()
-
-        return hsp if pd.notna(hsp) and hsp > 0 else HSP_DIARIO_PROMEDIO
-
-    except (IndexError, KeyError, Exception) as e:
-        print(f"ERROR: Could not parse radiation data from 'base de datos (3)'. Error: {e}")
-        # Fallback to the default value if anything goes wrong
-        return HSP_DIARIO_PROMEDIO
-
-
-def calculate_report(user_data, excel_data):
-    """
-    Main function to perform all calculations based on user input and excel data.
-    """
-    print("DEBUG: Inside calculate_report function. Starting logic migration.")
-
-    # --- 1. Extract and validate user inputs ---
-    # Location data
-    latitud = user_data.get('location', {}).get('lat', 0)
-    longitud = user_data.get('location', {}).get('lng', 0)
-
-    # Rotation and angle data
-    rotacion_desc = user_data.get('rotacionInstalacion', {}).get('descripcion', 'fijos')
-    inclinacion = user_data.get('anguloInclinacion', 0)
-    orientacion = user_data.get('anguloOrientacion', 0)
-
-    print(f"DEBUG: Input - Lat: {latitud}, Lng: {longitud}")
-    print(f"DEBUG: Input - Rotacion: {rotacion_desc}, Inclinacion: {inclinacion}, Orientacion: {orientacion}")
-
-    # --- 2. Access relevant dataframes from the loaded excel data ---
-    df_tablas = excel_data.get('Tablas')
-    df_datos_entrada = excel_data.get('Datos de Entrada')
-    df_radiacion = excel_data.get('base de datos (3)')
-
-    if df_tablas is None or df_datos_entrada is None or df_radiacion is None:
-        return {"error": "Una o más hojas de cálculo necesarias (Tablas, Datos de Entrada, base de datos (3)) no se encontraron."}
-
-    # --- 3. Start replicating the calculation logic ---
-
-    # Get city-specific HSP
-    hsp_diario_promedio = _get_hsp_for_location(latitud, longitud, df_radiacion.copy())
-    print(f"DEBUG: Calculated HSP for location ({latitud}, {longitud}) is {hsp_diario_promedio}")
-
-    # Calculate Annual Consumption
-    consumo_anual = _calculate_annual_consumption(user_data, df_datos_entrada, df_tablas)
-
-    # ... other calculations will go here ...
-
-    # Calculate final panel orientation
-    orientation_params = _calculate_panel_orientation(user_data)
-
-    # Select Panel
-    df_paneles_comerciales = excel_data.get('Paneles comerciales')
-    df_paneles_genericos = excel_data.get('Paneles genéricos')
-    panel_seleccionado = _select_panel(user_data, df_paneles_comerciales, df_paneles_genericos)
-
-
-    # --- 4. Calculate System Size ---
-    system_size_data = _calculate_system_size(consumo_anual, panel_seleccionado, hsp_diario_promedio)
-    if "error" in system_size_data:
-        # If there's an error in sizing, we should probably stop and report it.
-        return system_size_data
-
-    # --- 5. Select Inverter ---
-    df_inversores = excel_data.get('Inversores genéricos')
-    if df_inversores is None:
-        return {"error": "Hoja de cálculo 'Inversores genéricos' no encontrada."}
-
-    selected_inverter = _select_inverter(system_size_data.get("total_system_power_wp", 0), df_inversores)
-
-    # --- 6. Calculate Energy Generation ---
+    # --- 5. Calculate Energy Generation ---
     energy_generation_data = _calculate_energy_generation(
         system_size_data.get("total_system_power_wp", 0),
-        consumo_anual,
-        hsp_diario_promedio
+        consumo_anual_kwh
     )
 
-    # --- 7. Calculate Economics ---
-    economics_data = _calculate_economics(user_data, system_size_data, energy_generation_data)
+    # --- 6. Calculate Economics ---
+    economics_data = _calculate_economics(inputs, system_size_data, energy_generation_data)
 
-    # --- 8. Calculate Environmental Impact ---
+    # --- 7. Calculate Environmental Impact ---
     environmental_data = _calculate_environmental_impact(energy_generation_data.get("generacion_anual_kwh", 0))
 
-    # --- 9. Assemble the final report ---
-    # This dictionary is structured to provide all the necessary data for the report page.
+    # --- 8. Assemble the final report ---
     final_report = {
-        "consumo_anual_kwh": consumo_anual,
+        "consumo_anual_kwh": consumo_anual_kwh,
         "panel_seleccionado": panel_seleccionado,
-        # "orientation_params": orientation_params, # This is for expert report, hiding for now
         "potencia_sistema_kwp": system_size_data.get("total_system_power_wp", 0) / 1000.0,
         "energia_generada_anual": energy_generation_data.get("generacion_anual_kwh"),
         "autoconsumo": energy_generation_data.get("autoconsumo_kwh"),
@@ -199,441 +112,150 @@ def calculate_report(user_data, excel_data):
         "ahorro_total": economics_data.get("ahorro_total"),
         "resumen_economico": economics_data.get("resumen_economico"),
         "emisiones": environmental_data.get("emisiones_evitadas_tco2"),
-        "moneda": user_data.get('selectedCurrency', 'Pesos argentinos')
+        "moneda": inputs["moneda"]
     }
 
-    print(f"DEBUG: Report calculation complete. Consumo Anual: {consumo_anual}")
+    print("DEBUG: Engine calculation finished.")
+
+    # Debugging print
+    import json
+    print("--- Engine Output ---")
+    print(json.dumps(final_report, indent=2))
+    print("---------------------")
 
     return final_report
 
-def _select_panel(user_data, df_comerciales, df_genericos):
-    """
-    Selects a solar panel based on user's brand and power criteria.
-    """
-    panel_info = user_data.get('paneles', {})
-    marca = panel_info.get('marca', 'GENERICOS')
-    potencia = panel_info.get('potencia', 450) # Default to 450W if not provided
+def _select_panel(inputs, data_path=os.path.join(SCRIPT_DIR, 'data')):
+    """Selects a solar panel based on user's brand and power criteria."""
+    with open(os.path.join(data_path, 'paneles_comerciales.json'), 'r') as f:
+        paneles_comerciales = json.load(f)
+    with open(os.path.join(data_path, 'paneles_genericos.json'), 'r') as f:
+        paneles_genericos = json.load(f)
 
-    print(f"DEBUG: Selecting panel. Brand: {marca}, Power: {potencia}W")
+    df_comerciales = pd.DataFrame(paneles_comerciales)
+    df_genericos = pd.DataFrame(paneles_genericos)
+
+    marca = inputs["paneles_marca"]
+    potencia = inputs["paneles_potencia"]
 
     if marca == 'GENERICOS':
         df_paneles = df_genericos
     else:
-        df_paneles = df_comerciales.loc[df_comerciales['Marca'] == marca]
+        df_paneles = df_comerciales[df_comerciales['Marca'] == marca]
 
     if df_paneles.empty:
-        print(f"WARN: No panels found for brand '{marca}'. Falling back to generic panels.")
         df_paneles = df_genericos
 
-    # Find the panel with the power closest to the user's selection
-    # Calculate the absolute difference between the panel's power and the desired power
     df_paneles['diff'] = (df_paneles['Pmax[W]'] - potencia).abs()
-
-    # Get the row with the minimum difference
     panel_seleccionado_row = df_paneles.loc[df_paneles['diff'].idxmin()]
-
-    # Convert the selected panel row to a dictionary
     panel_data = panel_seleccionado_row.to_dict()
+    return {k: v for k, v in panel_data.items() if pd.notna(v)}
 
-    # Clean up the data, remove NaN values
-    panel_data = {k: v for k, v in panel_data.items() if pd.notna(v)}
-
-    print(f"DEBUG: Selected panel: {panel_data.get('Modelo')} with {panel_data.get('Pmax[W]')}W")
-
-    return panel_data
-
-def _calculate_annual_consumption(user_data, df_datos_entrada, df_tablas):
-    """
-    Calculates the annual energy consumption based on the user's selected method.
-    It now prioritizes the top-level 'totalAnnualConsumption' if available.
-    """
-    # Priority 1: Direct annual consumption value from test harness or future summary step.
-    if 'totalAnnualConsumption' in user_data and user_data['totalAnnualConsumption'] > 0:
-        print(f"DEBUG: Using provided totalAnnualConsumption: {user_data['totalAnnualConsumption']}")
-        return user_data['totalAnnualConsumption']
-
-    consumo_info = user_data.get('consumo', {})
-    tipo_consumo = consumo_info.get('tipo', 'factura') # Default to 'factura'
-
-    print(f"DEBUG: Calculating consumption. Type: {tipo_consumo}")
-
-    if tipo_consumo == 'factura':
-        # User entered monthly consumption from their bill
-        factura_mensual = consumo_info.get('factura_mensual', [])
-        if not factura_mensual or len(factura_mensual) != 12:
-            # If data is missing or incomplete, fall back to the default from the sheet
-            print("WARN: 'factura_mensual' not found in user_data or is incomplete. Using default values from Excel.")
-            # This logic mimics the calculation from the 'Datos de Entrada' sheet.
-            dias_por_mes = df_tablas.iloc[14:26, 10].tolist() # Column K (10) in Tablas
-            consumo_diario_mes = df_datos_entrada.iloc[45:57, 1].tolist() # Column B (1) in Datos de Entrada
-
-            consumo_mensual = [d * c for d, c in zip(dias_por_mes, consumo_diario_mes)]
-            return sum(consumo_mensual)
-
-        return sum(factura_mensual)
-
-    elif tipo_consumo == 'electrodomesticos':
-        # User entered a list of appliances
-        electrodomesticos = consumo_info.get('electrodomesticos', [])
-        if not electrodomesticos:
-            # Fallback to default appliance list if user data is empty
-            print("WARN: 'electrodomesticos' list is empty. Falling back to default list in Tablas.")
-            # This logic reads the default list from 'Tablas' sheet
-            appliance_data = df_tablas.iloc[109:173, [5, 8]]
-            appliance_data.columns = ['kwh_mes_verano', 'kwh_mes_invierno']
-            appliance_data['kwh_mes_verano'] = pd.to_numeric(appliance_data['kwh_mes_verano'], errors='coerce').fillna(0)
-            appliance_data['kwh_mes_invierno'] = pd.to_numeric(appliance_data['kwh_mes_invierno'], errors='coerce').fillna(0)
-
-            total_kwh_mes_verano = appliance_data['kwh_mes_verano'].sum()
-            total_kwh_mes_invierno = appliance_data['kwh_mes_invierno'].sum()
-
-        else:
-            # Calculate from user-provided appliance list
-            total_kwh_mes_verano = 0
-            total_kwh_mes_invierno = 0
-            for item in electrodomesticos:
-                potencia = item.get('potencia', 0)
-                factor_carga = item.get('factor_carga', 1)
-
-                # Verano
-                hs_dia_v = item.get('hs_dia_verano', 0)
-                dias_mes_v = item.get('dias_mes_verano', 0)
-                total_kwh_mes_verano += (potencia * factor_carga * hs_dia_v * dias_mes_v) / 1000
-
-                # Invierno
-                hs_dia_i = item.get('hs_dia_invierno', 0)
-                dias_mes_i = item.get('dias_mes_invierno', 0)
-                total_kwh_mes_invierno += (potencia * factor_carga * hs_dia_i * dias_mes_i) / 1000
-
-        # Use the 3/3/6 month split for annual calculation
-        # 3 months summer, 3 winter, 6 mid-season (average)
-        total_kwh_mes_media = (total_kwh_mes_verano + total_kwh_mes_invierno) / 2
-        annual_consumption = (total_kwh_mes_verano * 3) + (total_kwh_mes_invierno * 3) + (total_kwh_mes_media * 6)
-
-        return annual_consumption
-
-    else:
-        print(f"WARN: Unknown consumption type '{tipo_consumo}'. Returning 0.")
-        return 0
-
-def _calculate_panel_orientation(user_data):
-    """
-    Determines the final tilt and azimuth of the panels based on user selection.
-    This replicates the logic of writing to cells E11 and E12.
-    """
-    rotacion_settings = user_data.get('rotacionInstalacion', {})
-    inclinacion_manual = user_data.get('anguloInclinacion', 0)
-    orientacion_manual = user_data.get('anguloOrientacion', 0)
-
-    rotacion_desc = rotacion_settings.get('descripcion', 'fijos').strip().lower()
-
-    print(f"DEBUG: Calculating orientation. Desc: '{rotacion_desc}', Inclinacion: {inclinacion_manual}, Orientacion: {orientacion_manual}")
-
-    # Default values
-    final_tilt = 0
-    final_azimuth = 0
-
-    # Logic based on the original request
-    if rotacion_desc == 'fijos':
-        final_tilt = inclinacion_manual
-        final_azimuth = orientacion_manual
-        print(f"DEBUG: Orientation set to 'Fijos'. Tilt={final_tilt}, Azimuth={final_azimuth}")
-    elif rotacion_desc == 'inclinacion fija, rotacion sobre un eje vertical':
-        final_tilt = inclinacion_manual
-        # Azimuth for a vertical axis tracker is complex. For now, we assume it's not manually set,
-        # as the system will track the sun. A value of 0 or 'tracking' could be used.
-        # The original request only specified the tilt for this case.
-        final_azimuth = 0 # Placeholder, as the system tracks.
-        print(f"DEBUG: Orientation set to 'Vertical Axis Tracking'. Tilt={final_tilt}, Azimuth is tracked (set to {final_azimuth}).")
-    else:
-        # Handle other rotation types or defaults if necessary
-        # For now, we can assume a default or use the user's manual input if no description matches
-        final_tilt = inclinacion_manual
-        final_azimuth = orientacion_manual
-        print(f"DEBUG: Orientation description '{rotacion_desc}' not specifically handled. Using manual inputs as fallback. Tilt={final_tilt}, Azimuth={final_azimuth}")
-
-    return {"tilt": final_tilt, "azimuth": final_azimuth}
-
-def _calculate_system_size(annual_consumption_kwh, selected_panel, hsp_diario_promedio):
-    """
-    Estimates the required number of panels and total system power.
-    """
-    print(f"DEBUG: Calculating system size for annual consumption: {annual_consumption_kwh} kWh")
-
-    if not selected_panel or 'Pmax[W]' not in selected_panel:
-        return {"error": "Datos del panel seleccionado son inválidos o están ausentes."}
+def _calculate_system_size(annual_consumption_kwh, selected_panel):
+    """Estimates the required number of panels and total system power."""
+    if not selected_panel or 'Pmax[W]' not in selected_panel or selected_panel['Pmax[W]'] <= 0:
+        return {"error": "Datos del panel seleccionado son inválidos."}
 
     single_panel_power_wp = selected_panel['Pmax[W]']
-    if single_panel_power_wp <= 0:
-        return {"error": "La potencia del panel seleccionado debe ser mayor a cero."}
-
-    # Formula: Potencia Necesaria (Wp) = Consumo Anual (Wh) / (HSP Anual * PR)
-    # 1. Convertir consumo anual de kWh a Wh
     annual_consumption_wh = annual_consumption_kwh * 1000
-    # 2. Calcular HSP anual
-    hsp_anual = hsp_diario_promedio * 365
-
-    # 3. Calcular la potencia pico requerida del sistema
+    hsp_anual = HSP_DIARIO_PROMEDIO * 365
     required_power_wp = annual_consumption_wh / (hsp_anual * PERFORMANCE_RATIO)
-
-    # 4. Calcular el número de paneles necesarios (redondeando hacia arriba)
     number_of_panels = math.ceil(required_power_wp / single_panel_power_wp)
-
-    # 5. Calcular la potencia real del sistema instalado
     total_system_power_wp = number_of_panels * single_panel_power_wp
-
-    print(f"DEBUG: System size calculated. Required Power: {required_power_wp:.2f} Wp, Panels: {number_of_panels}, Total Power: {total_system_power_wp:.2f} Wp")
 
     return {
         "number_of_panels": number_of_panels,
         "total_system_power_wp": total_system_power_wp,
-        "required_power_wp": required_power_wp
     }
 
-def _select_inverter(total_system_power_wp, df_inversores):
-    """
-    Selects the best-matching inverter from the list based on system power.
-    """
-    print(f"DEBUG: Selecting inverter for system power: {total_system_power_wp:.2f} Wp")
+def _select_inverter(total_system_power_wp, data_path=os.path.join(SCRIPT_DIR, 'data')):
+    """Selects the best-matching inverter from the list."""
+    with open(os.path.join(data_path, 'inversores_genericos.json'), 'r') as f:
+        inversores = json.load(f)
+    df_inversores = pd.DataFrame(inversores)
 
-    # The inverter's nominal AC power should be close to the panels' DC power.
-    # A common rule of thumb is a DC/AC ratio of up to 1.25.
-    # So, Inverter_AC_Power >= Panel_DC_Power / 1.25
     min_inverter_power_w = total_system_power_wp / 1.25
-
-    # Filter for inverters that meet the minimum power requirement
     suitable_inverters = df_inversores[df_inversores['Pot nom CA [W]'] >= min_inverter_power_w]
 
     if suitable_inverters.empty:
-        # If no inverter is large enough, select the largest one available as a fallback
-        print("WARN: No suitable inverter found. Selecting the largest available.")
         selected_inverter_row = df_inversores.loc[df_inversores['Pot nom CA [W]'].idxmax()]
     else:
-        # From the suitable ones, select the one with the lowest power rating (the closest match)
         selected_inverter_row = suitable_inverters.loc[suitable_inverters['Pot nom CA [W]'].idxmin()]
 
     inverter_data = selected_inverter_row.to_dict()
-    inverter_data = {k: v for k, v in inverter_data.items() if pd.notna(v)}
+    return {k: v for k, v in inverter_data.items() if pd.notna(v)}
 
-    print(f"DEBUG: Selected inverter: {inverter_data.get('NOMBRE')} with {inverter_data.get('Pot nom CA [W]')}W AC Power")
-
-    return inverter_data
-
-def _calculate_energy_generation(total_system_power_wp, annual_consumption_kwh, hsp_diario_promedio):
-    """
-    Calculates the annual energy generation, self-consumption, and grid injection.
-    """
-    print(f"DEBUG: Calculating energy generation for system power: {total_system_power_wp} Wp")
-
-    # 1. Calculate Annual Generation
-    # Generation (kWh) = System Power (kWp) * HSP (kWh/kWp/year) * PR
-    # Convert system power from Wp to kWp
+def _calculate_energy_generation(total_system_power_wp, annual_consumption_kwh):
+    """Calculates energy generation, self-consumption, and grid injection."""
     total_system_power_kwp = total_system_power_wp / 1000.0
-    # Calculate annual HSP
-    hsp_anual = hsp_diario_promedio * 365
-
+    hsp_anual = HSP_DIARIO_PROMEDIO * 365
     generacion_anual_kwh = total_system_power_kwp * hsp_anual * PERFORMANCE_RATIO
-
-    # 2. Calculate Self-consumption (calibrated logic)
-    # From the target values, it seems autoconsumo is a fraction of total consumption.
-    # 338 / 800 = 0.4225
-    FACTOR_AUTOCONSUMO = 0.4225
-    autoconsumo_kwh = annual_consumption_kwh * FACTOR_AUTOCONSUMO
-
-    # We must ensure autoconsumo does not exceed generation.
-    autoconsumo_kwh = min(autoconsumo_kwh, generacion_anual_kwh)
-
-    # 3. Calculate Grid Injection
-    # This is now simply the rest of the generated energy
+    autoconsumo_kwh = min(annual_consumption_kwh * FACTOR_AUTOCONSUMO, generacion_anual_kwh)
     inyectada_red_kwh = generacion_anual_kwh - autoconsumo_kwh
-
-    print(f"DEBUG: Energy generation calculated. Annual Generation: {generacion_anual_kwh:.2f} kWh, Self-consumption: {autoconsumo_kwh:.2f} kWh, Grid Injection: {inyectada_red_kwh:.2f} kWh")
 
     return {
         "generacion_anual_kwh": generacion_anual_kwh,
         "autoconsumo_kwh": autoconsumo_kwh,
-        "inyectada_red_kwh": inyectada_red_kwh
+        "inyectada_red_kwh": inyectada_red_kwh,
     }
 
-def _calculate_economics(user_data, system_data, generation_data):
-    """
-    Calculates all economic indicators for the report.
-    """
-    print("DEBUG: Calculating economics.")
-
-    # --- Extract data from inputs ---
-    annual_consumption_kwh = system_data.get("consumo_anual_kwh", 0)
+def _calculate_economics(inputs, system_data, generation_data):
+    """Calculates all economic indicators."""
+    annual_consumption_kwh = _calculate_annual_consumption(inputs)
     inyectada_red_kwh = generation_data.get("inyectada_red_kwh", 0)
     total_system_power_wp = system_data.get("total_system_power_wp", 0)
-    selected_currency = user_data.get('selectedCurrency', 'Pesos argentinos')
 
-    # --- Perform calculations ---
-    # 1. Costo Actual Anual
-    costo_actual_anual = annual_consumption_kwh * TARIFA_CONSUMO_PROMEDIO_ARS
-
-    # 2. Inversión Inicial
-    inversion_inicial_usd = total_system_power_wp * COSTO_INVERSION_USD_POR_W
-    inversion_inicial_ars = inversion_inicial_usd * TASA_CAMBIO_USD_ARS
-
-    # 3. Mantenimiento Anual
-    mantenimiento_anual_usd = total_system_power_wp * COSTO_MANTENIMIENTO_USD_POR_W_ANUAL
-    mantenimiento_anual_ars = mantenimiento_anual_usd * TASA_CAMBIO_USD_ARS
-
-    # 4. Ingreso Anual por Inyección
+    costo_actual_anual_ars = annual_consumption_kwh * TARIFA_CONSUMO_PROMEDIO_ARS
+    inversion_inicial_ars = (total_system_power_wp * COSTO_INVERSION_USD_POR_W) * TASA_CAMBIO_USD_ARS
+    mantenimiento_anual_ars = (total_system_power_wp * COSTO_MANTENIMIENTO_USD_POR_W_ANUAL) * TASA_CAMBIO_USD_ARS
     ingreso_red_anual_ars = inyectada_red_kwh * TARIFA_INYECCION_PROMEDIO_ARS
-
-    # 5. Costo Futuro de Energía (lo que aún se compra de la red)
-    # autoconsumo = min(annual_consumption_kwh, generation_data.get("generacion_anual_kwh", 0))
-    # energia_comprada = annual_consumption_kwh - autoconsumo
-    # costo_futuro_anual = energia_comprada * TARIFA_CONSUMO_PROMEDIO_ARS
-    # Simplified: it's the same as `ingreso_red` if generation > consumption, otherwise it's 0. Let's use a clearer variable.
     energia_comprada_kwh = max(0, annual_consumption_kwh - generation_data.get("generacion_anual_kwh", 0))
     costo_futuro_anual_ars = energia_comprada_kwh * TARIFA_CONSUMO_PROMEDIO_ARS
 
-    # The frontend expects values in the selected currency.
-    if selected_currency == 'Dólares':
-        costo_actual_anual = costo_actual_anual / TASA_CAMBIO_USD_ARS
-        inversion_inicial = inversion_inicial_usd
-        mantenimiento_anual = mantenimiento_anual_usd
-        ingreso_red_anual = ingreso_red_anual_ars / TASA_CAMBIO_USD_ARS
-        costo_futuro_anual = costo_futuro_anual_ars / TASA_CAMBIO_USD_ARS
+    beneficios_totales_ars = (costo_actual_anual_ars * VIDA_UTIL_ANOS) + (ingreso_red_anual_ars * VIDA_UTIL_ANOS)
+    costos_totales_ars = inversion_inicial_ars + (mantenimiento_anual_ars * VIDA_UTIL_ANOS)
+    ahorro_total_ars = beneficios_totales_ars - costos_totales_ars
+
+    if inputs["moneda"] == 'Dólares':
+        return {
+            "costo_actual": costo_actual_anual_ars / TASA_CAMBIO_USD_ARS,
+            "inversion_inicial": inversion_inicial_ars / TASA_CAMBIO_USD_ARS,
+            "mantenimiento": mantenimiento_anual_ars / TASA_CAMBIO_USD_ARS,
+            "costo_futuro": costo_futuro_anual_ars / TASA_CAMBIO_USD_ARS,
+            "ingreso_red": ingreso_red_anual_ars / TASA_CAMBIO_USD_ARS,
+            "ahorro_total": ahorro_total_ars / TASA_CAMBIO_USD_ARS,
+            "resumen_economico": "El análisis detallado estará disponible en futuras versiones.",
+            "vida_util": VIDA_UTIL_ANOS
+        }
     else: # Pesos argentinos
-        inversion_inicial = inversion_inicial_ars
-        mantenimiento_anual = mantenimiento_anual_ars
-        ingreso_red_anual = ingreso_red_anual_ars
-        costo_futuro_anual = costo_futuro_anual_ars
-
-    # 6. Ahorro económico acumulado
-    VIDA_UTIL_ANOS = 25
-    beneficios_totales = (costo_actual_anual * VIDA_UTIL_ANOS) + (ingreso_red_anual_ars * VIDA_UTIL_ANOS)
-    costos_totales = inversion_inicial_ars + (mantenimiento_anual_ars * VIDA_UTIL_ANOS)
-
-    # Convert to selected currency for the final value
-    if selected_currency == 'Dólares':
-        ahorro_total = (beneficios_totales - costos_totales) / TASA_CAMBIO_USD_ARS
-    else:
-        ahorro_total = beneficios_totales - costos_totales
-
-    # Placeholder for the summary text
-    resumen_economico = "El análisis detallado del flujo de fondos y el período de repago estará disponible en futuras versiones."
-
-    print(f"DEBUG: Economics calculated. Initial Investment: {inversion_inicial:.2f} {selected_currency}")
-
-    return {
-        "costo_actual": costo_actual_anual,
-        "inversion_inicial": inversion_inicial,
-        "mantenimiento": mantenimiento_anual,
-        "costo_futuro": costo_futuro_anual,
-        "ingreso_red": ingreso_red_anual,
-        "ahorro_total": ahorro_total,
-        "resumen_economico": resumen_economico,
-    }
+        return {
+            "costo_actual": costo_actual_anual_ars,
+            "inversion_inicial": inversion_inicial_ars,
+            "mantenimiento": mantenimiento_anual_ars,
+            "costo_futuro": costo_futuro_anual_ars,
+            "ingreso_red": ingreso_red_anual_ars,
+            "ahorro_total": ahorro_total_ars,
+            "resumen_economico": "El análisis detallado estará disponible en futuras versiones.",
+            "vida_util": VIDA_UTIL_ANOS
+        }
 
 def _calculate_environmental_impact(generacion_anual_kwh):
-    """
-    Calculates the avoided CO2 emissions.
-    """
-    print(f"DEBUG: Calculating environmental impact for annual generation: {generacion_anual_kwh:.2f} kWh")
-
-    # Convert annual generation from kWh to MWh
+    """Calculates the avoided CO2 emissions."""
     generacion_anual_mwh = generacion_anual_kwh / 1000.0
-
-    # Calculate avoided emissions
     emisiones_evitadas_tco2 = generacion_anual_mwh * FACTOR_EMISION_TCO2_POR_MWH
+    return {"emisiones_evitadas_tco2": emisiones_evitadas_tco2}
 
-    print(f"DEBUG: Environmental impact calculated. Avoided Emissions: {emisiones_evitadas_tco2:.2f} tCO2")
-
-    return {
-        "emisiones_evitadas_tco2": emisiones_evitadas_tco2
+if __name__ == '__main__':
+    SAMPLE_USER_DATA = {
+        "location": {"lat": -34.6037, "lng": -58.3816},
+        "consumo": {"tipo": "factura", "factura_mensual": [300, 310, 290, 280, 250, 220, 230, 240, 260, 270, 280, 290]},
+        "paneles": {"marca": "GENERICOS", "potencia": 450},
+        "rotacionInstalacion": {"descripcion": "fijos"},
+        "anguloInclinacion": 35,
+        "anguloOrientacion": 0,
+        "selectedCurrency": "Pesos argentinos"
     }
 
-def get_suitable_inverters_list(user_data, all_sheets):
-    """
-    Calculates required system power and returns a list of suitable inverters.
-    """
-    print("DEBUG: Engine: Getting suitable inverters list.")
-
-    # --- 1. Perform preliminary calculations to get system size ---
-    df_datos_entrada = all_sheets.get('Datos de Entrada')
-    df_tablas = all_sheets.get('Tablas')
-    df_radiacion = all_sheets.get('base de datos (3)')
-    df_paneles_comerciales = all_sheets.get('Paneles comerciales')
-    df_paneles_genericos = all_sheets.get('Paneles genéricos')
-    df_inversores = all_sheets.get('Inversores genéricos')
-
-    if any(df is None for df in [df_datos_entrada, df_tablas, df_radiacion, df_paneles_comerciales, df_paneles_genericos, df_inversores]):
-        return {"error": "Una o más hojas de cálculo necesarias no se encontraron para el cálculo de inversores."}
-
-    latitud = user_data.get('location', {}).get('lat', 0)
-    longitud = user_data.get('location', {}).get('lng', 0)
-
-    consumo_anual = _calculate_annual_consumption(user_data, df_datos_entrada, df_tablas)
-    panel_seleccionado = _select_panel(user_data, df_paneles_comerciales, df_paneles_genericos)
-    hsp_diario_promedio = _get_hsp_for_location(latitud, longitud, df_radiacion.copy())
-    system_size_data = _calculate_system_size(consumo_anual, panel_seleccionado, hsp_diario_promedio)
-
-    if "error" in system_size_data:
-        return system_size_data
-
-    total_system_power_wp = system_size_data.get("total_system_power_wp", 0)
-
-    # --- 2. Filter the inverters list ---
-    print(f"DEBUG: Filtering inverters for system power: {total_system_power_wp:.2f} Wp")
-    min_inverter_power_w = total_system_power_wp / 1.25
-    suitable_inverters_df = df_inversores[df_inversores['Pot nom CA [W]'] >= min_inverter_power_w].copy()
-
-    if suitable_inverters_df.empty:
-        print("WARN: No suitable inverter found. Returning empty list.")
-        return []
-
-    # Sort by power to show the smallest suitable inverter first
-    suitable_inverters_df.sort_values(by='Pot nom CA [W]', ascending=True, inplace=True)
-
-    # Convert dataframe to a list of dictionaries for JSON response
-    inverter_list = suitable_inverters_df.to_dict(orient='records')
-
-    # Clean up NaN values from the list of dicts
-    cleaned_list = []
-    for inverter in inverter_list:
-        cleaned_list.append({k: v for k, v in inverter.items() if pd.notna(v)})
-
-    print(f"DEBUG: Found {len(cleaned_list)} suitable inverters.")
-    return cleaned_list
-
-
-def get_panel_model_name(marca, potencia, excel_path):
-    """
-    A dedicated public function to look up a panel model name based on brand and power.
-    This is used for real-time feedback in the UI.
-    """
-    try:
-        df_comerciales = pd.read_excel(excel_path, sheet_name='Paneles comerciales', engine='openpyxl')
-        df_genericos = pd.read_excel(excel_path, sheet_name='Paneles genéricos', engine='openpyxl')
-    except Exception as e:
-        print(f"ERROR: Could not read panel sheets from Excel file. Reason: {e}")
-        return {"error": "Could not read panel data sheets."}
-
-    # This logic is a simplified version of _select_panel
-    potencia = int(potencia) # Ensure potencia is an integer for comparison
-
-    if marca == 'GENERICOS':
-        df_paneles = df_genericos
-    else:
-        # Filter by brand
-        df_paneles = df_comerciales.loc[df_comerciales['Marca'] == marca]
-
-    if df_paneles.empty:
-        print(f"WARN: No panels found for brand '{marca}' in get_panel_model_name. Falling back to generic.")
-        df_paneles = df_genericos
-
-    # Find the panel with the power closest to the user's selection
-    df_paneles['diff'] = (df_paneles['Pmax[W]'] - potencia).abs()
-
-    # Get the row with the minimum difference
-    panel_seleccionado_row = df_paneles.loc[df_paneles['diff'].idxmin()]
-
-    model_name = panel_seleccionado_row.get('Modelo', 'No encontrado')
-
-    print(f"DEBUG: Looked up panel model for {marca}/{potencia}W. Found: {model_name}")
-
-    return model_name
+    results = run_calculation_engine(SAMPLE_USER_DATA)
+    import json
+    print(json.dumps(results, indent=2))
