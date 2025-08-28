@@ -1913,45 +1913,14 @@ function initMap() {
                 marker = L.marker(userLocation).addTo(map);
             }
             map.setView(userLocation, 13);
-
-            // if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6); // Eliminado
-            // if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6); // Eliminado
             userSelections.location = userLocation;
 
-            let city = extraerCiudadDeDireccion(e.geocode.name);
-            const addressProperties = e.geocode.properties && e.geocode.properties.address ? e.geocode.properties.address : {};
-
-            console.log('Geocode e.geocode.name:', e.geocode.name); // Log para comparar
-            console.log('Geocode properties.address:', addressProperties); // Log detallado de las propiedades
-
-            if (!city) {
-                if (addressProperties.city) {
-                    city = addressProperties.city;
-                } else if (addressProperties.town) {
-                    city = addressProperties.town;
-                } else if (addressProperties.village) {
-                    city = addressProperties.village;
-                } else if (addressProperties.hamlet) {
-                    city = addressProperties.hamlet;
-                } else if (e.geocode.name) {
-                    const parts = e.geocode.name.split(',');
-                    if (parts.length > 1) {
-                        city = parts[1].trim();
-                    } else if (parts.length === 1) {
-                        city = parts[0].trim();
-                    }
-                }
-            }
-
-            if (city && city.toLowerCase().startsWith('partido de ')) {
-                city = city.substring('partido de '.length).trim();
-            }
-
-            if (city) {
-                console.log('Ciudad extraída (final):', city);
-                buscarCodigoCiudad(city); // Llamada a la nueva función
+            // Enviar la dirección completa al backend para que la procese
+            if (e.geocode.name) {
+                console.log('Geocode name to be sent to backend:', e.geocode.name);
+                buscarCodigoCiudad(e.geocode.name);
             } else {
-                console.warn('No se pudo extraer la ciudad de la dirección:', e.geocode.name, addressProperties);
+                console.warn('Geocoder did not return a name.');
                 userSelections.codigoCiudad = null;
                 saveUserSelections();
             }
@@ -1960,15 +1929,15 @@ function initMap() {
 
 }
 
-// --- Nueva función para buscar el código de la ciudad ---
-async function buscarCodigoCiudad(ciudad) {
+// --- Nueva función para buscar el código de la ciudad (modificada) ---
+async function buscarCodigoCiudad(fullAddress) {
     try {
         const response = await fetch('http://127.0.0.1:5000/api/buscar_ciudad', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ ciudad: ciudad }),
+            body: JSON.stringify({ full_address: fullAddress }),
         });
         if (response.ok) {
             const data = await response.json();

@@ -678,56 +678,53 @@ def normalizar_texto(texto):
         texto = texto.replace(acentuada, sin_acento)
     return texto
 
-# --- NUEVA RUTA: Para buscar ciudad y obtener código ---
+# --- NUEVA RUTA: Para buscar ciudad y obtener código (Refactorizada) ---
 @app.route('/api/buscar_ciudad', methods=['POST'])
 def buscar_ciudad():
     data = request.json
-    ciudad_buscada = data.get('ciudad')
+    full_address = data.get('full_address')
 
-    if not ciudad_buscada:
-        return jsonify({"error": "Nombre de ciudad no proporcionado."}), 400
+    if not full_address:
+        return jsonify({"error": "Dirección completa no proporcionada."}), 400
 
     try:
-        print(f"DEBUG: Solicitud a /api/buscar_ciudad para: {ciudad_buscada}")
-        # Leer la hoja 'Ciudades', columnas A (código) y B (nombre)
-        # Column A is index 0, Column B is index 1
-        # Filas Excel 2 a 1990 -> iloc 1 a 1989
-        df_ciudades = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Ciudades', usecols="A,B", header=None, skiprows=1, names=['codigo', 'ciudad_nombre'], engine='openpyxl')
-        print(f"DEBUG: Hoja 'Ciudades' leída. Total filas: {len(df_ciudades)}")
+        print(f"DEBUG: Solicitud a /api/buscar_ciudad para la dirección: '{full_address}'")
+
         df_ciudades = pd.read_excel(
             EXCEL_FILE_PATH,
             sheet_name='Ciudades',
             usecols="A,B",
             header=None,
             skiprows=1,
-            nrows=1989,  # Solo B2:B1990
+            nrows=1989,
             names=['codigo', 'ciudad_nombre'],
             engine='openpyxl'
         )
-        print(
-            f"DEBUG: Hoja 'Ciudades' leída. Filas consideradas: {len(df_ciudades)}"
-        )
 
-        ciudad_buscada_normalizada = normalizar_texto(ciudad_buscada)
+        address_parts = [part.strip() for part in full_address.split(',')]
 
-        # Iterar para encontrar la ciudad
-        for index, row in df_ciudades.iterrows():
-            nombre_excel_original = str(row['ciudad_nombre'])
-            nombre_excel_normalizado = normalizar_texto(nombre_excel_original)
+        # Iterar a través de cada ciudad en nuestra lista de Excel
+        for _, ciudad_row in df_ciudades.iterrows():
+            codigo_ciudad = ciudad_row['codigo']
+            nombre_ciudad_excel = str(ciudad_row['ciudad_nombre'])
+            nombre_ciudad_excel_normalizado = normalizar_texto(nombre_ciudad_excel)
 
-            # Log para depuración si se encuentra una ciudad que contenga la buscada (antes de la igualdad exacta)
-            # Esto ayuda a ver si la normalización funciona o si hay otras diferencias.
-            # if ciudad_buscada_normalizada in nombre_excel_normalizado or nombre_excel_normalizado in ciudad_buscada_normalizada :
-            #     print(f"DEBUG Excel check: Original='{nombre_excel_original}', NormalizadoExcel='{nombre_excel_normalizado}', BuscadoNormalizado='{ciudad_buscada_normalizada}'")
+            if not nombre_ciudad_excel_normalizado:
+                continue
 
-            if nombre_excel_normalizado == ciudad_buscada_normalizada:
-                codigo_encontrado = row['codigo']
-                print(f"DEBUG: Ciudad '{ciudad_buscada}' (normalizada como '{ciudad_buscada_normalizada}') encontrada. Código: {codigo_encontrado}. Original Excel: '{nombre_excel_original}'")
-                return jsonify({"codigo_ciudad": codigo_encontrado, "message": "Ciudad encontrada."}), 200
+            # Comparar cada parte de la dirección con la ciudad actual de la lista
+            for part in address_parts:
+                part_normalizada = normalizar_texto(part)
+                if not part_normalizada:
+                    continue
 
-        print(f"WARN: Ciudad '{ciudad_buscada}' (normalizada como '{ciudad_buscada_normalizada}') no encontrada en la hoja 'Ciudades'.")
-        # Devolver 200 OK, pero con codigo_ciudad: null para indicar que no se encontró
-        return jsonify({"codigo_ciudad": None, "message": f"Ciudad '{ciudad_buscada}' no encontrada."}), 200
+                # Si la parte de la dirección coincide con una ciudad de la lista, la hemos encontrado
+                if part_normalizada == nombre_ciudad_excel_normalizado:
+                    print(f"DEBUG: Coincidencia encontrada. Parte de la dirección: '{part}' -> Ciudad en Excel: '{nombre_ciudad_excel}'. Código: {codigo_ciudad}")
+                    return jsonify({"codigo_ciudad": codigo_ciudad, "message": f"Ciudad encontrada: {nombre_ciudad_excel}"}), 200
+
+        print(f"WARN: No se encontró ninguna ciudad coincidente para la dirección: '{full_address}'")
+        return jsonify({"codigo_ciudad": None, "message": f"No se pudo encontrar una ciudad válida en la dirección proporcionada."}), 200
 
     except FileNotFoundError:
         print(f"ERROR en /api/buscar_ciudad: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
