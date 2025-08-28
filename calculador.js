@@ -7,6 +7,7 @@ let userLocation = { lat: -34.6037, lng: -58.3816 }; // Buenos Aires por defecto
 let userSelections = {
     userType: null,
     location: userLocation,
+    ciudad: { codigo: null, nombre: null }, // Nueva propiedad para la ciudad
     installationType: null,
     incomeLevel: null,
     zonaInstalacionExpert: null, // Remains for now, though the element is gone
@@ -151,6 +152,7 @@ function loadUserSelections() {
     const defaultUserSelectionsStructure = {
         userType: null,
         location: { lat: -34.6037, lng: -58.3816 }, // Default Buenos Aires
+        ciudad: { codigo: null, nombre: null },
         installationType: null,
         incomeLevel: null,
         zonaInstalacionExpert: null,
@@ -1942,7 +1944,7 @@ function initMap() {
                 buscarCodigoCiudad(e.geocode.name);
             } else {
                 console.warn('Geocoder did not return a name.');
-                userSelections.codigoCiudad = null;
+                userSelections.ciudad = { codigo: null, nombre: null };
                 saveUserSelections();
             }
         }
@@ -1978,32 +1980,19 @@ async function buscarCodigoCiudad(fullAddress) {
         // y es una comprobación más robusta.
         if (data.codigo_ciudad !== null && data.codigo_ciudad !== undefined) {
             console.log(`Ciudad encontrada: ${data.nombre_ciudad}, Código: ${data.codigo_ciudad}`);
-            userSelections.codigoCiudad = data.codigo_ciudad;
+            userSelections.ciudad = {
+                codigo: data.codigo_ciudad,
+                nombre: data.nombre_ciudad
+            };
 
             if (locationDisplay) {
                 locationDisplay.textContent = `Ubicación seleccionada: ${data.nombre_ciudad}`;
                 locationDisplay.style.backgroundColor = '#e9f5e9'; // Green for success
             }
-
-            // Escribir la ciudad encontrada en la celda B7 de "Datos de Entrada"
-            const writeResponse = await fetch('http://127.0.0.1:5000/api/escribir_dato_excel', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    dato: data.nombre_ciudad,
-                    hoja: 'Datos de Entrada',
-                    celda: 'B7'
-                })
-            });
-
-            if (!writeResponse.ok) {
-                console.error('Error al escribir la ciudad en el archivo Excel.');
-                // Opcional: notificar al usuario que la escritura falló pero la selección está hecha.
-            }
-
+            // La escritura al archivo Excel se ha eliminado para evitar corrupción.
         } else {
             console.warn('No se encontró código para la dirección:', fullAddress);
-            userSelections.codigoCiudad = null;
+            userSelections.ciudad = { codigo: null, nombre: null };
             if (locationDisplay) {
                 locationDisplay.textContent = 'No se pudo encontrar la ciudad en la base de datos.';
                 locationDisplay.style.backgroundColor = '#fbe9e7'; // Red for failure
@@ -2015,7 +2004,7 @@ async function buscarCodigoCiudad(fullAddress) {
             locationDisplay.textContent = 'Error al buscar la ciudad.';
             locationDisplay.style.backgroundColor = '#fbe9e7';
         }
-        userSelections.codigoCiudad = null;
+        userSelections.ciudad = { codigo: null, nombre: null };
     } finally {
         saveUserSelections();
     }
