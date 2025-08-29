@@ -4,10 +4,25 @@ from flask_cors import CORS
 import pandas as pd
 import os
 import json
+import math
 from threading import Lock
 from . import engine
 
 excel_lock = Lock()
+
+def clean_nan_in_data(obj):
+    """
+    Recursively walk a dict or list and replace float('nan') with None,
+    as NaN is not valid in JSON.
+    """
+    if isinstance(obj, dict):
+        return {k: clean_nan_in_data(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [clean_nan_in_data(elem) for elem in obj]
+    # Check specifically for float('nan')
+    if isinstance(obj, float) and math.isnan(obj):
+        return None
+    return obj
 
 # --- Setup robust paths relative to this script ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -829,10 +844,13 @@ def get_inverter_options():
         with open(inversores_json_path, 'r', encoding='utf-8') as f:
             inversores_data = json.load(f)
 
+        # Limpiar los datos de valores NaN antes de enviarlos
+        cleaned_data = clean_nan_in_data(inversores_data)
+
         # Extraer solo los campos necesarios para el dropdown
         inverter_list = [
             {"NOMBRE": inv.get("NOMBRE"), "Pot nom CA [W]": inv.get("Pot nom CA [W]")}
-            for inv in inversores_data
+            for inv in cleaned_data
         ]
         return jsonify(inverter_list)
 
@@ -852,8 +870,8 @@ def get_inverter_options():
 @app.route('/api/get_suitable_inverters', methods=['POST'])
 def get_suitable_inverters_api():
     """
-    Devuelve una lista completa de modelos de inversores desde el archivo JSON.
-    Esto soluciona el crash anterior y proporciona los datos necesarios para el formulario.
+    Devuelve una lista completa de modelos de inversores desde el archivo JSON,
+    asegurándose de que sea un JSON válido (sin NaN).
     """
     try:
         print("DEBUG: API call to /api/get_suitable_inverters. Returning full list from JSON.")
@@ -861,9 +879,11 @@ def get_suitable_inverters_api():
         with open(inversores_json_path, 'r', encoding='utf-8') as f:
             inversores_data = json.load(f)
 
-        # Devolver la lista completa. El frontend puede filtrar si es necesario,
-        # o se puede implementar un filtrado más complejo aquí en el futuro.
-        return jsonify(inversores_data)
+        # Limpiar los datos de valores NaN antes de enviarlos
+        cleaned_data = clean_nan_in_data(inversores_data)
+
+        # Devolver la lista completa y limpia.
+        return jsonify(cleaned_data)
 
     except FileNotFoundError:
         print(f"ERROR en /api/get_suitable_inverters: No se encontró {inversores_json_path}")
