@@ -1084,50 +1084,73 @@ function initFocoPolvoOptions() {
 }
 
 async function fetchAndDisplayPanelModel() {
-    console.log('[DEBUG] fetchAndDisplayPanelModel called. Fetching full report to get panel model...');
+    console.log('[DEBUG] fetchAndDisplayPanelModel called. Fetching from the correct endpoint...');
     const modeloPanelInput = document.getElementById('modelo-panel-input');
     if (!modeloPanelInput) {
         console.error("Elemento 'modelo-panel-input' no encontrado.");
         return;
     }
 
-    modeloPanelInput.value = 'Calculando...'; // Show loading state
+    // Ensure we have the necessary data before making the call
+    const marca = userSelections.marcaPanel;
+    const potencia = userSelections.potenciaPanelDeseada;
+
+    if (!marca || !potencia) {
+        modeloPanelInput.value = 'Seleccione marca y potencia';
+        // Clear any previously fetched model name
+        if (userSelections.panelesSolares) {
+            userSelections.panelesSolares.modelo = null;
+            saveUserSelections();
+        }
+        return;
+    }
+
+    modeloPanelInput.value = 'Buscando modelo...'; // Show loading state
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/generar_informe', {
+        const response = await fetch('http://127.0.0.1:5000/api/get_panel_model', { // Correct endpoint
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(userSelections)
+            body: JSON.stringify({ // Send only the required data
+                marca: marca,
+                potencia: potencia
+            })
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({ error: `Error del servidor: ${response.status}` }));
             throw new Error(errorData.error || `Error del servidor: ${response.status}`);
         }
 
-        const informe = await response.json();
-        console.log('[DEBUG] Reporte recibido para obtener modelo de panel:', informe);
+        const data = await response.json();
+        console.log('[DEBUG] Modelo de panel recibido:', data);
 
-        const modelName = informe?.panel_seleccionado?.Modelo;
+        const modelName = data.model_name; // Correctly extract model name from the new response structure
 
-        if (modelName && modelName.trim() !== '') {
+        if (modelName && modelName.trim() !== '' && !modelName.startsWith('VERIFIQUE')) {
             modeloPanelInput.value = modelName;
-            // Opcional: guardar el modelo en userSelections también
             if (userSelections.panelesSolares) {
                 userSelections.panelesSolares.modelo = modelName;
-                saveUserSelections();
+                saveUserSelections(); // Save the found model
             }
         } else {
-            modeloPanelInput.value = 'No hay modelo disponible';
+            // Display the error/info message from the backend or a default one
+            modeloPanelInput.value = modelName || 'No hay modelo disponible';
+            if (userSelections.panelesSolares) {
+                userSelections.panelesSolares.modelo = null; // Clear stale model data
+                saveUserSelections();
+            }
         }
 
     } catch (error) {
-        console.error('Error al generar informe para obtener el modelo del panel:', error);
-        modeloPanelInput.value = 'Error al obtener modelo';
-        // Opcionalmente, mostrar un alert al usuario
-        // alert('No se pudo obtener el modelo de panel. Por favor, revise los datos ingresados o intente más tarde.');
+        console.error('Error al obtener el modelo del panel:', error);
+        modeloPanelInput.value = 'Error al buscar modelo';
+        if (userSelections.panelesSolares) {
+            userSelections.panelesSolares.modelo = null; // Clear stale model data
+            saveUserSelections();
+        }
     }
 }
 
@@ -2752,9 +2775,14 @@ function setupNavigationButtons() {
                     const errorData = await response.json();
                     throw new Error(`HTTP error! status: ${response.status} - ${errorData.error || response.statusText}`);
                 }
-                const debugData = await response.json();
-                // Mostrar los datos en un alert para depuración
-                alert('DEBUG: Datos recibidos del backend:\n\n' + JSON.stringify(debugData, null, 2));
+                const informeFinal = await response.json();
+                console.log('Informe recibido del backend:', informeFinal);
+
+                // Add userType to the report data before saving
+                informeFinal.userType = userSelections.userType;
+
+                localStorage.setItem('informeSolar', JSON.stringify(informeFinal));
+                window.location.href = 'informe.html';
             } catch (error) {
                 console.error('Error al generar el informe:', error);
                 alert('Hubo un error al generar el informe. Por favor, intente de nuevo. Detalle: ' + error.message);

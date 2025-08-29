@@ -10,13 +10,6 @@ from . import engine
 
 excel_lock = Lock()
 
-def write_to_debug_log(message):
-    """Appends a message to the debug log file."""
-    # Ensure the message is a string
-    log_message = str(message)
-    with open(os.path.join(SCRIPT_DIR, 'backend_debug.log'), 'a', encoding='utf-8') as f:
-        f.write(f"[{pd.Timestamp.now()}] {log_message}\n")
-
 def clean_nan_in_data(obj):
     """
     Recursively walk a dict or list and replace float('nan') with None,
@@ -94,12 +87,40 @@ def get_electrodomesticos_consumos():
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
-# --- Ruta para generar informe (MODO DEBUG) ---
+# --- Ruta para generar informe (EXISTENTE) ---
 @app.route('/api/generar_informe', methods=['POST'])
 def generar_informe():
+    # I'm keeping the custom logging for now to help debug the next issue.
+    write_to_debug_log("--- NEW /api/generar_informe REQUEST ---")
     user_data = request.json
-    # Simplemente devuelve los datos recibidos para depuración
-    return jsonify(user_data)
+    write_to_debug_log(f"Received user_data: {json.dumps(user_data)}")
+
+    if not user_data:
+        write_to_debug_log("ERROR: No user_data received.")
+        return jsonify({"error": "No se recibieron datos"}), 400
+
+    try:
+        write_to_debug_log("Calling calculation engine...")
+        resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
+        write_to_debug_log(f"Engine returned: {json.dumps(resultados_calculo)}")
+
+        # Si el motor devuelve un error, pasarlo al frontend
+        if "error" in resultados_calculo:
+            write_to_debug_log(f"Engine returned an error: {resultados_calculo['error']}")
+            return jsonify(resultados_calculo), 400
+
+        # Devolver los resultados exitosos
+        write_to_debug_log("Successfully generated report. Returning results.")
+        return jsonify(resultados_calculo)
+
+    except FileNotFoundError as e:
+        write_to_debug_log(f"FATAL ERROR: Excel file not found at {EXCEL_FILE_PATH}. Error: {e}")
+        return jsonify({"error": "Archivo de configuración principal (Excel) no encontrado en el servidor."}), 500
+    except Exception as e:
+        import traceback
+        error_info = traceback.format_exc()
+        write_to_debug_log(f"UNEXPECTED ERROR in /api/generar_informe: {e}\n{error_info}")
+        return jsonify({"error": f"Error interno del servidor al procesar la solicitud: {str(e)}"}), 500
 
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
 @app.route('/')
