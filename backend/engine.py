@@ -20,41 +20,60 @@ VIDA_UTIL_ANOS = 25
 FACTOR_EMISION_TCO2_POR_MWH = 0.4658
 
 def _get_user_inputs(user_data):
-    """Extracts and validates user inputs from the data dictionary."""
+    """
+    Extracts and validates user inputs from the data dictionary sent by the frontend.
+    This function is critical for mapping frontend keys to backend keys.
+    """
+    # Safely extract all expected keys from the user_data dictionary, providing defaults.
     inputs = {
         "lat": user_data.get("location", {}).get("lat", -34.6037),
         "lng": user_data.get("location", {}).get("lng", -58.3816),
-        "consumo_tipo": user_data.get("consumo", {}).get("tipo", "factura"),
-        "consumo_factura_mensual": user_data.get("consumo", {}).get("factura_mensual", [0]*12),
-        "paneles_marca": user_data.get("paneles", {}).get("marca", "GENERICOS"),
-        "paneles_potencia": user_data.get("paneles", {}).get("potencia", 450),
+
+        # Determine consumption type and data based on frontend logic
+        "consumo_tipo": user_data.get("metodoIngresoConsumoEnergia"), # Can be 'boletaMensual' or 'detalleHogar'
+        "consumo_factura_mensual": user_data.get("consumosMensualesFactura", []),
+        "consumo_anual_total": user_data.get("totalAnnualConsumption", 0),
+
+        # Panel data mapping
+        "paneles_marca": user_data.get("marcaPanel", "GENERICOS"),
+        "paneles_potencia": user_data.get("potenciaPanelDeseada", 450),
+
+        # Installation details mapping
         "rotacion_descripcion": user_data.get("rotacionInstalacion", {}).get("descripcion", "fijos"),
         "angulo_inclinacion": user_data.get("anguloInclinacion", 35),
         "angulo_orientacion": user_data.get("anguloOrientacion", 0),
+
+        # Economic data mapping
         "moneda": user_data.get("selectedCurrency", "Pesos argentinos")
     }
+
+    # If consumption type is by bill but the array is empty/zeros, use the totalAnnualConsumption as a fallback.
+    # This handles cases where user selects bill method but doesn't enter details.
+    if inputs["consumo_tipo"] == 'boletaMensual' and not any(inputs["consumo_factura_mensual"]):
+        if inputs["consumo_anual_total"] > 0:
+            monthly_avg = inputs["consumo_anual_total"] / 12
+            inputs["consumo_factura_mensual"] = [monthly_avg] * 12
+            print(f"DEBUG: Using annual consumption fallback for bill method. Monthly avg: {monthly_avg}")
+
     return inputs
 
 def _calculate_annual_consumption(inputs):
     """
     Calculates the annual energy consumption based on the user's selected method.
     """
-    if inputs["consumo_tipo"] == 'factura':
-        # User entered monthly consumption from their bill
-        factura_mensual = inputs["consumo_factura_mensual"]
-        if not factura_mensual or len(factura_mensual) != 12:
-            # Fallback for incomplete data, though the input handler should provide defaults
-            return 0
-        return sum(factura_mensual)
+    consumo_tipo = inputs.get("consumo_tipo")
 
-    elif inputs["consumo_tipo"] == 'electrodomesticos':
-        # This logic can be implemented later if needed.
-        print("WARN: Consumption calculation by appliances is not yet implemented.")
-        return 0
+    # If the user chose to enter by bill ('boletaMensual') and provided valid monthly values, sum them up.
+    if consumo_tipo == 'boletaMensual':
+        factura_mensual = inputs.get("consumo_factura_mensual", [])
+        if factura_mensual and any(factura_mensual): # Check if list is not empty and has non-zero values
+            print(f"DEBUG: Calculating annual consumption from monthly bill: {sum(factura_mensual)}")
+            return sum(factura_mensual)
 
-    else:
-        print(f"WARN: Unknown consumption type '{inputs['consumo_tipo']}'. Returning 0.")
-        return 0
+    # For 'detalleHogar' (appliances), or as a fallback for the bill method if no data was entered,
+    # use the total annual consumption pre-calculated by the frontend.
+    print(f"DEBUG: Using totalAnnualConsumption from frontend: {inputs.get('consumo_anual_total', 0)}")
+    return inputs.get("consumo_anual_total", 0)
 
 def run_calculation_engine(user_data, excel_path=EXCEL_FILE_PATH):
     """
