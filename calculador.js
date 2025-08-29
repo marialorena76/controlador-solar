@@ -2752,14 +2752,9 @@ function setupNavigationButtons() {
                     const errorData = await response.json();
                     throw new Error(`HTTP error! status: ${response.status} - ${errorData.error || response.statusText}`);
                 }
-                const informeFinal = await response.json();
-                console.log('Informe recibido del backend:', informeFinal);
-
-                // Add userType to the report data before saving
-                informeFinal.userType = userSelections.userType;
-
-                localStorage.setItem('informeSolar', JSON.stringify(informeFinal));
-                window.location.href = 'informe.html';
+                const debugData = await response.json();
+                // Mostrar los datos en un alert para depuración
+                alert('DEBUG: Datos recibidos del backend:\n\n' + JSON.stringify(debugData, null, 2));
             } catch (error) {
                 console.error('Error al generar el informe:', error);
                 alert('Hubo un error al generar el informe. Por favor, intente de nuevo. Detalle: ' + error.message);

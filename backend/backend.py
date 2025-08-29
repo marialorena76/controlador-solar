@@ -10,6 +10,13 @@ from . import engine
 
 excel_lock = Lock()
 
+def write_to_debug_log(message):
+    """Appends a message to the debug log file."""
+    # Ensure the message is a string
+    log_message = str(message)
+    with open(os.path.join(SCRIPT_DIR, 'backend_debug.log'), 'a', encoding='utf-8') as f:
+        f.write(f"[{pd.Timestamp.now()}] {log_message}\n")
+
 def clean_nan_in_data(obj):
     """
     Recursively walk a dict or list and replace float('nan') with None,
@@ -87,41 +94,12 @@ def get_electrodomesticos_consumos():
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
-# --- Ruta para generar informe (EXISTENTE) ---
+# --- Ruta para generar informe (MODO DEBUG) ---
 @app.route('/api/generar_informe', methods=['POST'])
 def generar_informe():
     user_data = request.json
-    print("DEBUG: Datos recibidos del frontend para informe:", user_data)
-
-    if not user_data:
-        return jsonify({"error": "No se recibieron datos"}), 400
-
-    try:
-        # --- Llamada al nuevo motor de cálculo ---
-        print(f"DEBUG: Iniciando motor de cálculo con datos de usuario y archivo: {EXCEL_FILE_PATH}")
-        resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
-        print(f"DEBUG: Motor de cálculo finalizado. Resultados: {resultados_calculo}")
-
-        # Si el motor devuelve un error, pasarlo al frontend
-        if "error" in resultados_calculo:
-            return jsonify(resultados_calculo), 400 # O 500 dependiendo del error
-
-        # Devolver los resultados exitosos
-        return jsonify(resultados_calculo)
-
-    except FileNotFoundError:
-        print(f"ERROR CRITICO: Archivo Excel NO ENCONTRADO al llamar al motor: {EXCEL_FILE_PATH}")
-        return jsonify({"error": "Archivo de configuración principal (Excel) no encontrado en el servidor."}), 500
-    except Exception as e:
-        import traceback
-        print(f"ERROR INESPERADO en /api/generar_informe: {e}")
-        print(traceback.format_exc())
-        return jsonify({"error": f"Error interno del servidor al procesar la solicitud: {str(e)}"}), 500
-    except Exception as e:
-        import traceback
-        print(f"ERROR GENERAL en backend (generar_informe): {e}")
-        print(traceback.format_exc())
-        return jsonify({"error": f"Error interno del servidor al generar informe: {str(e)}"}), 500
+    # Simplemente devuelve los datos recibidos para depuración
+    return jsonify(user_data)
 
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
 @app.route('/')
