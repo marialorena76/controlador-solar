@@ -10,6 +10,8 @@ from . import engine
 
 excel_lock = Lock()
 
+# The write_to_debug_log function is being removed and replaced with standard prints.
+
 def clean_nan_in_data(obj):
     """
     Recursively walk a dict or list and replace float('nan') with None,
@@ -90,37 +92,34 @@ def get_electrodomesticos_consumos():
 # --- Ruta para generar informe (EXISTENTE) ---
 @app.route('/api/generar_informe', methods=['POST'])
 def generar_informe():
-    # I'm keeping the custom logging for now to help debug the next issue.
-    write_to_debug_log("--- NEW /api/generar_informe REQUEST ---")
-    user_data = request.json
-    write_to_debug_log(f"Received user_data: {json.dumps(user_data)}")
-
-    if not user_data:
-        write_to_debug_log("ERROR: No user_data received.")
-        return jsonify({"error": "No se recibieron datos"}), 400
-
+    print("--- NEW /api/generar_informe REQUEST ---")
     try:
-        write_to_debug_log("Calling calculation engine...")
+        user_data = request.json
+        print(f"Received user_data: {json.dumps(user_data, indent=2)}")
+
+        if not user_data:
+            print("ERROR: No user_data received.")
+            return jsonify({"error": "No se recibieron datos"}), 400
+
+        print("Calling calculation engine...")
         resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
-        write_to_debug_log(f"Engine returned: {json.dumps(resultados_calculo)}")
+        print("Engine call successful.")
 
-        # Si el motor devuelve un error, pasarlo al frontend
-        if "error" in resultados_calculo:
-            write_to_debug_log(f"Engine returned an error: {resultados_calculo['error']}")
-            return jsonify(resultados_calculo), 400
+        # Clean NaN values before returning the JSON response.
+        resultados_calculo_clean = clean_nan_in_data(resultados_calculo)
 
-        # Devolver los resultados exitosos
-        write_to_debug_log("Successfully generated report. Returning results.")
-        return jsonify(resultados_calculo)
+        if "error" in resultados_calculo_clean:
+            print(f"Engine returned an error: {resultados_calculo_clean['error']}")
+            return jsonify(resultados_calculo_clean), 400
 
-    except FileNotFoundError as e:
-        write_to_debug_log(f"FATAL ERROR: Excel file not found at {EXCEL_FILE_PATH}. Error: {e}")
-        return jsonify({"error": "Archivo de configuración principal (Excel) no encontrado en el servidor."}), 500
+        print("Successfully generated report. Returning results.")
+        return jsonify(resultados_calculo_clean)
+
     except Exception as e:
         import traceback
         error_info = traceback.format_exc()
-        write_to_debug_log(f"UNEXPECTED ERROR in /api/generar_informe: {e}\n{error_info}")
-        return jsonify({"error": f"Error interno del servidor al procesar la solicitud: {str(e)}"}), 500
+        print(f"UNEXPECTED CRASH in /api/generar_informe: {e}\n{error_info}")
+        return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
 @app.route('/')
