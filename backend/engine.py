@@ -259,6 +259,58 @@ def _calculate_economics(inputs, system_data, generation_data):
             "flujo_de_fondos": flujo_de_fondos
         }
 
+def get_panel_model_name(marca, potencia, excel_path):
+    """
+    Looks up the specific panel model name based on brand and power.
+    This is a lightweight function for use before the full calculation.
+    """
+    try:
+        # This logic is based on the _select_panel function, but simplified
+        # to only return the model name or an error/info string.
+        data_path = os.path.join(os.path.dirname(excel_path), 'data')
+        with open(os.path.join(data_path, 'paneles_comerciales.json'), 'r', encoding='utf-8') as f:
+            paneles_comerciales = json.load(f)
+        with open(os.path.join(data_path, 'paneles_genericos.json'), 'r', encoding='utf-8') as f:
+            paneles_genericos = json.load(f)
+
+        df_comerciales = pd.DataFrame(paneles_comerciales)
+        df_genericos = pd.DataFrame(paneles_genericos)
+
+        if marca == 'GENERICOS':
+            df_paneles = df_genericos
+        else:
+            df_paneles = df_comerciales[df_comerciales['Marca'] == marca]
+
+        if df_paneles.empty:
+            # Fallback to generics if no commercial panels for the brand,
+            # but this case should ideally not be hit if brand list is correct.
+            df_paneles = df_genericos
+
+        # Find the panel with the closest power rating
+        df_paneles['diff'] = (df_paneles['Pmax[W]'] - potencia).abs()
+
+        # Check if any panel was found for the given criteria
+        if df_paneles.empty or df_paneles['diff'].isnull().all():
+             return f"No hay paneles para la marca '{marca}'"
+
+        panel_seleccionado_row = df_paneles.loc[df_paneles['diff'].idxmin()]
+
+        # Specific check from Excel logic: if the power difference is too large, it's an error.
+        # This threshold can be adjusted. Let's use 50W as a reasonable threshold.
+        if panel_seleccionado_row['diff'] > 50:
+            return "VERIFIQUE LA POTENCIA, NO HAY PANELES DE ESA POTENCIA DE LA MARCA ELEGIDA"
+
+        model_name = panel_seleccionado_row.get('Modelo')
+
+        return model_name if pd.notna(model_name) else "Modelo no encontrado"
+
+    except FileNotFoundError:
+        return {"error": "Archivo de datos de paneles no encontrado."}
+    except Exception as e:
+        print(f"ERROR in get_panel_model_name: {e}")
+        return {"error": f"Error interno al buscar el modelo de panel: {str(e)}"}
+
+
 def _calculate_environmental_impact(generacion_anual_kwh):
     """Calculates the avoided CO2 emissions."""
     generacion_anual_mwh = generacion_anual_kwh / 1000.0
