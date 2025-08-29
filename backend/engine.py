@@ -111,7 +111,9 @@ def run_calculation_engine(user_data, excel_path=EXCEL_FILE_PATH):
         "ingreso_red": economics_data.get("ingreso_red"),
         "ahorro_total": economics_data.get("ahorro_total"),
         "resumen_economico": economics_data.get("resumen_economico"),
-        "emisiones": environmental_data.get("emisiones_evitadas_tco2"),
+        "emisiones_evitadas_primer_ano_tco2": environmental_data.get("emisiones_evitadas_primer_ano_tco2"),
+        "emisiones_evitadas_total_tco2": environmental_data.get("emisiones_evitadas_total_tco2"),
+        "flujo_de_fondos": economics_data.get("flujo_de_fondos"),
         "moneda": inputs["moneda"]
     }
 
@@ -216,6 +218,22 @@ def _calculate_economics(inputs, system_data, generation_data):
     costos_totales_ars = inversion_inicial_ars + (mantenimiento_anual_ars * VIDA_UTIL_ANOS)
     ahorro_total_ars = beneficios_totales_ars - costos_totales_ars
 
+    # Cash flow chart data
+    flujo_de_fondos = []
+    for year in range(VIDA_UTIL_ANOS + 1):
+        if year == 0:
+            flujo_sin_proyecto = 0
+            flujo_con_proyecto = -inversion_inicial_ars
+        else:
+            flujo_sin_proyecto = -costo_actual_anual_ars
+            flujo_con_proyecto = ingreso_red_anual_ars - costo_futuro_anual_ars - mantenimiento_anual_ars
+
+        flujo_de_fondos.append({
+            "anio": year,
+            "sin_proyecto": flujo_sin_proyecto,
+            "con_proyecto": flujo_con_proyecto
+        })
+
     if inputs["moneda"] == 'Dólares':
         return {
             "costo_actual": costo_actual_anual_ars / TASA_CAMBIO_USD_ARS,
@@ -225,7 +243,8 @@ def _calculate_economics(inputs, system_data, generation_data):
             "ingreso_red": ingreso_red_anual_ars / TASA_CAMBIO_USD_ARS,
             "ahorro_total": ahorro_total_ars / TASA_CAMBIO_USD_ARS,
             "resumen_economico": "El análisis detallado estará disponible en futuras versiones.",
-            "vida_util": VIDA_UTIL_ANOS
+            "vida_util": VIDA_UTIL_ANOS,
+            "flujo_de_fondos": [{k: v / TASA_CAMBIO_USD_ARS if k != 'anio' else v for k, v in item.items()} for item in flujo_de_fondos]
         }
     else: # Pesos argentinos
         return {
@@ -236,14 +255,19 @@ def _calculate_economics(inputs, system_data, generation_data):
             "ingreso_red": ingreso_red_anual_ars,
             "ahorro_total": ahorro_total_ars,
             "resumen_economico": "El análisis detallado estará disponible en futuras versiones.",
-            "vida_util": VIDA_UTIL_ANOS
+            "vida_util": VIDA_UTIL_ANOS,
+            "flujo_de_fondos": flujo_de_fondos
         }
 
 def _calculate_environmental_impact(generacion_anual_kwh):
     """Calculates the avoided CO2 emissions."""
     generacion_anual_mwh = generacion_anual_kwh / 1000.0
-    emisiones_evitadas_tco2 = generacion_anual_mwh * FACTOR_EMISION_TCO2_POR_MWH
-    return {"emisiones_evitadas_tco2": emisiones_evitadas_tco2}
+    emisiones_evitadas_primer_ano_tco2 = generacion_anual_mwh * FACTOR_EMISION_TCO2_POR_MWH
+    emisiones_evitadas_total_tco2 = emisiones_evitadas_primer_ano_tco2 * VIDA_UTIL_ANOS
+    return {
+        "emisiones_evitadas_primer_ano_tco2": emisiones_evitadas_primer_ano_tco2,
+        "emisiones_evitadas_total_tco2": emisiones_evitadas_total_tco2,
+    }
 
 if __name__ == '__main__':
     SAMPLE_USER_DATA = {
