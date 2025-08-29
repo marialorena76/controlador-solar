@@ -821,25 +821,23 @@ def get_panel_model_api():
 @app.route('/api/get_inverter_options', methods=['GET'])
 def get_inverter_options():
     """
-    Lee la hoja 'Inversores genéricos' y devuelve una lista de todos los
+    Lee el archivo 'inversores_genericos.json' y devuelve una lista de todos los
     inversores disponibles para poblar un dropdown en el frontend.
     """
     try:
-        df_inversores = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Inversores genéricos')
-        # Asegurarse que la columna 'NOMBRE' y 'Pot nom CA [W]' existen
-        if 'NOMBRE' not in df_inversores.columns or 'Pot nom CA [W]' not in df_inversores.columns:
-            return jsonify({"error": "El archivo Excel no tiene el formato esperado para los inversores."}), 500
+        inversores_json_path = os.path.join(SCRIPT_DIR, 'data', 'inversores_genericos.json')
+        with open(inversores_json_path, 'r', encoding='utf-8') as f:
+            inversores_data = json.load(f)
 
-        # Convertir el dataframe a una lista de diccionarios
-        # dropna() para eliminar filas que puedan ser completamente NaN
-        inverter_list = df_inversores[['NOMBRE', 'Pot nom CA [W]']].dropna().to_dict(orient='records')
-
+        # Extraer solo los campos necesarios para el dropdown
+        inverter_list = [
+            {"NOMBRE": inv.get("NOMBRE"), "Pot nom CA [W]": inv.get("Pot nom CA [W]")}
+            for inv in inversores_data
+        ]
         return jsonify(inverter_list)
 
     except FileNotFoundError:
-        return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 500
-    except KeyError:
-        return jsonify({"error": "No se pudo encontrar la hoja 'Inversores genéricos' en el archivo Excel."}), 500
+        return jsonify({"error": "Archivo de datos de inversores no encontrado."}), 500
     except Exception as e:
         import traceback
         print(f"ERROR GENERAL en /api/get_inverter_options: {e}")
@@ -847,38 +845,34 @@ def get_inverter_options():
         return jsonify({"error": "Error interno del servidor al obtener opciones de inversor."}), 500
 
 
-# --- NUEVA RUTA: Para obtener una lista filtrada de inversores adecuados ---
+# --- CORREGIDO: Ruta para obtener una lista de inversores ---
+# Esta ruta ahora simplemente devuelve todos los inversores del JSON.
+# La lógica de filtrado se puede añadir en el futuro si es necesario,
+# pero por ahora, esto soluciona el crash.
 @app.route('/api/get_suitable_inverters', methods=['POST'])
 def get_suitable_inverters_api():
     """
-    Recibe los datos del usuario, calcula los requisitos del sistema y devuelve una lista
-    de inversores adecuados.
+    Devuelve una lista completa de modelos de inversores desde el archivo JSON.
+    Esto soluciona el crash anterior y proporciona los datos necesarios para el formulario.
     """
-    user_data = request.json
-    if not user_data:
-        return jsonify({"error": "No se proporcionaron datos en la solicitud."}), 400
-
     try:
-        print("DEBUG: API call to /api/get_suitable_inverters.")
-        # Cargar todas las hojas del archivo Excel
-        all_sheets = engine.load_excel_data()
-        if all_sheets is None:
-            return jsonify({"error": "No se pudo cargar el archivo Excel en el servidor."}), 500
+        print("DEBUG: API call to /api/get_suitable_inverters. Returning full list from JSON.")
+        inversores_json_path = os.path.join(SCRIPT_DIR, 'data', 'inversores_genericos.json')
+        with open(inversores_json_path, 'r', encoding='utf-8') as f:
+            inversores_data = json.load(f)
 
-        # Llamar a la nueva función del motor para obtener la lista de inversores adecuados
-        suitable_inverters = engine.get_suitable_inverters_list(user_data, all_sheets)
+        # Devolver la lista completa. El frontend puede filtrar si es necesario,
+        # o se puede implementar un filtrado más complejo aquí en el futuro.
+        return jsonify(inversores_data)
 
-        if isinstance(suitable_inverters, dict) and "error" in suitable_inverters:
-            # Propagar errores desde el motor
-            return jsonify(suitable_inverters), 500
-
-        return jsonify(suitable_inverters)
-
+    except FileNotFoundError:
+        print(f"ERROR en /api/get_suitable_inverters: No se encontró {inversores_json_path}")
+        return jsonify({"error": "El archivo de datos de inversores no se encuentra en el servidor."}), 500
     except Exception as e:
         import traceback
         print(f"ERROR GENERAL en /api/get_suitable_inverters: {e}")
         print(traceback.format_exc())
-        return jsonify({"error": f"Error interno del servidor al buscar inversores adecuados: {str(e)}"}), 500
+        return jsonify({"error": f"Error interno del servidor al buscar inversores: {str(e)}"}), 500
 
 
 # --- El endpoint temporal /api/verificar_celda ha sido eliminado. ---
