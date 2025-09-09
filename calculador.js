@@ -1534,6 +1534,27 @@ async function cargarElectrodomesticosDesdeBackend() {
 
 
 function initElectrodomesticosSection() {
+    // Dynamically set the title and description for the 'Energia' section based on user profile.
+    // NOTE: The selectors target the H1 and the P tags that are direct children of #energia-section.
+    // The P tag was added in a previous step to serve as a dynamic description area.
+    const energiaSectionTitle = document.querySelector('#energia-section > h1');
+    const energiaSectionDescription = document.querySelector('#energia-section > p');
+
+    let title = 'Consumo de Energía';
+    let description = 'A continuación ingrese los datos requeridos acerca de su consumo de energía eléctrica.';
+
+    if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
+        title = 'Ingrese su consumo de Energia';
+        if (userSelections.userType === 'experto') {
+            description = 'Ingresa el consumo de energía eléctrica mensual registrado en tu factura “de luz” en los últimos 12 meses.';
+        } else { // 'basico'
+            description = 'Ingresa tu consumo de energía eléctrica mensual promedio';
+        }
+    }
+
+    if (energiaSectionTitle) energiaSectionTitle.innerHTML = title;
+    if (energiaSectionDescription) energiaSectionDescription.innerHTML = description;
+
     const modoSeleccionContainer = document.getElementById('energia-modo-seleccion-container');
     const listContainer = document.getElementById('electrodomesticos-list');
     const summaryContainer = document.querySelector('#energia-section .energy-summary');
