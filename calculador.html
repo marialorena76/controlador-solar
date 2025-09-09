@@ -837,8 +837,8 @@
                 </div>
                 <!-- Fin de Nueva sección para Modelo del Método -->
                 <div id="energia-section" style="display:none;">
-                    <h1>Consumo de Energía</h1> <!-- Or other title set by JS -->
-                    <p>A continuación ingrese los datos requeridos acerca de su consumo de energía eléctrica.</p> <!-- New subtitle -->
+                    <h1>Consumo de Energía</h1> <!-- This title is now dynamically changed by calculador.js -->
+                    <p></p> <!-- This description is now dynamically changed by calculador.js -->
 
                     <div id="energia-modo-seleccion-container" style="display:none;"> <!-- Initially hidden, JS will show for experts -->
                         <h2>¿Cómo desea ingresar los datos de consumo?</h2>
@@ -910,7 +910,7 @@
                     <!-- Sub-Form 1: Marca Panel -->
                     <div id="panel-marca-subform" style="display:none;">
                         <h2>Ingrese la marca del panel que desee utilizar:</h2>
-                        <p class="form-subtitle" style="font-size: 0.9em; color: #555; margin-top: -1rem; margin-bottom: 1rem;">Si no conoce sobre marcas o si la marca que desea seleccionar no se encuentra dentro de la lista, seleccione la opción: Genéricos</p>
+                        <p class="form-subtitle" style="font-size: 0.9em; color: #555; margin-top: -1rem; margin-bottom: 1rem;">Seleccioná del listado. Si no sabés o si la marca o potencia que deseas seleccionar no se encuentra dentro de la lista, selecciona “Genéricos”. De acuerdo a tu selección el sistema te mostrará el modelo comercial del panel adecuado para tu necesidad.</p>
                         <div class="form-group">
                             <div id="marca-panel-options-container">
                                 <!-- Dropdown select for Marca Panel will be inserted here by JS -->
@@ -978,7 +978,8 @@
                     </div>
                 </div>
                 <div id="inversor-section" style="display:none;">
-                    <h1>De las opciones disponibles, seleccione el modelo de inversor que desea instalar</h1>
+                    <h1>Seleccione el modelo de Inversor que desea instalar</h1>
+                    <p class="form-description">Selecciona uno de la lista de opciones compatibles con su instalación. Si no elige ninguna opción el sistema utilizará por defecto un modelo genérico.</p>
                     <div id="inversor-options-container" class="form-group">
                         <!-- El menú desplegable de inversores se insertará aquí dinámicamente -->
                     </div>
