@@ -799,6 +799,7 @@
                 <!-- Nueva sección para Método de Cálculo -->
                 <div id="metodo-calculo-section" style="display:none;">
                     <h1>¿Con qué método de cálculo de radiación desea realizar el dimensionamiento?</h1>
+                    <p class="form-description">Para estimar la radiación solar total incidente sobre los paneles es posible considerar que el cielo presenta iguales propiedades en todas sus direcciones (Cielo isotrópico), por lo que la radiación difusa calculada será igual en todas las direcciones. O puede considerarse que las propiedades del cielo varían según la dirección analizada (Cielo anisotrópico), lo que hará que la radiación difusa difiera según las diferentes direcciones. Si no elige ninguna opción el sistema utilizará por defecto el método Anisotrópico.</p>
                     <div class="form-group">
                         <!-- Options (select dropdown) will be dynamically inserted here by JavaScript -->
                         <div id="metodo-calculo-options-container">
@@ -815,6 +816,14 @@
                 <div id="modelo-metodo-section" style="display:none;">
                     <h1>Paso 1: Datos</h1>
                     <h2>¿Con qué modelo del método desea realizar el dimensionamiento?</h2>
+                    <p class="form-description">
+                        - Cielo isotrópico: Presenta mejores resultados para ubicaciones con cielos mayormente despejados.<br>
+                        - Modelo Liu-Jordan<br>
+                        - Cielo Anisotrópico: se aplica mejor para ubicaciones con cielos habitualmente nublados. El método más sencillo es el de Hay and Davies, mientras que el modelo Pérez es el más complejo, pero de mayor precisión. Si no elige ninguna opción el sistema utilizará por defecto el modelo de Pérez.<br>
+                        - Hay and Davies: es sencillo y robusto. Se basa en el modelo de Liu-Jordan.<br>
+                        - Riendl: mejora del modelo de Hay and Davies, presentando valores de irradiancia más altos y precisos.<br>
+                        - Pérez: considera las características variables del cielo según la ubicación, generando resultados con mayor precisión.
+                    </p>
                     <div class="form-group">
                         <!-- Options (select dropdown) will be dynamically inserted here by JavaScript -->
                         <div id="modelo-metodo-options-container">
@@ -833,6 +842,12 @@
 
                     <div id="energia-modo-seleccion-container" style="display:none;"> <!-- Initially hidden, JS will show for experts -->
                         <h2>¿Cómo desea ingresar los datos de consumo?</h2>
+                        <p class="form-description">
+                            Tres opciones para ingresar tu consumo de energía eléctrica:<br>
+                            - Ingresar que electrodomésticos tenés en tu casa (tipo y cantidad), y el sistema estimará las horas de uso estándar.<br>
+                            - Ingresar que electrodomésticos tenés en tu casa: tipo, cantidad y horas de uso al mes, distinguiendo entre verano e invierno.<br>
+                            - Ingresa el consumo mensual registrado en tu factura “de luz” en los últimos 12 meses.
+                        </p>
                         <div class="radio-group">
                             <label>
                                 <input type="radio" name="metodoIngresoConsumo" value="detalleHogar" required>
