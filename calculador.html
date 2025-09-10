@@ -955,6 +955,12 @@
                     <!-- Sub-Form 4: Modelo de Cálculo de Temperatura -->
                     <div id="panel-modelo-temperatura-subform" style="display:none;">
                         <h2>Ingrese el modelo de cálculo de temperatura de los paneles:</h2>
+                        <p class="form-description">La eficiencia de los paneles fotovoltaicos se ve afectada por la temperatura. Si no elije alguna opción, por defecto el sistema utilizará el modelo Mattei, ya que es uno de los que ofrece mayor precisión.<br>
+                            -	Modelo Standard: también denominado de la “temperatura de operación nominal de la celda” es el modelo más sencillo. Considera la temperatura ambiente, la radiación solar incidente y datos específicos del panel a utilizar. Pero no considera la acción refrigerante del viento.<br>
+                            -	Modelo Skoplaki: modelo más complejo que suma la acción del viento al análisis y además considera mayor cantidad de propiedades específicas de los paneles a utilizar.<br>
+                            -	Modelo Koehl: modelo empírico simple, que considera la temperatura ambiente, la radiación incidente, la velocidad del viento y coeficientes que dependen de la tecnología del panel utilizado.<br>
+                            -	Modelo Mattei: Modelo con mayor complejidad, con similitudes al método Skoplaki, considera un coeficiente de intercambio de calor.<br>
+                            -	Modelo de Kurtz: considera la temperatura ambiente, la radiación incidente, la acción del viento, pero no contempla la tecnología del panel.</p>
                         <div class="form-group">
                             <select id="modelo-temperatura-select" class="form-control">
                                 <option value="" disabled selected>Seleccione un modelo...</option>
@@ -1028,7 +1034,7 @@
                             <option value="Dólares">Dólares</option>
                         </select>
                     </div>
-                    <p>Aquí se realizará el análisis de la inversión, costos y beneficios económicos de la instalación.</p>
+                    <p class="form-description">Pesos argentinos (AR$) o Dólares estadounidenses (US$). La conversión entre una y otra moneda se hace de forma automática utilizando el valor oficial del Banco Nación.</p>
                     <div class="form-actions">
                         <button type="button" id="back-to-perdidas" class="back-button">Atrás</button>
                         <button type="submit" id="finalizar-calculo">Finalizar Cálculo</button>
