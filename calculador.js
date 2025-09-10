@@ -1039,6 +1039,34 @@ async function initFrecuenciaLluviasOptions() {
     }
 }
 
+function initAnalisisEconomicoSection() {
+    const container = document.getElementById('analisis-economico-section');
+    if (!container) return;
+
+    // Remove existing help text to avoid duplicates
+    const existingHelp = container.querySelector('.form-description');
+    if (existingHelp) {
+        existingHelp.remove();
+    }
+
+    if (userSelections.userType === 'basico') {
+        const helpText = document.createElement('p');
+        helpText.className = 'form-description';
+        helpText.innerHTML = 'Pesos argentinos (AR$) o Dólares estadounidenses (US$). La conversión entre una y otra moneda se hace de forma automática utilizando el valor oficial del Banco Nación.';
+
+        const formGroup = container.querySelector('.form-group');
+        if (formGroup) {
+            // Insert after the select element within the form-group
+            const selectElement = formGroup.querySelector('select');
+            if (selectElement) {
+                selectElement.after(helpText);
+            } else {
+                formGroup.appendChild(helpText);
+            }
+        }
+    }
+}
+
 function initFocoPolvoOptions() {
     const container = document.getElementById('foco-polvo-options-container');
     if (!container) {
@@ -2583,11 +2611,15 @@ function setupNavigationButtons() {
                 // vamos directo al análisis económico
                 showScreen('analisis-economico-section');
                 updateStepIndicator('analisis-economico-section');
+                initAnalisisEconomicoSection();
             }
         });
     }
 
-    document.getElementById('back-to-energia')?.addEventListener('click', () => showScreen('energia-section'));
+    document.getElementById('back-to-energia')?.addEventListener('click', () => {
+        showScreen('energia-section');
+        initElectrodomesticosSection();
+    });
 
     // Listener for "Next" button on Inversor section (going to Perdidas)
     document.getElementById('next-to-perdidas')?.addEventListener('click', () => {
@@ -2603,6 +2635,7 @@ function setupNavigationButtons() {
         // Explicitly set the state to the last Paneles sub-form (Modelo Temperatura)
         if (panelMarcaSubform) panelMarcaSubform.style.display = 'none';
         if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
+        if (panelModeloSubform) panelModeloSubform.style.display = 'none';
         if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
 
         if (typeof initModeloTemperaturaPanelOptions === 'function') {
@@ -2652,6 +2685,7 @@ function setupNavigationButtons() {
         nextToAnalisisFromFocoPolvoBtn.addEventListener('click', () => {
             showScreen('analisis-economico-section');
             updateStepIndicator('analisis-economico-section');
+            initAnalisisEconomicoSection();
         });
     }
 
@@ -2830,6 +2864,20 @@ function setupSidebarNavigation() {
             element.addEventListener('click', () => {
                 showScreen(target);
                 updateStepIndicator(target);
+
+                // Call the appropriate init function when navigating via sidebar
+                if (target === 'energia-section') {
+                    initElectrodomesticosSection();
+                } else if (target === 'analisis-economico-section') {
+                    initAnalisisEconomicoSection();
+                } else if (target === 'paneles-section' && userSelections.userType === 'experto') {
+                    initPanelesSectionExpert();
+                } else if (target === 'inversor-section' && userSelections.userType === 'experto') {
+                    initInversorSection();
+                } else if (target === 'perdidas-section' && userSelections.userType === 'experto') {
+                    initPerdidasSection();
+                }
+                // Add other init functions as needed for robustness
             });
         }
     });
