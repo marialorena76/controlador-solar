@@ -1697,6 +1697,25 @@ function initElectrodomesticosSection() {
 
     } else { // Basic Residencial
         console.log('[DEBUG] Basic Residencial: showing appliance list.');
+
+        // START: Add help text for basic residential user
+        const helpTextId = 'basic-residential-help-text';
+        const existingHelpText = document.getElementById(helpTextId);
+        if (existingHelpText) {
+            existingHelpText.remove();
+        }
+
+        const helpText = document.createElement('p');
+        helpText.id = helpTextId;
+        helpText.className = 'form-description';
+        helpText.textContent = 'Ingresa la cantidad de electrodomésticos de cada tipo que tenés en tu casa.';
+
+        // Insert the help text before the appliance list container
+        if (listContainer) {
+            listContainer.before(helpText);
+        }
+        // END: Add help text
+
         listContainer.style.display = 'block'; // Show appliance list container
         if (summaryContainer) summaryContainer.style.display = 'flex'; // Show summary
         populateStandardApplianceList(listContainer); // Populate it with appliances
