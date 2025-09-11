@@ -1,0 +1,65 @@
+{
+  "userType": "experto",
+  "location": {
+    "lat": -34.6037,
+    "lng": -58.3816
+  },
+  "ciudad": {
+    "codigo": 60070,
+    "nombre": "BUENOS AIRES"
+  },
+  "installationType": "Residencial",
+  "incomeLevel": "ALTO",
+  "selectedZonaInstalacion": "Capital Federal",
+  "superficieRodea": {
+    "descripcion": "Cesped o campo",
+    "valor": 0.2
+  },
+  "rugosidadSuperficie": {
+    "descripcion": "Urbana",
+    "valor": 0.03
+  },
+  "rotacionInstalacion": {
+    "descripcion": "Fijos",
+    "valor": 0
+  },
+  "anguloInclinacion": 35,
+  "anguloOrientacion": 0,
+  "alturaInstalacion": 10,
+  "metodoCalculoRadiacion": "Cielo Anisotrópico",
+  "modeloMetodoRadiacion": "Modelo Perez",
+  "marcaPanel": "TRINASOLAR",
+  "potenciaPanelDeseada": 450,
+  "modeloTemperaturaPanel": "Standard",
+  "frecuenciaLluvias": "1 vez por semana",
+  "focoPolvoCercano": "NO",
+  "metodoIngresoConsumoEnergia": "boletaMensual",
+  "consumosMensualesFactura": [
+    500,
+    480,
+    450,
+    400,
+    350,
+    300,
+    320,
+    380,
+    420,
+    460,
+    490,
+    510
+  ],
+  "totalAnnualConsumption": 5060,
+  "totalMonthlyConsumption": 421.67,
+  "selectedCurrency": "Pesos argentinos",
+  "panelesSolares": {
+    "tipo": null,
+    "cantidad": 0,
+    "modelo": "TSM-DE17M(II) 450W",
+    "potenciaNominal": 0,
+    "superficie": 0
+  },
+  "inversor": {
+    "tipo": "GROWATT SPH 4000-6000TL BL-UP",
+    "potenciaNominal": 4.99
+  }
+}

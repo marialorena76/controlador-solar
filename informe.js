@@ -67,21 +67,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const monedaSimbolo = datos.moneda === 'Dólares' ? 'U$D' : '$';
 
     if (userType === 'experto') {
-        // Populate Expert Report
+        const techData = datos.technical_data || {};
+        const panelDetails = techData.panel_details || {};
+        const inverterDetails = techData.inverter_details || {};
+
+        // Populate Expert Report from technical_data
+        setTextContent('experto_radiacion_anual', `${formatNumber(techData.annual_irradiance, 2)} kWh/m²`);
+        setTextContent('experto_performance_ratio', `${formatNumber(techData.performance_ratio, 2)} %`);
+
         setTextContent('experto_consumo_anual', formatNumber(datos.consumo_anual_kwh, 0));
-        setTextContent('experto_panel_marca', datos.panel_seleccionado?.Marca || 'N/A');
-        setTextContent('experto_panel_potencia', datos.panel_seleccionado?.['Pmax[W]'] || 'N/A');
-        setTextContent('experto_panel_modelo', datos.panel_seleccionado?.Modelo || 'N/A');
-        setTextContent('experto_panel_eficiencia', datos.panel_seleccionado?.['Eficiencia[%]'] || 'N/A');
-        setTextContent('experto_cantidad_paneles', datos.numero_paneles || 'N/A');
-        setTextContent('experto_superficie', formatNumber(datos.area_paneles_m2, 2));
-        setTextContent('experto_potencia_instalada', (datos.potencia_sistema_kwp * 1000)?.toFixed(0) || 'N/A');
-        setTextContent('experto_inversor_sugerido', datos.tipo_inversor || 'N/A');
-        setTextContent('experto_inversor_potencia', (datos.potencia_inversor_kwa * 1000)?.toFixed(0) || 'N/A');
 
-        setTextContent('experto_emisiones_primer_ano', formatNumber(datos.emisiones_evitadas_primer_ano_tco2));
-        setTextContent('experto_emisiones_totales', formatNumber(datos.emisiones_evitadas_total_tco2));
+        setTextContent('experto_panel_marca', panelDetails['Marca'] || 'N/A');
+        setTextContent('experto_panel_potencia', panelDetails['Potencia'] || 'N/A');
+        setTextContent('experto_panel_modelo', panelDetails['Modelo'] || 'N/A');
+        setTextContent('experto_panel_eficiencia', `${formatNumber(panelDetails['Eficiencia informada por el fabricante del panel'], 2)} %` || 'N/A');
+        setTextContent('experto_cantidad_paneles', panelDetails['Cantidad Paneles Necesarios'] || 'N/A');
+        setTextContent('experto_superficie', `${formatNumber(panelDetails['Superficie necesaria'], 2)} m²` || 'N/A');
+        setTextContent('experto_potencia_instalada', `${formatNumber(panelDetails['Potencia Instalada Wp'], 0)} Wp` || 'N/A');
 
+        setTextContent('experto_inversor_sugerido', inverterDetails['Inversores sugeridos'] || 'N/A');
+        setTextContent('experto_inversor_potencia', `${formatNumber(inverterDetails['Potencia'], 0)} W` || 'N/A');
+        setTextContent('experto_inversor_eficiencia', `${formatNumber(inverterDetails['Eficiencia informada por el fabricante del INVERSOR'], 2)} %` || 'N/A');
+        setTextContent('experto_cantidad_inversores', inverterDetails['Cantidad de Inversores'] || 'N/A');
+
+
+        // Economic data from main report object
         document.querySelectorAll('[id^="experto_moneda_"]').forEach(el => el.textContent = monedaSimbolo);
         setTextContent('experto_costo_actual', formatNumber(datos.costo_actual, 0));
         setTextContent('experto_inversion_inicial', formatNumber(datos.inversion_inicial, 0));
@@ -89,6 +99,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setTextContent('experto_costo_futuro', formatNumber(datos.costo_futuro, 0));
         setTextContent('experto_ingreso_anual_inyeccion', formatNumber(datos.ingreso_red, 0));
         setTextContent('experto_ahorro_neto', formatNumber(datos.ahorro_total, 0));
+
+        // Emissions
+        setTextContent('experto_emisiones_primer_ano', formatNumber(datos.emisiones_evitadas_primer_ano_tco2, 2));
+        setTextContent('experto_emisiones_totales', formatNumber(datos.emisiones_evitadas_total_tco2, 2));
 
     } else { // Basic user
         setTextContent('basico_consumo_anual', formatNumber(datos.consumo_anual_kwh, 0));
@@ -129,61 +143,88 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function renderCharts(datos, userType, monedaSimbolo) {
-    if (!datos || !datos.flujo_de_fondos) {
-        console.error("No se encontraron datos de 'flujo_de_fondos' para el gráfico.");
-        return;
+    if (!datos) return;
+
+    if (userType === 'experto') {
+        renderExpertCharts(datos);
+    } else {
+        renderBasicCharts(datos);
     }
+}
 
-    const canvasIdSuffix = userType === 'experto' ? 'Expert' : 'Basic';
+function renderBasicCharts(datos) {
+    // This function can be expanded with the previous basic charts if needed
+    console.log("Rendering basic charts...");
+}
 
-    // --- Cash Flow Chart ---
-    const cashFlowCtx = document.getElementById(`cashFlowChart${canvasIdSuffix}`).getContext('2d');
-    const labels = datos.flujo_de_fondos.map(item => `Año ${item.anio}`);
-    const dataSinProyecto = datos.flujo_de_fondos.map(item => item.sin_proyecto);
-    const dataConProyecto = datos.flujo_de_fondos.map(item => item.con_proyecto);
+function renderExpertCharts(datos) {
+    console.log("Rendering expert charts with corrected data paths:", datos);
+    const techData = datos.technical_data || {};
 
-    new Chart(cashFlowCtx, {
+    // --- Monthly Balance Bar Chart ---
+    const monthlyCtx = document.getElementById('monthlyBalanceChart').getContext('2d');
+    const monthLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    new Chart(monthlyCtx, {
         type: 'bar',
         data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: `Flujo sin Proyecto (${monedaSimbolo})`,
-                    data: dataSinProyecto,
-                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    borderWidth: 1
-                },
-                {
-                    label: `Flujo con Proyecto (${monedaSimbolo})`,
-                    data: dataConProyecto,
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
-                }
-            ]
+            labels: monthLabels,
+            datasets: [{
+                label: 'Consumo (kWh)',
+                data: datos.consumosMensualesFactura || [],
+                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+            }, {
+                label: 'Generación (kWh)',
+                data: techData.monthly_generation || [],
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+            }]
         },
         options: {
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return monedaSimbolo + ' ' + value.toLocaleString('es-AR');
-                        }
-                    }
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Balance Mensual de Energía'
                 }
             },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // --- Loss Distribution Pie Chart ---
+    const lossCtx = document.getElementById('lossDistributionChart').getContext('2d');
+    const losses = techData.losses || {};
+    const lossLabels = Object.keys(losses).map(key => key.charAt(0).toUpperCase() + key.slice(1)); // Capitalize keys
+    const lossValues = Object.values(losses);
+
+    new Chart(lossCtx, {
+        type: 'pie',
+        data: {
+            labels: lossLabels,
+            datasets: [{
+                data: lossValues,
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
+            }]
+        },
+        options: {
+            responsive: true,
             plugins: {
+                title: {
+                    display: true,
+                    text: 'Distribución Estimada de Pérdidas del Sistema (%)'
+                },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            let label = context.dataset.label || '';
+                            let label = context.label || '';
                             if (label) {
                                 label += ': ';
                             }
-                            if (context.parsed.y !== null) {
-                                label += monedaSimbolo + ' ' + context.parsed.y.toLocaleString('es-AR');
+                            if (context.parsed !== null) {
+                                label += context.parsed.toFixed(2) + '%';
                             }
                             return label;
                         }
@@ -193,44 +234,47 @@ function renderCharts(datos, userType, monedaSimbolo) {
         }
     });
 
-    // --- Emissions Chart ---
-    const emissionsCtx = document.getElementById(`emissionsChart${canvasIdSuffix}`).getContext('2d');
-    new Chart(emissionsCtx, {
-        type: 'bar',
+    // --- Annual Evolution Line Chart ---
+    const annualCtx = document.getElementById('annualEvolutionChart').getContext('2d');
+    const years = Array.from({
+        length: 25
+    }, (_, i) => i + 1);
+    const annualConsumption = datos.consumo_anual_kwh || 0;
+    const annualGenerationStart = techData.annual_generation || 0;
+    const degradationRate = 0.005; // 0.5% annual degradation
+    const annualGenSeries = years.map(year => annualGenerationStart * Math.pow(1 - degradationRate, year - 1));
+
+    new Chart(annualCtx, {
+        type: 'line',
         data: {
-            labels: ['Primer Año', 'Total en Vida Útil'],
+            labels: years.map(y => `Año ${y}`),
             datasets: [{
-                label: 'Emisiones Evitadas (tCO2)',
-                data: [datos.emisiones_evitadas_primer_ano_tco2, datos.emisiones_evitadas_total_tco2],
-                backgroundColor: [
-                    'rgba(75, 192, 192, 0.5)',
-                    'rgba(153, 102, 255, 0.5)'
-                ],
-                borderColor: [
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(153, 102, 255, 1)'
-                ],
-                borderWidth: 1
+                label: 'Consumo Anual (kWh)',
+                data: Array(25).fill(annualConsumption),
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                fill: false,
+                tension: 0.1
+            }, {
+                label: 'Generación Anual (con degradación)',
+                data: annualGenSeries,
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                fill: false,
+                tension: 0.1
             }]
         },
         options: {
-            indexAxis: 'y',
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Toneladas de CO2'
-                    }
-                }
-            },
+            responsive: true,
             plugins: {
-                legend: {
-                    display: false
-                },
                 title: {
                     display: true,
-                    text: 'Comparativa de Emisiones de CO2 Evitadas'
+                    text: 'Evolución Anual de Consumo y Generación (25 Años)'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
                 }
             }
         }
