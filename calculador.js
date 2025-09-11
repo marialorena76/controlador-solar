@@ -2239,8 +2239,9 @@ function setupNavigationButtons() {
             userSelections.installationType = 'Comercial';
             saveUserSelections();
             if (userSelections.userType === 'experto') {
-                showMapScreenFormSection('income-section');
-                updateStepIndicator('income-section');
+                showScreen('data-form-screen');
+                if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
+                updateStepIndicator('data-meteorologicos-section');
             } else {
                 showMapScreenFormSection('income-section');
                 updateStepIndicator('income-section');
@@ -2253,8 +2254,9 @@ function setupNavigationButtons() {
             userSelections.installationType = 'PYME';
             saveUserSelections();
             if (userSelections.userType === 'experto') {
-                showMapScreenFormSection('income-section');
-                updateStepIndicator('income-section');
+                showScreen('data-form-screen');
+                if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
+                updateStepIndicator('data-meteorologicos-section');
             } else {
                 showMapScreenFormSection('income-section');
                 updateStepIndicator('income-section');
