@@ -1,0 +1,30 @@
+### 1. Resumen Ejecutivo ###
+- Consumo Anual de Energía: **26,911.27 (kWh/año)**
+- Potencia de Paneles Sugerida: **590.00 W**
+- Cantidad de Paneles Necesarios: **No disponible**
+- Inversor Sugerido: **GENERICO-4375 W**
+
+
+### 2. Explicación Técnica Detallada ###
+
+**Panel Fotovoltaico:**
+- Marca: ASTRONERGY
+- Modelo: No disponible
+- Potencia: 590.00 W
+- Eficiencia del fabricante: 23.20 %
+
+**Inversor:**
+- Modelo Sugerido: GENERICO-4375 W
+- Eficiencia del fabricante: No disponible
+
+**Análisis Económico (Valores de la simulación):**
+- Costo anual actual: 2,259,200.84 Pesos argentinos
+- Inversión Inicial: No disponible
+- Ahorro Neto (Vida Útil): No se genera ahorro Pesos argentinos
+
+
+### 3. Visualizaciones ###
+(Los gráficos se generarán por separado)
+
+### 4. Conclusión y Recomendaciones ###
+El sistema fotovoltaico dimensionado parece ser una opción viable. Se recomienda proceder con un análisis de ingeniería de detalle para confirmar los supuestos de cálculo y optimizar el diseño. Es crucial verificar la disponibilidad y costos actualizados de los equipos sugeridos.

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Informe Técnico de Dimensionamiento Fotovoltaico</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; line-height: 1.6; }
+        .report { max-width: 800px; margin: auto; }
+        .chart { max-width: 100%; height: auto; margin-top: 1em; margin-bottom: 2em; border: 1px solid #ccc; }
+        h1, h2, h3 { color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+        pre { background-color: #f4f4f4; padding: 1em; white-space: pre-wrap; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="report">
+        <h1>Informe Técnico de Dimensionamiento Fotovoltaico</h1>
+
+        <div id="report-content"></div>
+
+        <h2>Visualizaciones</h2>
+
+        <h3>Balance Mensual (Consumo vs. Generación)</h3>
+        <img src="charts/monthly_balance.png" alt="Balance Mensual" class="chart">
+
+        <h3>Distribución Estimada de Pérdidas</h3>
+        <img src="charts/loss_distribution.png" alt="Distribución de Pérdidas" class="chart">
+
+        <h3>Evolución Anual Proyectada (25 Años)</h3>
+        <img src="charts/annual_evolution.png" alt="Evolución Anual" class="chart">
+    </div>
+
+    <script>
+        fetch('technical_report.txt')
+            .then(response => response.text())
+            .then(text => {
+                // A simple way to format the text with sections
+                const formattedText = text.replace(/### (.*?)/g, '<h2>$1</h2>')
+                                          .replace(/\n/g, '<br>');
+                document.getElementById('report-content').innerHTML = formattedText;
+            });
+    </script>
+</body>
+</html>
