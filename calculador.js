@@ -1049,20 +1049,18 @@ function initAnalisisEconomicoSection() {
         existingHelp.remove();
     }
 
-    if (userSelections.userType === 'basico') {
-        const helpText = document.createElement('p');
-        helpText.className = 'form-description';
-        helpText.innerHTML = 'Pesos argentinos (AR$) o Dólares estadounidenses (US$). La conversión entre una y otra moneda se hace de forma automática utilizando el valor oficial del Banco Nación.';
+    const helpText = document.createElement('p');
+    helpText.className = 'form-description';
+    helpText.innerHTML = 'Pesos argentinos (AR$) o Dólares estadounidenses (US$). La conversión entre una y otra moneda se hace de forma automática utilizando el valor oficial del Banco Nación.';
 
-        const formGroup = container.querySelector('.form-group');
-        if (formGroup) {
-            // Insert after the select element within the form-group
-            const selectElement = formGroup.querySelector('select');
-            if (selectElement) {
-                selectElement.after(helpText);
-            } else {
-                formGroup.appendChild(helpText);
-            }
+    const formGroup = container.querySelector('.form-group');
+    if (formGroup) {
+        // Insert after the select element within the form-group
+        const selectElement = formGroup.querySelector('select');
+        if (selectElement) {
+            selectElement.after(helpText);
+        } else {
+            formGroup.appendChild(helpText);
         }
     }
 }
