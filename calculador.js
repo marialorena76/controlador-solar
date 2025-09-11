@@ -137,244 +137,10 @@ const panelModeloTemperaturaSubform = document.getElementById('panel-modelo-temp
 const modeloTemperaturaSelect = document.getElementById('modelo-temperatura-select');
 
 
-// --- Funciones de Persistencia (NUEVO BLOQUE INTEGRADO) ---
-
-function saveUserSelections() {
-    localStorage.setItem('userSelections', JSON.stringify(userSelections));
-    console.log('User selections guardadas:', userSelections);
-}
-
-function loadUserSelections() {
-    const savedSelections = localStorage.getItem('userSelections');
-
-    // Define the complete default structure for userSelections, including all nested objects.
-    // This should align with the initial global declaration of userSelections.
-    const defaultUserSelectionsStructure = {
-        userType: null,
-        location: { lat: -34.6037, lng: -58.3816 }, // Default Buenos Aires
-        ciudad: { codigo: null, nombre: null },
-        installationType: null,
-        incomeLevel: null,
-        zonaInstalacionExpert: null,
-        zonaInstalacionBasic: null,
-        selectedZonaInstalacion: null,
-        superficieRodea: { descripcion: null, valor: null },
-        rugosidadSuperficie: { descripcion: null, valor: null },
-        anguloInclinacion: null,
-        anguloOrientacion: null,
-        rotacionInstalacion: { descripcion: null, valor: null },
-        // modeloMetodoRadiacion: null, // This was already present in the global userSelections
-        marcaPanel: null,
-        potenciaPanelDeseada: null,
-        modeloTemperaturaPanel: null,
-        frecuenciaLluvias: null,      // New property
-        focoPolvoCercano: null,       // New property
-        metodoIngresoConsumoEnergia: null,
-        electrodomesticos: {},
-        totalMonthlyConsumption: 0,
-        totalAnnualConsumption: 0,
-        selectedCurrency: 'Pesos argentinos',
-        panelesSolares: { tipo: null, cantidad: 0, modelo: null, potenciaNominal: 0, superficie: 0 },
-        inversor: { tipo: null, potenciaNominal: 0 },
-        perdidas: { eficienciaPanel: 0, eficienciaInversor: 0, factorPerdidas: 0 },
-        consumosMensualesFactura: [] // Assuming this might be stored
-        // Add any other top-level properties that should have a default
-    };
-
-    if (savedSelections) {
-        const loadedSelections = JSON.parse(savedSelections);
-
-        // Start with a fresh copy of the default structure
-        let newSelections = JSON.parse(JSON.stringify(defaultUserSelectionsStructure));
-
-        // Merge loaded top-level properties
-        for (const key in loadedSelections) {
-            if (loadedSelections.hasOwnProperty(key)) {
-                if (typeof defaultUserSelectionsStructure[key] === 'object' &&
-                    defaultUserSelectionsStructure[key] !== null &&
-                    !Array.isArray(defaultUserSelectionsStructure[key]) &&
-                    typeof loadedSelections[key] === 'object' && // Ensure loaded value is also an object for merging
-                    loadedSelections[key] !== null) {
-                    // Merge nested objects: default values first, then loaded values
-                    newSelections[key] = { ...defaultUserSelectionsStructure[key], ...loadedSelections[key] };
-                } else if (typeof defaultUserSelectionsStructure[key] !== 'undefined') {
-                    // For non-objects or if loaded[key] is not an object, take the loaded value if the key is valid
-                    newSelections[key] = loadedSelections[key];
-                } else {
-                    // If loaded key is not in default structure at all, still copy it (might be from newer version)
-                     newSelections[key] = loadedSelections[key];
-                }
-            }
-        }
-
-        // Ensure all default keys are present even if not in loadedSelections
-        for (const key in defaultUserSelectionsStructure) {
-            if (typeof newSelections[key] === 'undefined') {
-                newSelections[key] = defaultUserSelectionsStructure[key];
-            }
-        }
-
-        userSelections = newSelections;
-
-        // Special handling for the global 'userLocation' variable
-        if (userSelections.location && typeof userSelections.location.lat !== 'undefined' && typeof userSelections.location.lng !== 'undefined') {
-            userLocation = userSelections.location;
-        } else {
-            // Fallback to default if location is malformed or missing after merge
-            userLocation = defaultUserSelectionsStructure.location;
-            userSelections.location = userLocation;
-        }
-
-        console.log('User selections cargadas y normalizadas:', userSelections);
-        updateUIFromSelections();
-        if (userSelections.userType === 'basico') {
-            document.getElementById('data-form-screen').classList.add('basic-user-mode');
-        } else {
-            document.getElementById('data-form-screen').classList.remove('basic-user-mode');
-        }
-    } else {
-        // No saved data, so global userSelections (which should already match defaultUserSelectionsStructure) is used.
-        // Optionally, explicitly set userSelections to a deep copy of defaults here too for consistency:
-        // userSelections = JSON.parse(JSON.stringify(defaultUserSelectionsStructure));
-        // And ensure userLocation is also set from this default:
-        // userLocation = userSelections.location;
-        console.log('No saved selections found, using initial default structure.');
-    }
-
-    // Migration/Normalization for userSelections.electrodomesticos
-    if (userSelections.electrodomesticos) {
-        const normalizedElectrodomesticos = {};
-        for (const key in userSelections.electrodomesticos) {
-            if (userSelections.electrodomesticos.hasOwnProperty(key)) {
-                const currentEntry = userSelections.electrodomesticos[key];
-                if (typeof currentEntry === 'number') { // Old format: "Heladera": 1
-                    normalizedElectrodomesticos[key] = { cantidad: currentEntry };
-                } else if (typeof currentEntry === 'object' && currentEntry !== null) { // New format or partially new
-                    normalizedElectrodomesticos[key] = {
-                        cantidad: currentEntry.cantidad || 0,
-                        horasVerano: currentEntry.horasVerano || null, // Prepare for future fields
-                        horasInvierno: currentEntry.horasInvierno || null // Prepare for future fields
-                    };
-                } else {
-                     normalizedElectrodomesticos[key] = { cantidad: 0 }; // Default if malformed
-                }
-            }
-        }
-        userSelections.electrodomesticos = normalizedElectrodomesticos;
-    } else {
-        userSelections.electrodomesticos = {}; // Ensure it's an object if missing entirely
-    }
-}
-
-// Función para actualizar la UI con las selecciones cargadas (para inputs no-electrodomésticos)
-function updateUIFromSelections() {
-    // Asegúrate de que estos IDs existen en tu HTML
-    // const userTypeSelect = document.getElementById('user-type');
-    // if (userTypeSelect && userSelections.userType) {
-    //     userTypeSelect.value = userSelections.userType;
-    // }
-
-    // const installationTypeSelect = document.getElementById('installation-type');
-    // if (installationTypeSelect && userSelections.installationType) {
-    //     installationTypeSelect.value = userSelections.installationType;
-    // }
-
-    // const incomeLevelSelect = document.getElementById('income-level');
-    // if (incomeLevelSelect && userSelections.incomeLevel) {
-    //     incomeLevelSelect.value = userSelections.incomeLevel;
-    // }
-
-    const zonaInstalacionExpertSelect = document.getElementById('zona-instalacion-expert');
-    if (zonaInstalacionExpertSelect && userSelections.zonaInstalacionExpert) {
-        zonaInstalacionExpertSelect.value = userSelections.zonaInstalacionExpert;
-    }
-
-    // const zonaInstalacionBasicSelect = document.getElementById('zona-instalacion-basic');
-    // if (zonaInstalacionBasicSelect && userSelections.zonaInstalacionBasic) {
-    //     zonaInstalacionBasicSelect.value = userSelections.zonaInstalacionBasic;
-    // }
-
-    const monedaSelect = document.getElementById('moneda');
-    if (monedaSelect && userSelections.selectedCurrency) {
-        monedaSelect.value = userSelections.selectedCurrency;
-    }
-
-    // Actualizar displays de consumo (se recalcularán con calcularConsumo después de cargar electrodomésticos)
-    if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = userSelections.totalMonthlyConsumption.toFixed(2);
-    if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = userSelections.totalAnnualConsumption.toFixed(2);
-
-    // Si tienes inputs para paneles, inversor o pérdidas que guardas en userSelections, actualízalos aquí también
-    const tipoPanelInput = document.getElementById('tipo-panel'); // Asegúrate que este ID exista en tu HTML
-    if (tipoPanelInput && userSelections.panelesSolares?.tipo) {
-        tipoPanelInput.value = userSelections.panelesSolares.tipo;
-    }
-    // ... y así para otros campos de paneles, inversor, pérdidas si los tienes en userSelections
-    const cantidadPanelesInput = document.getElementById('cantidad-paneles-input'); // Si tienes un input para cantidad
-    if (cantidadPanelesInput && userSelections.panelesSolares?.cantidad) {
-        cantidadPanelesInput.value = userSelections.panelesSolares.cantidad;
-    }
-
-    const potenciaInversorInput = document.getElementById('potencia-inversor-input'); // Si tienes un input para potencia de inversor
-    if (potenciaInversorInput && userSelections.inversor?.potenciaNominal) {
-        potenciaInversorInput.value = userSelections.inversor.potenciaNominal;
-    }
-    const eficienciaPanelInput = document.getElementById('eficiencia-panel-input');
-    if (eficienciaPanelInput && userSelections.perdidas?.eficienciaPanel) {
-        eficienciaPanelInput.value = userSelections.perdidas.eficienciaPanel;
-    }
-    const eficienciaInversorInput = document.getElementById('eficiencia-inversor-input');
-    if (eficienciaInversorInput && userSelections.perdidas?.eficienciaInversor) {
-        eficienciaInversorInput.value = userSelections.perdidas.eficienciaInversor;
-    }
-    const factorPerdidasInput = document.getElementById('factor-perdidas-input');
-    if (factorPerdidasInput && userSelections.perdidas?.factorPerdidas) {
-        factorPerdidasInput.value = userSelections.perdidas.factorPerdidas;
-    }
-
-    const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
-    if (alturaInstalacionInput && userSelections.alturaInstalacion !== null) {
-        alturaInstalacionInput.value = userSelections.alturaInstalacion;
-    } else if (alturaInstalacionInput) {
-        alturaInstalacionInput.value = ''; // Clear if null
-    }
-
-    // Update Potencia Panel Deseada Input
-    // const potenciaPanelDeseadaInputEl = document.getElementById('potencia-panel-deseada-input'); // Global const potenciaPanelDeseadaInput is used
-    if (potenciaPanelDeseadaInput && userSelections.potenciaPanelDeseada !== null) {
-        potenciaPanelDeseadaInput.value = userSelections.potenciaPanelDeseada;
-    } else if (potenciaPanelDeseadaInput) {
-        potenciaPanelDeseadaInput.value = ''; // Clear if null
-    }
-
-    // Add similar blocks here for metodoCalculoRadiacion and modeloMetodoRadiacion if they have direct inputs in UI
-    // For example, if they were text inputs (though they are planned as selects):
-    // const metodoCalculoInput = document.getElementById('metodo-calculo-input'); // Assuming such an ID
-    // if (metodoCalculoInput && userSelections.metodoCalculoRadiacion !== null) {
-    //     metodoCalculoInput.value = userSelections.metodoCalculoRadiacion;
-    // } else if (metodoCalculoInput) {
-    //     metodoCalculoInput.value = '';
-    // }
-    // const modeloMetodoInput = document.getElementById('modelo-metodo-input'); // Assuming such an ID
-    // if (modeloMetodoInput && userSelections.modeloMetodoRadiacion !== null) {
-    //     modeloMetodoInput.value = userSelections.modeloMetodoRadiacion;
-    // } else if (modeloMetodoInput) {
-    //     modeloMetodoInput.value = '';
-    // }
-
-    const anguloInclinacionInput = document.getElementById('angulo-inclinacion-input');
-    if (anguloInclinacionInput && userSelections.anguloInclinacion !== null) {
-        anguloInclinacionInput.value = userSelections.anguloInclinacion;
-    } else if (anguloInclinacionInput) {
-        anguloInclinacionInput.value = ''; // Clear if null
-    }
-
-    const anguloOrientacionInput = document.getElementById('angulo-orientacion-input');
-    if (anguloOrientacionInput && userSelections.anguloOrientacion !== null) {
-        anguloOrientacionInput.value = userSelections.anguloOrientacion;
-    } else if (anguloOrientacionInput) {
-        anguloOrientacionInput.value = ''; // Clear if null
-    }
-}
+// --- State persistence functions removed ---
+// The application now uses an in-memory state for the user selections.
+// The `userSelections` object is initialized once and mutated throughout the session.
+// This avoids bugs related to loading/saving state from localStorage and ensures a clean state for each visit.
 
 
 // --- Nueva función para inicializar la sección de Superficie Rodea ---
@@ -455,7 +221,7 @@ async function initSuperficieSection() {
                 userSelections.superficieRodea.valor = null;
                 userSelections.superficieRodea.descripcion = null;
             }
-            saveUserSelections();
+
             console.log('[initSuperficieSection] Superficie rodea seleccionada (select):', userSelections.superficieRodea);
         });
 
@@ -550,7 +316,7 @@ async function initRugosidadSection() {
                 userSelections.rugosidadSuperficie.valor = null;
                 userSelections.rugosidadSuperficie.descripcion = null;
             }
-            saveUserSelections();
+
             console.log('[initRugosidadSection] Rugosidad de superficie seleccionada (select):', userSelections.rugosidadSuperficie);
         });
 
@@ -715,7 +481,7 @@ async function initRotacionSection() {
             }
             // Call visibility update BEFORE saving, so angle data is nulled if needed
             updateAngleFieldsVisibilityAndData(descripcion);
-            saveUserSelections();
+
             console.log('[initRotacionSection] Rotación de instalación seleccionada:', userSelections.rotacionInstalacion);
         });
 
@@ -734,7 +500,7 @@ async function initRotacionSection() {
             anguloInclinacionInput.addEventListener('input', (e) => {
                 const value = parseFloat(e.target.value);
                 userSelections.anguloInclinacion = isNaN(value) ? null : value;
-                saveUserSelections();
+
                 console.log('[initRotacionSection] anguloInclinacion input changed:', userSelections.anguloInclinacion);
             });
         }
@@ -743,7 +509,7 @@ async function initRotacionSection() {
             anguloOrientacionInput.addEventListener('input', (e) => {
                 let value = parseFloat(e.target.value);
                 userSelections.anguloOrientacion = isNaN(value) ? null : value;
-                saveUserSelections();
+
                 console.log('[initRotacionSection] anguloOrientacion input changed:', userSelections.anguloOrientacion);
             });
         }
@@ -803,7 +569,7 @@ async function initMetodoCalculoSection() {
             } else {
                 userSelections.metodoCalculoRadiacion = null;
             }
-            saveUserSelections();
+
             console.log('Método de cálculo seleccionado:', userSelections.metodoCalculoRadiacion);
 
             console.log('[initMetodoCalculoSection] Método de cálculo changed, resetting and re-initializing modelo del método.');
@@ -819,7 +585,7 @@ async function initMetodoCalculoSection() {
                 }
             }
 
-            saveUserSelections(); // Save the nulled modeloMetodoRadiacion
+            // Save the nulled modeloMetodoRadiacion
 
             // Re-initialize the modeloMetodoSection to reflect filtered options
             if (typeof initModeloMetodoSection === 'function') {
@@ -882,7 +648,7 @@ async function initModeloMetodoSection() {
             console.log('[initModeloMetodoSection] Cleared modeloMetodoRadiacion as "Método Liu-Jordan" is not valid for current parent selection.');
         }
     }
-    saveUserSelections();
+
     console.log('[initModeloMetodoSection] Filtered data for dropdown:', filteredData);
 
     const selectElement = document.createElement('select');
@@ -934,7 +700,7 @@ async function initModeloMetodoSection() {
         } else {
             userSelections.modeloMetodoRadiacion = null;
         }
-        saveUserSelections();
+
         console.log('[initModeloMetodoSection] Modelo del método seleccionado:', userSelections.modeloMetodoRadiacion);
     });
 
@@ -1026,7 +792,7 @@ async function initFrecuenciaLluviasOptions() {
             } else {
                 userSelections.frecuenciaLluvias = null; // Reset if placeholder is re-selected
             }
-            saveUserSelections();
+
             console.log('Frecuencia de lluvias seleccionada:', userSelections.frecuenciaLluvias);
         });
         container.appendChild(selectElement);
@@ -1098,7 +864,7 @@ function initFocoPolvoOptions() {
             // No need to check event.target.checked here usually, but good practice.
             if (event.target.checked) {
                 userSelections.focoPolvoCercano = event.target.value;
-                saveUserSelections();
+
                 console.log('Foco de polvo cercano seleccionado:', userSelections.focoPolvoCercano);
             }
         });
@@ -1126,7 +892,7 @@ async function fetchAndDisplayPanelModel() {
         // Clear any previously fetched model name
         if (userSelections.panelesSolares) {
             userSelections.panelesSolares.modelo = null;
-            saveUserSelections();
+
         }
         return;
     }
@@ -1159,14 +925,14 @@ async function fetchAndDisplayPanelModel() {
             modeloPanelInput.value = modelName;
             if (userSelections.panelesSolares) {
                 userSelections.panelesSolares.modelo = modelName;
-                saveUserSelections(); // Save the found model
+                 // Save the found model
             }
         } else {
             // Display the error/info message from the backend or a default one
             modeloPanelInput.value = modelName || 'No hay modelo disponible';
             if (userSelections.panelesSolares) {
                 userSelections.panelesSolares.modelo = null; // Clear stale model data
-                saveUserSelections();
+
             }
         }
 
@@ -1175,7 +941,7 @@ async function fetchAndDisplayPanelModel() {
         modeloPanelInput.value = 'Error al buscar modelo';
         if (userSelections.panelesSolares) {
             userSelections.panelesSolares.modelo = null; // Clear stale model data
-            saveUserSelections();
+
         }
     }
 }
@@ -1298,12 +1064,12 @@ async function initMarcaPanelOptions() {
             } else {
                 userSelections.marcaPanel = null;
             }
-            saveUserSelections();
+
             console.log('Marca de panel seleccionada:', userSelections.marcaPanel);
 
             // When brand changes, we must reset power and model, then update.
             userSelections.potenciaPanelDeseada = null;
-            saveUserSelections();
+
 
             // Re-initialize potencia panel options, which will show the correct range
             if (typeof initPotenciaPanelOptions === 'function') {
@@ -1365,7 +1131,7 @@ function initModeloTemperaturaPanelOptions() {
     modeloTemperaturaSelect.addEventListener('change', (e) => {
         const value = e.target.value;
         userSelections.modeloTemperaturaPanel = value || null;
-        saveUserSelections();
+
     });
 }
 
@@ -1426,7 +1192,7 @@ function initPotenciaPanelOptions() {
             console.log("[DEBUG] Potencia panel listener fired.");
             const value = parseInt(event.target.value, 10);
             userSelections.potenciaPanelDeseada = isNaN(value) ? null : value;
-            saveUserSelections();
+
             // The model will be fetched when the user clicks "Next", so no call is needed here.
         });
 
@@ -1512,7 +1278,7 @@ async function initInversorSection() {
             } else {
                 userSelections.inversor = { tipo: null, potenciaNominal: 0 };
             }
-            saveUserSelections();
+
             console.log('Inversor seleccionado:', userSelections.inversor);
         });
 
@@ -1635,7 +1401,7 @@ function initElectrodomesticosSection() {
             if (summaryContainer) summaryContainer.style.display = 'none'; // Hide summary
 
             userSelections.metodoIngresoConsumoEnergia = 'boletaMensual';
-            saveUserSelections();
+
 
             handleExpertEnergyChoice('boletaMensual'); // Call the now-defined function
             return; // Exit function, as navigation will occur
@@ -1669,7 +1435,7 @@ function initElectrodomesticosSection() {
             if (!radio.dataset.listenerAttached) {
                 radio.addEventListener('change', (event) => {
                     userSelections.metodoIngresoConsumoEnergia = event.target.value;
-                    saveUserSelections();
+
                     handleExpertEnergyChoice(event.target.value);
                 });
                 radio.dataset.listenerAttached = 'true';
@@ -1687,7 +1453,7 @@ function initElectrodomesticosSection() {
         if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
         console.log('[DEBUG] Basic Comercial/PYME: showing factura consumption form within energia-section.');
             userSelections.metodoIngresoConsumoEnergia = 'boletaMensual';
-            saveUserSelections();
+
 
         if (consumoFacturaSection) consumoFacturaSection.style.display = 'block'; // Show the monthly bill form
         if (summaryContainer) summaryContainer.style.display = 'flex'; // Show the summary box
@@ -1762,7 +1528,7 @@ function populateStandardApplianceList(listContainerElement) {
                 }
                 userSelections.electrodomesticos[itemName].cantidad = parseInt(e.target.value) || 0;
                 calcularConsumo();
-                saveUserSelections();
+
             });
             const consumoDiario = item.consumo_diario_kwh || 0;
             const consumoLabel = document.createElement('span');
@@ -1834,7 +1600,7 @@ function populateDetailedApplianceList(listContainerElement) {
                 }
                 userSelections.electrodomesticos[itemName].cantidad = parseInt(e.target.value) || 0;
                 // TODO: Deferred - Trigger specific consumption calculation for this mode if/when implemented
-                saveUserSelections();
+
             });
 
             const horasVeranoInput = document.createElement('input');
@@ -1852,7 +1618,7 @@ function populateDetailedApplianceList(listContainerElement) {
                 const val = parseFloat(e.target.value);
                 userSelections.electrodomesticos[itemName].horasVerano = isNaN(val) ? null : val;
                 // TODO: Deferred - Trigger specific consumption calculation
-                saveUserSelections();
+
             });
 
             const horasInviernoInput = document.createElement('input');
@@ -1870,7 +1636,7 @@ function populateDetailedApplianceList(listContainerElement) {
                 const val = parseFloat(e.target.value);
                 userSelections.electrodomesticos[itemName].horasInvierno = isNaN(val) ? null : val;
                 // TODO: Deferred - Trigger specific consumption calculation
-                saveUserSelections();
+
             });
 
             row.appendChild(nameSpan);
@@ -1998,12 +1764,12 @@ function initMap() {
                     }
                     // Si no se encuentra un nombre, nos aseguramos de que el código de ciudad sea nulo y guardamos.
                     userSelections.codigoCiudad = null;
-                    saveUserSelections();
+
                 }
             });
         } else {
             // Si no hay geocodificador, al menos guardamos la lat/lng.
-            saveUserSelections();
+
         }
     });
 
@@ -2034,7 +1800,7 @@ function initMap() {
             } else {
                 console.warn('Geocoder did not return a name.');
                 userSelections.ciudad = { codigo: null, nombre: null };
-                saveUserSelections();
+
             }
         }
     }).addTo(map);
@@ -2095,7 +1861,7 @@ async function buscarCodigoCiudad(fullAddress) {
         }
         userSelections.ciudad = { codigo: null, nombre: null };
     } finally {
-        saveUserSelections();
+
     }
 }
 
@@ -2211,7 +1977,7 @@ function setupNavigationButtons() {
         basicUserButton.addEventListener('click', () => {
             userSelections.userType = 'basico';
             document.getElementById('data-form-screen').classList.add('basic-user-mode');
-            saveUserSelections();
+
             showMapScreenFormSection('supply-section');
         });
     }
@@ -2220,7 +1986,7 @@ function setupNavigationButtons() {
         expertUserButton.addEventListener('click', () => {
             userSelections.userType = 'experto';
             document.getElementById('data-form-screen').classList.remove('basic-user-mode');
-            saveUserSelections();
+
             showMapScreenFormSection('supply-section');
             updateStepIndicator('map-screen');
         });
@@ -2229,7 +1995,7 @@ function setupNavigationButtons() {
     if (residentialButton) {
         residentialButton.addEventListener('click', () => {
             userSelections.installationType = 'Residencial';
-            saveUserSelections();
+
             showMapScreenFormSection('income-section');
         });
     }
@@ -2237,7 +2003,7 @@ function setupNavigationButtons() {
     if (commercialButton) { // commercialButton is const commercialButton = document.getElementById('commercial-button');
         commercialButton.addEventListener('click', () => {
             userSelections.installationType = 'Comercial';
-            saveUserSelections();
+
             if (userSelections.userType === 'experto') {
                 showScreen('data-form-screen');
                 if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
@@ -2252,7 +2018,7 @@ function setupNavigationButtons() {
     if (pymeButton) { // pymeButton is const pymeButton = document.getElementById('pyme-button');
         pymeButton.addEventListener('click', () => {
             userSelections.installationType = 'PYME';
-            saveUserSelections();
+
             if (userSelections.userType === 'experto') {
                 showScreen('data-form-screen');
                 if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
@@ -2267,7 +2033,7 @@ function setupNavigationButtons() {
     if (incomeHighButton) {
         incomeHighButton.addEventListener('click', () => {
             userSelections.incomeLevel = 'ALTO';
-            saveUserSelections();
+
             showScreen('data-form-screen'); 
             if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
             updateStepIndicator('data-meteorologicos-section');
@@ -2277,7 +2043,7 @@ function setupNavigationButtons() {
     if (incomeLowButton) {
         incomeLowButton.addEventListener('click', () => {
             userSelections.incomeLevel = 'BAJO';
-            saveUserSelections();
+
             showScreen('data-form-screen');
             if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
             updateStepIndicator('data-meteorologicos-section');
@@ -2287,7 +2053,7 @@ function setupNavigationButtons() {
     if (incomeMediumButton) { // Check if the button element exists
         incomeMediumButton.addEventListener('click', () => {
             userSelections.incomeLevel = 'MEDIO'; // Using uppercase 'MEDIO' for consistency with ALTO/BAJO values
-            saveUserSelections();
+
             showScreen('data-form-screen'); // This shows the dataFormScreen container
             // Ensure dataMeteorologicosSection is the one shown by default within dataFormScreen
             if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
@@ -2305,42 +2071,42 @@ function setupNavigationButtons() {
 
     document.getElementById('zona-instalacion-expert')?.addEventListener('change', (e) => {
         userSelections.zonaInstalacionExpert = e.target.value;
-        saveUserSelections();
+
     });
     document.getElementById('moneda')?.addEventListener('change', (e) => {
         userSelections.selectedCurrency = e.target.value;
-        saveUserSelections();
+
     });
 
     document.getElementById('tipo-panel')?.addEventListener('change', (e) => {
         userSelections.panelesSolares.tipo = e.target.value;
-        saveUserSelections();
+
     });
     document.getElementById('cantidad-paneles-input')?.addEventListener('input', (e) => {
         userSelections.panelesSolares.cantidad = parseInt(e.target.value) || 0;
-        saveUserSelections();
+
     });
 
     document.getElementById('tipo-inversor')?.addEventListener('change', (e) => {
         userSelections.inversor.tipo = e.target.value;
-        saveUserSelections();
+
     });
     document.getElementById('potencia-inversor-input')?.addEventListener('input', (e) => {
         userSelections.inversor.potenciaNominal = parseFloat(e.target.value) || 0;
-        saveUserSelections();
+
     });
 
     document.getElementById('eficiencia-panel-input')?.addEventListener('input', (e) => {
         userSelections.perdidas.eficienciaPanel = parseFloat(e.target.value) || 0;
-        saveUserSelections();
+
     });
     document.getElementById('eficiencia-inversor-input')?.addEventListener('input', (e) => {
         userSelections.perdidas.eficienciaInversor = parseFloat(e.target.value) || 0;
-        saveUserSelections();
+
     });
     document.getElementById('factor-perdidas-input')?.addEventListener('input', (e) => {
         userSelections.perdidas.factorPerdidas = parseFloat(e.target.value) || 0;
-        saveUserSelections();
+
     });
 
     // Listener for Potencia Panel Deseada (Expert Panel Sub-form)
@@ -2358,7 +2124,7 @@ function setupNavigationButtons() {
                 // userSelections.potenciaPanelDeseada retains its previous valid value or null.
                 // The input field itself will show what the user typed, but it won't be saved if invalid.
             }
-            saveUserSelections();
+
         });
     }
 
@@ -2376,7 +2142,7 @@ function setupNavigationButtons() {
     //             // If input is invalid (e.g., text, zero, negative, or float),
     //             // userSelections.cantidadPanelesExpert retains its previous valid value or null.
     //         }
-    //         saveUserSelections();
+    //
     //     });
     // }
 
@@ -2389,7 +2155,7 @@ function setupNavigationButtons() {
             } else if (event.target.value === '') {
                 userSelections.alturaInstalacion = null;
             }
-            saveUserSelections();
+
         });
     }
 
@@ -2413,7 +2179,7 @@ function setupNavigationButtons() {
         const selectedZona = document.querySelector('input[name="zonaInstalacionNewScreen"]:checked');
         if (selectedZona) {
             userSelections.selectedZonaInstalacion = selectedZona.value;
-            saveUserSelections();
+
             console.log('Zona de instalación seleccionada:', userSelections.selectedZonaInstalacion);
         } else {
             console.warn('No se seleccionó zona de instalación.');
@@ -2617,7 +2383,7 @@ function setupNavigationButtons() {
                 userSelections.totalAnnualConsumption = totalAnnualConsumptionFromBill;
                 // También actualizamos el consumo mensual promedio para consistencia
                 userSelections.totalMonthlyConsumption = totalAnnualConsumptionFromBill / 12;
-                saveUserSelections();
+
             }
 
             // La navegación continúa como antes...
@@ -2836,7 +2602,7 @@ function setupNavigationButtons() {
         finalizarCalculoBtn.addEventListener('click', async (event) => {
             event.preventDefault();
             console.log('Finalizar Cálculo clickeado. Enviando datos al backend para generar informe...');
-            saveUserSelections();
+
             try {
                 const response = await fetch('http://127.0.0.1:5000/api/generar_informe', {
                     method: 'POST',
@@ -2905,14 +2671,11 @@ function setupSidebarNavigation() {
 
 // --- INIT principal (Se ejecuta al cargar el DOM) (EXISTENTE, MODIFICADO) ---
 document.addEventListener('DOMContentLoaded', async () => {
-    loadUserSelections(); // 1. Carga las selecciones guardadas primero
-    initMap(); // 2. Inicializa el mapa (usará userLocation de userSelections)
-    // 3. updateUIFromSelections() ya se llama dentro de loadUserSelections()
+    // State is now in-memory, so we no longer load from localStorage on page start.
+    initMap(); // Inicializa el mapa con la ubicación por defecto.
 
-    await cargarElectrodomesticosDesdeBackend(); // 4. Carga electrodomésticos y los renderiza, luego recalcula consumo.
-                                                // Usamos 'await' para asegurar que los electrodomésticos estén cargados
-                                                // antes de que se muestre la pantalla, si es la de energía.
-    setupNavigationButtons(); // 5. Configura todos los botones de navegación y otros listeners.
+    await cargarElectrodomesticosDesdeBackend(); // Carga electrodomésticos y los renderiza, luego recalcula consumo.
+    setupNavigationButtons(); // Configura todos los botones de navegación y otros listeners.
     setupSidebarNavigation();
 
     // 6. Muestra la pantalla guardada o la inicial después de que todo esté cargado y listo
