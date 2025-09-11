@@ -222,12 +222,26 @@ def _select_panel(inputs, data_path=os.path.join(SCRIPT_DIR, 'data')):
     potencia = inputs["paneles_potencia"]
 
     if marca == 'GENERICOS':
-        df_paneles = df_genericos
+        df_paneles = df_genericos.copy()
     else:
-        df_paneles = df_comerciales[df_comerciales['Marca'] == marca]
+        df_paneles = df_comerciales[df_comerciales['Marca'] == marca].copy()
 
     if df_paneles.empty:
-        df_paneles = df_genericos
+        df_paneles = df_genericos.copy()
+
+    # --- Data Sanitization to prevent TypeError ---
+    df_paneles['Pmax[W]'] = pd.to_numeric(df_paneles['Pmax[W]'], errors='coerce')
+    df_paneles.dropna(subset=['Pmax[W]'], inplace=True)
+
+    # Handle case where no valid panels are left after cleaning
+    if df_paneles.empty:
+        print("ERROR: No valid panels found for the selected criteria after data sanitization. Falling back to all generics.")
+        df_paneles = df_genericos.copy()
+        df_paneles['Pmax[W]'] = pd.to_numeric(df_paneles['Pmax[W]'], errors='coerce')
+        df_paneles.dropna(subset=['Pmax[W]'], inplace=True)
+        if df_paneles.empty:
+             print("CRITICAL ERROR: No valid panels could be loaded even from the generic list.")
+             return {"error": "No valid panel data could be loaded from the generic list."}
 
     df_paneles['diff'] = (df_paneles['Pmax[W]'] - potencia).abs()
     panel_seleccionado_row = df_paneles.loc[df_paneles['diff'].idxmin()]
@@ -346,8 +360,6 @@ def get_panel_model_name(marca, potencia, excel_path):
     This is a lightweight function for use before the full calculation.
     """
     try:
-        # This logic is based on the _select_panel function, but simplified
-        # to only return the model name or an error/info string.
         data_path = os.path.join(os.path.dirname(excel_path), 'data')
         with open(os.path.join(data_path, 'paneles_comerciales.json'), 'r', encoding='utf-8') as f:
             paneles_comerciales = json.load(f)
@@ -358,21 +370,22 @@ def get_panel_model_name(marca, potencia, excel_path):
         df_genericos = pd.DataFrame(paneles_genericos)
 
         if marca == 'GENERICOS':
-            df_paneles = df_genericos
+            df_paneles = df_genericos.copy()
         else:
-            df_paneles = df_comerciales[df_comerciales['Marca'] == marca]
+            df_paneles = df_comerciales[df_comerciales['Marca'] == marca].copy()
 
         if df_paneles.empty:
-            # Fallback to generics if no commercial panels for the brand,
-            # but this case should ideally not be hit if brand list is correct.
-            df_paneles = df_genericos
+            df_paneles = df_genericos.copy()
+
+        # --- Data Sanitization to prevent TypeError ---
+        df_paneles['Pmax[W]'] = pd.to_numeric(df_paneles['Pmax[W]'], errors='coerce')
+        df_paneles.dropna(subset=['Pmax[W]'], inplace=True)
+
+        if df_paneles.empty:
+            return f"No hay paneles válidos para la marca '{marca}'"
 
         # Find the panel with the closest power rating
         df_paneles['diff'] = (df_paneles['Pmax[W]'] - potencia).abs()
-
-        # Check if any panel was found for the given criteria
-        if df_paneles.empty or df_paneles['diff'].isnull().all():
-             return f"No hay paneles para la marca '{marca}'"
 
         panel_seleccionado_row = df_paneles.loc[df_paneles['diff'].idxmin()]
 
