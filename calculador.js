@@ -2604,12 +2604,43 @@ function setupNavigationButtons() {
             console.log('Finalizar Cálculo clickeado. Enviando datos al backend para generar informe...');
 
             try {
+                // Create a clean payload object (DTO) to send to the backend.
+                // This prevents circular reference errors from complex objects (like the map)
+                // and ensures only necessary data is sent.
+                const payload = {
+                    userType: userSelections.userType,
+                    location: userSelections.location,
+                    ciudad: userSelections.ciudad,
+                    installationType: userSelections.installationType,
+                    incomeLevel: userSelections.incomeLevel,
+                    selectedZonaInstalacion: userSelections.selectedZonaInstalacion,
+                    superficieRodea: userSelections.superficieRodea,
+                    rugosidadSuperficie: userSelections.rugosidadSuperficie,
+                    rotacionInstalacion: userSelections.rotacionInstalacion,
+                    anguloInclinacion: userSelections.anguloInclinacion,
+                    anguloOrientacion: userSelections.anguloOrientacion,
+                    alturaInstalacion: userSelections.alturaInstalacion,
+                    metodoCalculoRadiacion: userSelections.metodoCalculoRadiacion,
+                    modeloMetodoRadiacion: userSelections.modeloMetodoRadiacion,
+                    marcaPanel: userSelections.marcaPanel,
+                    potenciaPanelDeseada: userSelections.potenciaPanelDeseada,
+                    modeloTemperaturaPanel: userSelections.modeloTemperaturaPanel,
+                    frecuenciaLluvias: userSelections.frecuenciaLluvias,
+                    focoPolvoCercano: userSelections.focoPolvoCercano,
+                    metodoIngresoConsumoEnergia: userSelections.metodoIngresoConsumoEnergia,
+                    consumosMensualesFactura: userSelections.consumosMensualesFactura,
+                    totalAnnualConsumption: userSelections.totalAnnualConsumption,
+                    selectedCurrency: userSelections.selectedCurrency,
+                    panelesSolares: userSelections.panelesSolares,
+                    inversor: userSelections.inversor
+                };
+
                 const response = await fetch('http://127.0.0.1:5000/api/generar_informe', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(userSelections)
+                    body: JSON.stringify(payload)
                 });
                 if (!response.ok) {
                     const errorData = await response.json();
