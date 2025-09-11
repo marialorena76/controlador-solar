@@ -1,0 +1,245 @@
+{
+  "ahorro_total": 3459531.3840000015,
+  "area_paneles_m2": 13.342644,
+  "autoconsumo": 2137.85,
+  "consumo_anual_kwh": 5060,
+  "consumosMensualesFactura": [
+    500,
+    480,
+    450,
+    400,
+    350,
+    300,
+    320,
+    380,
+    420,
+    460,
+    490,
+    510
+  ],
+  "costo_actual": 402611.55,
+  "costo_futuro": 0.0,
+  "emisiones_evitadas_primer_ano_tco2": 2.3790818843999997,
+  "emisiones_evitadas_total_tco2": 59.477047109999994,
+  "energia_generada_anual": 5107.518,
+  "flujo_de_fondos": [
+    {
+      "anio": 0,
+      "con_proyecto": -12486239.999999998,
+      "sin_proyecto": 0
+    },
+    {
+      "anio": 1,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 2,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 3,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 4,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 5,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 6,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 7,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 8,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 9,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 10,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 11,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 12,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 13,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 14,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 15,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 16,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 17,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 18,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 19,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 20,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 21,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 22,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 23,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 24,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    },
+    {
+      "anio": 25,
+      "con_proyecto": 235219.30536,
+      "sin_proyecto": -402611.55
+    }
+  ],
+  "ingreso_red": 256935.67536,
+  "inversion_inicial": 12486239.999999998,
+  "inyectada_red": 2969.668,
+  "mantenimiento": 21716.370000000003,
+  "moneda": "Pesos argentinos",
+  "numero_paneles": 6,
+  "panel_seleccionado": {
+    "Alto[mm]": 30.0,
+    "Ancho[mm]": 1134.0,
+    "Area (m2)": 2.223774,
+    "Coef temp Icc[% * \u00b0C]": 0.04,
+    "Coef temp Pmax [% * \u00b0C]": -0.29,
+    "Coef temp Voc[% * \u00b0C]": -0.24,
+    "Eficiencia[%]": 22.9,
+    "Envejecimiento Inicial": 0.01,
+    "Envejecimiento por a\u00f1o": -0.004,
+    "Icc[A]": 12.84,
+    "Icc[A].1": 15.93,
+    "Inom[A]": 12.21,
+    "Inom[A].1": 15.14,
+    "Largo[mm]": 1961.0,
+    "Marca": "TRINASOLAR",
+    "Modelo": "TSM-510-NEG18R.28-VERTEX S+",
+    "Nombre": "TRINASOLAR510",
+    "Peso[kg]": 23.5,
+    "Pmax[W]": 390.0,
+    "Pmax[W].1": 510.0,
+    "Precio[U$S]": 0.0,
+    "Rango Temp[\u00b0C]": "-40/+85",
+    "Rango de tolerancia": 0.05,
+    "Sitio web": "https://static.trinasolar.com/sites/default/files/Datasheet_Vertex%20S+_NEG18R.28_ESP_2024_C_web.pdf",
+    "Tnoct[\u00b0C]": 43.0,
+    "Tolerancia": "0 / +5",
+    "Vmax[V]": 1500.0,
+    "Vnom[V]": 31.9,
+    "Vnom[V].1": 33.7,
+    "Voc[V]": 38.5,
+    "Voc[V].1": 40.6,
+    "diff": 60.0,
+    "uS$/kW": 0.0
+  },
+  "potencia_inversor_kwa": 1.9421080000000002,
+  "potencia_sistema_kwp": 2.34,
+  "resumen_economico": "El an\u00e1lisis detallado estar\u00e1 disponible en futuras versiones.",
+  "technical_data": {
+    "annual_generation": 5107.518,
+    "annual_irradiance": 1750,
+    "inverter_details": {
+      "Cantidad de Inversores": 1,
+      "Eficiencia informada por el fabricante del INVERSOR": "N/A",
+      "Inversores sugeridos": "GENERICO-2200 W",
+      "Potencia": 1942.1080000000002
+    },
+    "losses": {
+      "dc_ac": 4.0,
+      "planta": 1.0,
+      "reflexion": 5.0,
+      "sombreado": 3.0,
+      "suciedad": 2.0
+    },
+    "monthly_generation": [
+      612.90216,
+      561.82698,
+      510.7518,
+      408.60144,
+      306.45108,
+      255.3759,
+      255.3759,
+      357.52626000000004,
+      459.67662,
+      510.7518,
+      561.82698,
+      612.90216
+    ],
+    "panel_details": {
+      "Cantidad Paneles Necesarios": 6,
+      "Eficiencia informada por el fabricante del panel": "N/A",
+      "Marca": "TRINASOLAR",
+      "Modelo": "TSM-510-NEG18R.28-VERTEX S+",
+      "Potencia": 390.0,
+      "Potencia Instalada Wp": 2340.0,
+      "Superficie necesaria": 13.342644
+    },
+    "performance_ratio": 75.0
+  },
+  "tipo_inversor": "GENERICO-2200 W",
+  "userType": "experto",
+  "vida_util": 25
+}

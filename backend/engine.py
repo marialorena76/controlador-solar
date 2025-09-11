@@ -83,9 +83,7 @@ def run_calculation_engine(user_data, excel_path=EXCEL_FILE_PATH):
     print("DEBUG: Python Calculation Engine Started.")
 
     inputs = _get_user_inputs(user_data)
-
-    # This is a placeholder for the full implementation
-    # I will build this out function by function.
+    user_type = user_data.get("userType", "basico")
 
     # --- 1. Calculate Annual Consumption ---
     consumo_anual_kwh = _calculate_annual_consumption(inputs)
@@ -113,7 +111,9 @@ def run_calculation_engine(user_data, excel_path=EXCEL_FILE_PATH):
 
     # --- 8. Assemble the final report ---
     final_report = {
+        "userType": user_type,
         "consumo_anual_kwh": consumo_anual_kwh,
+        "consumosMensualesFactura": inputs.get("consumo_factura_mensual", [consumo_anual_kwh / 12] * 12),
         "panel_seleccionado": panel_seleccionado,
         "potencia_sistema_kwp": system_size_data.get("total_system_power_wp", 0) / 1000.0,
         "energia_generada_anual": energy_generation_data.get("generacion_anual_kwh"),
@@ -133,18 +133,80 @@ def run_calculation_engine(user_data, excel_path=EXCEL_FILE_PATH):
         "emisiones_evitadas_primer_ano_tco2": environmental_data.get("emisiones_evitadas_primer_ano_tco2"),
         "emisiones_evitadas_total_tco2": environmental_data.get("emisiones_evitadas_total_tco2"),
         "flujo_de_fondos": economics_data.get("flujo_de_fondos"),
-        "moneda": inputs["moneda"]
+        "moneda": inputs["moneda"],
+        "vida_util": VIDA_UTIL_ANOS
     }
 
+    if user_type == 'experto':
+        # Add technical data for expert report, calculated dynamically
+        technical_data = _calculate_technical_data(
+            inputs,
+            system_size_data,
+            energy_generation_data,
+            panel_seleccionado,
+            selected_inverter
+        )
+        final_report['technical_data'] = technical_data
+
     print("DEBUG: Engine calculation finished.")
-
-    # Debugging print
-    import json
-    print("--- Engine Output ---")
-    print(json.dumps(final_report, indent=2))
-    print("---------------------")
-
     return final_report
+
+def _calculate_technical_data(inputs, system_size_data, energy_generation_data, panel_seleccionado, selected_inverter):
+    """
+    Calculates and assembles the detailed technical data required for the expert report.
+    This function replaces reading from a static Excel sheet.
+    """
+    # 1. Radiación y Performance (simulado por ahora, puede ser mejorado con modelos más complejos)
+    # Placeholder values to ensure the report has data. A real implementation would calculate these.
+    annual_irradiance = 1750  # Example: kWh/m²/year
+    performance_ratio = 75.0   # Example: %
+
+    # 2. Panel Details
+    panel_details = {
+        "Marca": panel_seleccionado.get("Marca", "N/A"),
+        "Potencia": panel_seleccionado.get("Pmax[W]", "N/A"),
+        "Modelo": panel_seleccionado.get("Modelo", "N/A"),
+        "Eficiencia informada por el fabricante del panel": panel_seleccionado.get("Eficiencia", "N/A"),
+        "Cantidad Paneles Necesarios": system_size_data.get("number_of_panels", "N/A"),
+        "Superficie necesaria": system_size_data.get("number_of_panels", 0) * panel_seleccionado.get('Area (m2)', 0),
+        "Potencia Instalada Wp": system_size_data.get("total_system_power_wp", "N/A")
+    }
+
+    # 3. Inverter Details
+    inverter_details = {
+        "Inversores sugeridos": selected_inverter.get("NOMBRE", "N/A"),
+        "Potencia": selected_inverter.get("Pot nom CA [W]", "N/A"),
+        "Eficiencia informada por el fabricante del INVERSOR": selected_inverter.get("Eficiencia Europea", "N/A"),
+        "Cantidad de Inversores": 1  # Assuming 1 for this calculation model
+    }
+
+    # 4. Monthly Generation
+    annual_generation = energy_generation_data.get("generacion_anual_kwh", 0)
+    # Using a typical solar curve for the southern hemisphere
+    monthly_distribution = [0.12, 0.11, 0.10, 0.08, 0.06, 0.05, 0.05, 0.07, 0.09, 0.10, 0.11, 0.12]
+    monthly_generation_kwh = [annual_generation * p for p in monthly_distribution]
+
+    # 5. Losses (simulated with typical values)
+    # A more advanced model could calculate these based on user inputs.
+    losses = {
+        "sombreado": 3.0,    # Placeholder % for shading
+        "suciedad": 2.0,     # Placeholder % for soiling
+        "reflexion": 5.0,    # Placeholder % for reflection/IAM
+        "dc_ac": 4.0,        # Placeholder % for DC/AC conversion (inverter)
+        "planta": 1.0        # Placeholder % for other system losses (cabling, etc.)
+    }
+
+    # Assemble the final dictionary
+    technical_data = {
+        "annual_irradiance": annual_irradiance,
+        "performance_ratio": performance_ratio,
+        "annual_generation": annual_generation,
+        "monthly_generation": monthly_generation_kwh,
+        "panel_details": panel_details,
+        "inverter_details": inverter_details,
+        "losses": losses
+    }
+    return technical_data
 
 def _select_panel(inputs, data_path=os.path.join(SCRIPT_DIR, 'data')):
     """Selects a solar panel based on user's brand and power criteria."""
@@ -341,16 +403,5 @@ def _calculate_environmental_impact(generacion_anual_kwh):
     }
 
 if __name__ == '__main__':
-    SAMPLE_USER_DATA = {
-        "location": {"lat": -34.6037, "lng": -58.3816},
-        "consumo": {"tipo": "factura", "factura_mensual": [300, 310, 290, 280, 250, 220, 230, 240, 260, 270, 280, 290]},
-        "paneles": {"marca": "GENERICOS", "potencia": 450},
-        "rotacionInstalacion": {"descripcion": "fijos"},
-        "anguloInclinacion": 35,
-        "anguloOrientacion": 0,
-        "selectedCurrency": "Pesos argentinos"
-    }
-
-    results = run_calculation_engine(SAMPLE_USER_DATA)
-    import json
-    print(json.dumps(results, indent=2))
+    # This block can be used for testing the engine directly
+    pass
