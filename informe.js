@@ -105,13 +105,13 @@ document.addEventListener('DOMContentLoaded', () => {
         setTextContent('experto_emisiones_totales', formatNumber(datos.emisiones_evitadas_total_tco2, 2));
 
     } else { // Basic user
-        setTextContent('basico_consumo_anual', formatNumber(datos.consumo_anual_kwh, 0));
+        setTextContent('basico_consumo_anual_kwh', formatNumber(datos.consumo_anual_kwh, 0));
         setTextContent('basico_energia_generada_anual', formatNumber(datos.energia_generada_anual, 0));
         setTextContent('basico_autoconsumo', formatNumber(datos.autoconsumo, 0));
         setTextContent('basico_inyectada_red', formatNumber(datos.inyectada_red, 0));
-        setTextContent('basico_potencia_panel', datos.panel_seleccionado?.['Pmax[W]'] || 'N/A');
-        setTextContent('basico_cantidad_paneles', datos.numero_paneles || 'N/A');
-        setTextContent('basico_superficie', formatNumber(datos.area_paneles_m2, 2));
+        setTextContent('basico_potencia_panel_sugerida', datos.panel_seleccionado?.['Pmax[W]'] || 'N/A');
+        setTextContent('basico_numero_paneles', datos.numero_paneles || 'N/A');
+        setTextContent('basico_area_paneles_m2', formatNumber(datos.area_paneles_m2, 2));
         setTextContent('basico_vida_util', datos.vida_util || '25');
 
         document.querySelectorAll('[id^="basico_moneda_"]').forEach(el => el.textContent = monedaSimbolo);
