@@ -2008,9 +2008,10 @@ function setupNavigationButtons() {
                 showScreen('data-form-screen');
                 if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
                 updateStepIndicator('data-meteorologicos-section');
-            } else {
-                showMapScreenFormSection('income-section');
-                updateStepIndicator('income-section');
+            } else { // Basic user, non-residential
+                showScreen('data-form-screen');
+                if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
+                updateStepIndicator('data-meteorologicos-section');
             }
         });
     }
@@ -2023,9 +2024,10 @@ function setupNavigationButtons() {
                 showScreen('data-form-screen');
                 if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
                 updateStepIndicator('data-meteorologicos-section');
-            } else {
-                showMapScreenFormSection('income-section');
-                updateStepIndicator('income-section');
+            } else { // Basic user, non-residential
+                showScreen('data-form-screen');
+                if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
+                updateStepIndicator('data-meteorologicos-section');
             }
         });
     }
