@@ -36,7 +36,7 @@ def _get_user_inputs(user_data):
 
         # Panel data mapping
         "paneles_marca": user_data.get("marcaPanel", "GENERICOS"),
-        "paneles_potencia": user_data.get("potenciaPanelDeseada", 450),
+        "paneles_potencia": user_data.get("potenciaPanelDeseada") or 450,
 
         # Installation details mapping
         "rotacion_descripcion": user_data.get("rotacionInstalacion", {}).get("descripcion", "fijos"),
