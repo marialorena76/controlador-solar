@@ -78,75 +78,71 @@ def _calculate_annual_consumption(inputs):
 def run_calculation_engine(user_data, excel_path=EXCEL_FILE_PATH):
     """
     Top-level function to run the entire calculation process.
-    This engine re-implements the Excel logic in Python.
+    This engine re-implements the Excel logic in Python and structures the output.
     """
     print("DEBUG: Python Calculation Engine Started.")
-
     inputs = _get_user_inputs(user_data)
     user_type = user_data.get("userType", "basico")
 
-    # --- 1. Calculate Annual Consumption ---
+    # --- Pipeline de Cálculo ---
     consumo_anual_kwh = _calculate_annual_consumption(inputs)
-
-    # --- 2. Select Panel ---
     panel_seleccionado = _select_panel(inputs)
-
-    # --- 3. Calculate System Size ---
     system_size_data = _calculate_system_size(consumo_anual_kwh, panel_seleccionado)
-
-    # --- 4. Select Inverter ---
     selected_inverter = _select_inverter(system_size_data.get("total_system_power_wp", 0))
-
-    # --- 5. Calculate Energy Generation ---
     energy_generation_data = _calculate_energy_generation(
         system_size_data.get("total_system_power_wp", 0),
         consumo_anual_kwh
     )
-
-    # --- 6. Calculate Economics ---
     economics_data = _calculate_economics(inputs, system_size_data, energy_generation_data)
-
-    # --- 7. Calculate Environmental Impact ---
     environmental_data = _calculate_environmental_impact(energy_generation_data.get("generacion_anual_kwh", 0))
+    chart_data = _calculate_chart_data(consumo_anual_kwh, energy_generation_data)
 
-    # --- 8. Assemble the final report ---
-    final_report = {
-        "userType": user_type,
+    # --- Ensamblado del Reporte Final Estructurado ---
+
+    # Datos técnicos para ambos tipos de usuario
+    technical_data_dict = {
         "consumo_anual_kwh": consumo_anual_kwh,
-        "consumosMensualesFactura": inputs.get("consumo_factura_mensual", [consumo_anual_kwh / 12] * 12),
-        "panel_seleccionado": panel_seleccionado,
-        "potencia_sistema_kwp": system_size_data.get("total_system_power_wp", 0) / 1000.0,
         "energia_generada_anual": energy_generation_data.get("generacion_anual_kwh"),
         "autoconsumo": energy_generation_data.get("autoconsumo_kwh"),
         "inyectada_red": energy_generation_data.get("inyectada_red_kwh"),
-        "area_paneles_m2": system_size_data.get("number_of_panels", 0) * panel_seleccionado.get('Area (m2)', 0),
-        "numero_paneles": system_size_data.get("number_of_panels", 0),
-        "tipo_inversor": selected_inverter.get("NOMBRE", "No encontrado"),
-        "potencia_inversor_kwa": selected_inverter.get("Pot nom CA [W]", 0) / 1000.0,
-        "costo_actual": economics_data.get("costo_actual"),
-        "inversion_inicial": economics_data.get("inversion_inicial"),
-        "mantenimiento": economics_data.get("mantenimiento"),
-        "costo_futuro": economics_data.get("costo_futuro"),
-        "ingreso_red": economics_data.get("ingreso_red"),
-        "ahorro_total": economics_data.get("ahorro_total"),
-        "resumen_economico": economics_data.get("resumen_economico"),
-        "emisiones_evitadas_primer_ano_tco2": environmental_data.get("emisiones_evitadas_primer_ano_tco2"),
-        "emisiones_evitadas_total_tco2": environmental_data.get("emisiones_evitadas_total_tco2"),
-        "flujo_de_fondos": economics_data.get("flujo_de_fondos"),
-        "moneda": inputs["moneda"],
-        "vida_util": VIDA_UTIL_ANOS
+        "potencia_paneles_sugerida": panel_seleccionado.get('Pmax[W]'),
+        "cantidad_paneles_necesarios": system_size_data.get("number_of_panels"),
+        "superficie_necesaria": system_size_data.get("number_of_panels", 0) * panel_seleccionado.get('Area (m2)', 0),
+        "vida_util_proyecto": VIDA_UTIL_ANOS,
     }
 
+    # Datos económicos para ambos tipos de usuario
+    economic_data_dict = {
+        "costo_anual_reducido": economics_data.get("costo_futuro"),
+        "gasto_anual_sin_fv": economics_data.get("costo_actual"),
+        "inversion_inicial": economics_data.get("inversion_inicial"),
+        # Mantener otros datos económicos por si son útiles para el modo experto
+        "mantenimiento": economics_data.get("mantenimiento"),
+        "ingreso_red": economics_data.get("ingreso_red"),
+        "ahorro_total": economics_data.get("ahorro_total"),
+        "flujo_de_fondos": economics_data.get("flujo_de_fondos"),
+    }
+
+    final_report = {
+        "userType": user_type,
+        "moneda": inputs["moneda"],
+        "emisiones_evitadas_total_tco2": environmental_data.get("emisiones_evitadas_total_tco2"),
+        "technical_data": technical_data_dict,
+        "economic_data": economic_data_dict,
+        "chart_data": chart_data
+    }
+
+    # Si es usuario experto, enriquecemos el diccionario de datos técnicos
     if user_type == 'experto':
-        # Add technical data for expert report, calculated dynamically
-        technical_data = _calculate_technical_data(
+        expert_tech_data = _calculate_technical_data(
             inputs,
             system_size_data,
             energy_generation_data,
             panel_seleccionado,
             selected_inverter
         )
-        final_report['technical_data'] = technical_data
+        # Unimos los datos básicos con los de experto
+        final_report['technical_data'].update(expert_tech_data)
 
     print("DEBUG: Engine calculation finished.")
     return final_report
@@ -403,6 +399,56 @@ def get_panel_model_name(marca, potencia, excel_path):
     except Exception as e:
         print(f"ERROR in get_panel_model_name: {e}")
         return {"error": f"Error interno al buscar el modelo de panel: {str(e)}"}
+
+
+def _calculate_chart_data(annual_consumption_kwh, energy_generation_data):
+    """
+    Generates plausible daily and monthly data for charts based on annual totals.
+    This is a simplified model and does not perform a full hourly simulation.
+    """
+    # --- Monthly Data Simulation ---
+    # Southern hemisphere solar generation curve (higher in summer)
+    solar_dist = [0.12, 0.11, 0.10, 0.08, 0.06, 0.05, 0.05, 0.07, 0.09, 0.10, 0.11, 0.12]
+    # Typical consumption curve (higher in summer/winter peaks)
+    consump_dist = [0.10, 0.09, 0.08, 0.07, 0.06, 0.07, 0.08, 0.09, 0.08, 0.09, 0.10, 0.11]
+
+    monthly_generation = [energy_generation_data.get("generacion_anual_kwh", 0) * p for p in solar_dist]
+    monthly_total_consumption = [annual_consumption_kwh * p for p in consump_dist]
+
+    monthly_autoconsumption = []
+    monthly_injection = []
+    monthly_consumption_from_grid = []
+
+    for i in range(12):
+        gen = monthly_generation[i]
+        cons = monthly_total_consumption[i]
+        # Simplified assumption: a fixed fraction of generation goes to self-consumption, up to the consumption limit
+        autocons = min(cons, gen * FACTOR_AUTOCONSUMO * 2) # Adjusting factor for monthly granularity
+        monthly_autoconsumption.append(autocons)
+        monthly_injection.append(gen - autocons)
+        monthly_consumption_from_grid.append(max(0, cons - autocons))
+
+    # --- Daily Data Simulation ---
+    # Typical daily solar generation curve (bell curve)
+    daily_gen_dist = [0,0,0,0,0,0.01,0.05,0.1,0.14,0.16,0.18,0.16,0.14,0.1,0.05,0.01,0,0,0,0,0,0,0,0]
+    # Typical daily consumption (double hump - morning and evening)
+    daily_cons_dist = [0.03,0.02,0.02,0.02,0.03,0.04,0.05,0.06,0.05,0.04,0.04,0.04,0.04,0.04,0.04,0.05,0.06,0.07,0.08,0.07,0.06,0.05,0.04,0.04]
+
+    # Summer (Jan - index 0), Winter (Jul - index 6)
+    summer_daily_gen_kw = [monthly_generation[0] / 31 * p for p in daily_gen_dist]
+    summer_daily_cons_kw = [monthly_total_consumption[0] / 31 * p for p in daily_cons_dist]
+    winter_daily_gen_kw = [monthly_generation[6] / 31 * p for p in daily_gen_dist]
+    winter_daily_cons_kw = [monthly_total_consumption[6] / 31 * p for p in daily_cons_dist]
+
+    return {
+        "monthly_consumption": monthly_consumption_from_grid,
+        "monthly_autoconsumption": monthly_autoconsumption,
+        "monthly_injection": monthly_injection,
+        "winter_daily_consumption": winter_daily_cons_kw,
+        "winter_daily_generation": winter_daily_gen_kw,
+        "summer_daily_consumption": summer_daily_cons_kw,
+        "summer_daily_generation": summer_daily_gen_kw,
+    }
 
 
 def _calculate_environmental_impact(generacion_anual_kwh):

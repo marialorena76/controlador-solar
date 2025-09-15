@@ -100,6 +100,57 @@
       transform: translateY(-1px);
     }
 
+    /* New Economic Result Box Styles */
+    .economic-result-box {
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: 'Dosis', sans-serif;
+    }
+    .economic-result-label {
+        font-size: 1.1rem;
+        flex-grow: 1;
+    }
+    .economic-result-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        text-align: right;
+    }
+    .economic-result-value .currency {
+        font-size: 1rem;
+        font-weight: normal;
+        margin-left: 5px;
+    }
+    .blue-box {
+        background-color: #e7f5ff;
+        border-left: 5px solid #007bff;
+        color: #004085;
+    }
+    .gray-box {
+        background-color: #f8f9fa;
+        border-left: 5px solid #6c757d;
+        color: #343a40;
+    }
+    .yellow-box {
+        background-color: #fff3cd;
+        border-left: 5px solid #ffc107;
+        color: #856404;
+    }
+    .aclaracion-box {
+        background-color: #f1f1f1;
+        border: 1px solid #ddd;
+        padding: 15px;
+        border-radius: 5px;
+        font-size: 0.9rem;
+        color: #555;
+        line-height: 1.4;
+        margin-top: 20px;
+    }
+
+
     /* Estilos para impresión */
     @media print {
       body {
@@ -173,56 +224,59 @@
             </table>
         </div>
         <div class="report-section">
-          <div class="section-header">Resultados económicos</div>
-          <div class="section-header" style="font-size: 1.1rem; background: none; color: #333;">"• Lo que gastas actualmente en energía eléctrica en un año (no contempla impuestos)"</div>
-          <table class="report-table">
-            <tr>
-              <td>Costo actual anual en Energía Eléctrica (sin instalación fotovoltaica)</td>
-              <td><span id="basico_moneda_1"></span> <span id="basico_costo_actual"></span></td>
-            </tr>
-          </table>
-          <div class="section-header" style="font-size: 1.1rem; background: none; color: #333;">• Costos e ingresos relacionados a la instalación fotovoltaica</div>
-          <table class="report-table">
-            <tr>
-              <td>Inversión inicial a realizar en año cero</td>
-              <td><span id="basico_moneda_2"></span> <span id="basico_inversion_inicial"></span></td>
-            </tr>
-            <tr>
-              <td>Costo de mantenimiento anual</td>
-              <td><span id="basico_moneda_3"></span> <span id="basico_mantenimiento"></span></td>
-            </tr>
-            <tr>
-              <td>Costo futuro de energía eléctrica consumida de la red</td>
-              <td><span id="basico_moneda_4"></span> <span id="basico_costo_futuro"></span></td>
-            </tr>
-            <tr>
-              <td>Ingreso anual por inyección de energía a la red</td>
-              <td><span id="basico_moneda_5"></span> <span id="basico_ingreso_red"></span></td>
-            </tr>
-          </table>
+            <div class="section-header">Resultados económicos</div>
+
+            <div class="economic-result-box blue-box">
+                <div class="economic-result-label">Si realiza la instalación fotovoltaica su costo anual en energía eléctrica se reducirá a</div>
+                <div class="economic-result-value">
+                    <span id="basico_costo_reducido"></span>
+                    <span class="currency">U$S</span>
+                </div>
+            </div>
+
+            <div class="economic-result-box gray-box">
+                <div class="economic-result-label">Sin la instalación fotovoltaica su gasto anual en energía eléctrica es de</div>
+                <div class="economic-result-value">
+                    <span id="basico_costo_sin_instalacion"></span>
+                    <span class="currency">U$S</span>
+                </div>
+            </div>
+
+            <div class="economic-result-box yellow-box">
+                <div class="economic-result-label">Inversión inicial necesaria para el sistema solar fotovoltaico</div>
+                <div class="economic-result-value">
+                    <span id="basico_inversion_inicial_total"></span>
+                    <span class="currency">U$S</span>
+                </div>
+            </div>
+
+            <div class="aclaracion-box">
+                <strong>ACLARACIÓN:</strong> El análisis ecónomico aquí presentado no considera los costos fijos en la factura de Energía Eléctrica, ya que el costo fijo no variará en caso de realizar la instalación de paneles solares fotovoltaicos.
+                Tampoco se consideran los impuestos que pueden llegar a ser entre un 30% y 40% de su factura. Debe considerar que los impuestos en su factura de energía eléctrica disminiurán de llevar adelante la instalación, en particular aquellos que esten ligados al consumo, como por ejemplo el IVA.
+            </div>
         </div>
         <div class="report-section">
           <div class="section-header">• Contribución a la mitigación del cambio climático</div>
           <table class="report-table">
             <tr>
-              <td>Emisiones de gases de efecto invernadero evitadas con la instalación (1er año)</td>
-              <td><span id="basico_emisiones_primer_ano"></span> tCO2</td>
-            </tr>
-            <tr>
-              <td>Emisiones de gases de efecto invernadero evitadas con la instalación (Total)</td>
-              <td><span id="basico_emisiones_total"></span> tCO2</td>
+              <td>Emisiones de gases de efecto invernadero evitadas con la instalación</td>
+              <td><span id="basico_emisiones_total_vida_util"></span> tCO2</td>
             </tr>
           </table>
         </div>
 
         <!-- Chart Sections -->
         <div class="report-section">
-          <div class="section-header">Flujo de fondos con y sin proyecto (25 años)</div>
-          <div style="width: 100%; margin: auto;"><canvas id="cashFlowChartBasic"></canvas></div>
+          <div class="section-header">Consumo de energía eléctrica vs generación de energía solar fotovoltaica para un día típico de Invierno</div>
+          <div style="width: 100%; margin: auto;"><canvas id="winterDailyChart"></canvas></div>
         </div>
         <div class="report-section">
-          <div class="section-header">Emisiones de CO2 Evitadas</div>
-          <div style="width: 60%; margin: auto;"><canvas id="emissionsChartBasic"></canvas></div>
+          <div class="section-header">Consumo de energía eléctrica vs generación de energía solar fotovoltaica para un día típico de Verano</div>
+          <div style="width: 100%; margin: auto;"><canvas id="summerDailyChart"></canvas></div>
+        </div>
+        <div class="report-section">
+          <div class="section-header">Comparativa entre consumo de energía eléctrica y generación solar fotovoltaica para cada mes del año</div>
+          <div style="width: 100%; margin: auto;"><canvas id="monthlyComparisonChart"></canvas></div>
         </div>
     </div>
 
