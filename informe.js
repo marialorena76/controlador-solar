@@ -105,24 +105,30 @@ document.addEventListener('DOMContentLoaded', () => {
         setTextContent('experto_emisiones_totales', formatNumber(datos.emisiones_evitadas_total_tco2, 2));
 
     } else { // Basic user
-        setTextContent('basico_consumo_anual_kwh', formatNumber(datos.consumo_anual_kwh, 0));
-        setTextContent('basico_energia_generada_anual', formatNumber(datos.energia_generada_anual, 0));
-        setTextContent('basico_autoconsumo', formatNumber(datos.autoconsumo, 0));
-        setTextContent('basico_inyectada_red', formatNumber(datos.inyectada_red, 0));
-        setTextContent('basico_potencia_panel_sugerida', datos.panel_seleccionado?.['Pmax[W]'] || 'N/A');
-        setTextContent('basico_numero_paneles', datos.numero_paneles || 'N/A');
-        setTextContent('basico_area_paneles_m2', formatNumber(datos.area_paneles_m2, 2));
-        setTextContent('basico_vida_util', datos.vida_util || '25');
+        const economicData = datos.economic_data || {};
+        const techData = datos.technical_data || {};
 
-        document.querySelectorAll('[id^="basico_moneda_"]').forEach(el => el.textContent = monedaSimbolo);
-        setTextContent('basico_costo_actual', formatNumber(datos.costo_actual, 0));
-        setTextContent('basico_inversion_inicial', formatNumber(datos.inversion_inicial, 0));
-        setTextContent('basico_mantenimiento', formatNumber(datos.mantenimiento, 0));
-        setTextContent('basico_costo_futuro', formatNumber(datos.costo_futuro, 0));
-        setTextContent('basico_ingreso_red', formatNumber(datos.ingreso_red, 0));
+        // Technical Data
+        setTextContent('basico_consumo_anual_kwh', formatNumber(techData.consumo_anual_kwh, 0));
+        setTextContent('basico_energia_generada_anual', formatNumber(techData.energia_generada_anual, 0));
+        setTextContent('basico_autoconsumo', formatNumber(techData.autoconsumo, 0));
+        setTextContent('basico_inyectada_red', formatNumber(techData.inyectada_red, 0));
+        setTextContent('basico_potencia_panel_sugerida', formatNumber(techData.potencia_paneles_sugerida, 0));
+        setTextContent('basico_numero_paneles', techData.cantidad_paneles_necesarios || 'N/A');
+        setTextContent('basico_area_paneles_m2', formatNumber(techData.superficie_necesaria, 2));
+        setTextContent('basico_vida_util', techData.vida_util_proyecto || '25');
 
-        setTextContent('basico_emisiones_primer_ano', formatNumber(datos.emisiones_evitadas_primer_ano_tco2));
-        setTextContent('basico_emisiones_total', formatNumber(datos.emisiones_evitadas_total_tco2));
+        // Economic Data (New Boxes)
+        // Ensure the currency symbol is set correctly in the new layout
+        document.querySelectorAll('#basic-report-sections .currency').forEach(el => {
+            el.textContent = monedaSimbolo;
+        });
+        setTextContent('basico_costo_reducido', formatNumber(economicData.costo_anual_reducido, 0));
+        setTextContent('basico_costo_sin_instalacion', formatNumber(economicData.gasto_anual_sin_fv, 0));
+        setTextContent('basico_inversion_inicial_total', formatNumber(economicData.inversion_inicial, 0));
+
+        // Emissions
+        setTextContent('basico_emisiones_total_vida_util', formatNumber(datos.emisiones_evitadas_total_tco2, 2));
     }
 
     // --- Chart Rendering ---
@@ -153,8 +159,92 @@ function renderCharts(datos, userType, monedaSimbolo) {
 }
 
 function renderBasicCharts(datos) {
-    // This function can be expanded with the previous basic charts if needed
-    console.log("Rendering basic charts...");
+    const chartData = datos.chart_data || {};
+
+    // --- Daily Profile Charts ---
+    const renderDailyChart = (canvasId, title, consumptionData, generationData) => {
+        const ctx = document.getElementById(canvasId)?.getContext('2d');
+        if (!ctx) {
+            console.error(`Canvas con ID '${canvasId}' no encontrado.`);
+            return;
+        }
+
+        const labels = Array.from({ length: 24 }, (_, i) => `${i+1}`);
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Demanda',
+                    data: consumptionData || [],
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                }, {
+                    label: 'Generación solar fotovoltaica generada',
+                    data: generationData || [],
+                    borderColor: 'rgba(255, 206, 86, 1)',
+                    backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: { display: false }, // Title is in the section header
+                    legend: { position: 'bottom' }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Hora del día' } },
+                    y: { title: { display: true, text: 'kW' } }
+                }
+            }
+        });
+    };
+
+    renderDailyChart('winterDailyChart', 'Perfil diario Invierno', chartData.winter_daily_consumption, chartData.winter_daily_generation);
+    renderDailyChart('summerDailyChart', 'Perfil diario Verano', chartData.summer_daily_consumption, chartData.summer_daily_generation);
+
+
+    // --- Monthly Comparison Bar Chart ---
+    const monthlyCtx = document.getElementById('monthlyComparisonChart')?.getContext('2d');
+    if (monthlyCtx) {
+        const monthLabels = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        new Chart(monthlyCtx, {
+            type: 'bar',
+            data: {
+                labels: monthLabels,
+                datasets: [{
+                    label: 'Consumo de energía de la red',
+                    data: chartData.monthly_consumption || [],
+                    backgroundColor: '#d32f2f' // Red
+                }, {
+                    label: 'Autoconsumo de energía solar fotovoltaica',
+                    data: chartData.monthly_autoconsumption || [],
+                    backgroundColor: '#fbc02d' // Yellow
+                }, {
+                    label: 'Sobrante de energía solar inyectada a la red',
+                    data: chartData.monthly_injection || [],
+                    backgroundColor: '#4caf50' // Green
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: { display: false }, // Title is in the section header
+                    legend: { position: 'bottom' }
+                },
+                scales: {
+                    x: { stacked: true },
+                    y: { stacked: true, title: { display: true, text: 'Energía (kWh)' } }
+                }
+            }
+        });
+    } else {
+        console.error("Canvas con ID 'monthlyComparisonChart' no encontrado.");
+    }
 }
 
 function renderExpertCharts(datos) {
