@@ -127,6 +127,17 @@ document.addEventListener('DOMContentLoaded', () => {
         setTextContent('basico_costo_sin_instalacion', formatNumber(economicData.gasto_anual_sin_fv, 0));
         setTextContent('basico_inversion_inicial_total', formatNumber(economicData.inversion_inicial, 0));
 
+        // Conditional title based on saldo_anual_favor
+        const saldoAnualFavor = economicData.saldo_anual_favor || 0;
+        const resultadoLabel = document.getElementById('basico_resultado_label');
+        if (resultadoLabel) {
+            if (saldoAnualFavor > 0) {
+                resultadoLabel.textContent = 'Si realiza la instalación fotovoltaica tendrá un saldo neto anual a su favor de';
+            } else {
+                resultadoLabel.textContent = 'Si realiza la instalación fotovoltaica su costo anual en energía eléctrica se reducirá a';
+            }
+        }
+
         // Emissions
         setTextContent('basico_emisiones_total_vida_util', formatNumber(datos.emisiones_evitadas_total_tco2, 2));
     }
