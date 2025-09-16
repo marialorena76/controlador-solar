@@ -14,6 +14,8 @@ def run_calculation_engine(user_data, excel_path):
     try:
         all_sheets = pd.read_excel(excel_path, sheet_name=None)
         df_datos_entrada = all_sheets.get('Datos de Entrada')
+        df_area_trabajo = all_sheets.get('Area de trabajo')
+        df_ingreso_datos = all_sheets.get('ingreso_de_datos')
 
         def to_numeric_safe(value, default=0.0):
             # This helper function is crucial for handling non-numeric data from Excel
@@ -28,9 +30,7 @@ def run_calculation_engine(user_data, excel_path):
         # --- Perform Calculations based on Excel Logic ---
 
         # Parameters from 'Datos de Entrada' sheet
-        # Using .iloc for 0-indexed integer-location based indexing.
         hsp_anual = to_numeric_safe(df_datos_entrada.iloc[30, 8]) # Column I for "Radiación Total Cielo Anisotrópico"
-        vida_util = to_numeric_safe(df_datos_entrada.iloc[190, 2], 25)
 
         # Losses and Performance Ratio
         loss_fiam = to_numeric_safe(df_datos_entrada.iloc[128, 2])
@@ -47,17 +47,35 @@ def run_calculation_engine(user_data, excel_path):
 
         # System Sizing
         panel_data = get_panel_data(panel_marca, panel_potencia_deseada, all_sheets.get('Paneles comerciales'), all_sheets.get('Paneles genericos'))
-        single_panel_power_wp = to_numeric_safe(panel_data.get('Pmax[W]', panel_potencia_deseada))
 
-        required_power_wp = (consumo_anual * 1000) / (hsp_anual * performance_ratio) if (hsp_anual * performance_ratio) > 0 else 0
-        number_of_panels = math.ceil(required_power_wp / single_panel_power_wp) if single_panel_power_wp > 0 else 0
-        total_system_power_wp = number_of_panels * single_panel_power_wp
+        # --- New calculations based on user-provided formulas ---
 
-        # Energy Generation
-        energia_generada_anual = (total_system_power_wp / 1000) * hsp_anual * performance_ratio
-        factor_autoconsumo = 0.4225 # This could be refined by replicating Excel's monthly simulation
-        autoconsumo = min(consumo_anual, energia_generada_anual) * factor_autoconsumo
-        inyectada_red = energia_generada_anual - autoconsumo
+        # Energía inyectada a la red: SUMA(B478:B489) from 'Area de trabajo'
+        range_b = df_area_trabajo.iloc[477:489, 1]
+        energia_inyectada_a_red = to_numeric_safe(range_b.sum())
+
+        # Energía para autoconsumo: SUMA(P478:P489) from 'Area de trabajo'
+        range_p = df_area_trabajo.iloc[477:489, 15]
+        energia_para_autoconsumo = to_numeric_safe(range_p.sum())
+
+        # Generación anual de energía eléctrica: B490 + P490
+        generacion_anual = energia_inyectada_a_red + energia_para_autoconsumo
+
+        # Cantidad paneles necesarios: 'Area de trabajo'!N339
+        cantidad_paneles_necesarios = to_numeric_safe(df_area_trabajo.iloc[338, 13])
+
+        # Superficie necesaria: +D85*C106 from 'Datos de Entrada'
+        d85 = to_numeric_safe(df_datos_entrada.iloc[84, 3])
+        superficie_necesaria = d85 * cantidad_paneles_necesarios
+
+        # Vida útil del proyecto (años): SI('Datos de Entrada'!E191="",'Datos de Entrada'!C191;'Datos de Entrada'!E191)
+        e191 = df_datos_entrada.iloc[190, 4]
+        c191 = df_datos_entrada.iloc[190, 2]
+        vida_util_proyecto = to_numeric_safe(c191 if pd.isna(e191) or str(e191).strip() == "" else e191, default=25)
+
+        # Potencia de paneles sugerida: No formula, use existing logic
+        potencia_paneles_sugerida = to_numeric_safe(panel_data.get('Pmax[W]', panel_potencia_deseada))
+
 
         # Economic Calculation
         costo_inv_total = to_numeric_safe(df_datos_entrada.iloc[197, 2])
@@ -68,23 +86,23 @@ def run_calculation_engine(user_data, excel_path):
 
         inversion_inicial = costo_inv_total
         gasto_anual_sin_fv = consumo_anual * tarifa_consumo_usd
-        energia_comprada_kwh = max(0, consumo_anual - autoconsumo)
+        energia_comprada_kwh = max(0, consumo_anual - energia_para_autoconsumo)
         costo_futuro_anual = (energia_comprada_kwh * tarifa_consumo_usd) + costo_maint_total_anual
 
         # Emissions
         factor_emision_tco2_por_mwh = 0.4658
-        emisiones_total = (energia_generada_anual / 1000) * factor_emision_tco2_por_mwh * vida_util
+        emisiones_total = (generacion_anual / 1000) * factor_emision_tco2_por_mwh * vida_util_proyecto
 
         # --- Assemble Final Report ---
         tech_data = {
             "consumo_anual_kwh": consumo_anual,
-            "energia_generada_anual": energia_generada_anual,
-            "autoconsumo": autoconsumo,
-            "inyectada_red": inyectada_red,
-            "potencia_paneles_sugerida": single_panel_power_wp,
-            "cantidad_paneles_necesarios": number_of_panels,
-            "superficie_necesaria": number_of_panels * to_numeric_safe(panel_data.get('Area (m2)'), 2.5),
-            "vida_util_proyecto": vida_util,
+            "energia_generada_anual": generacion_anual,
+            "autoconsumo": energia_para_autoconsumo,
+            "inyectada_red": energia_inyectada_a_red,
+            "potencia_paneles_sugerida": potencia_paneles_sugerida,
+            "cantidad_paneles_necesarios": cantidad_paneles_necesarios,
+            "superficie_necesaria": superficie_necesaria,
+            "vida_util_proyecto": vida_util_proyecto,
         }
         economic_data = {
             "costo_anual_reducido": costo_futuro_anual,
@@ -93,12 +111,12 @@ def run_calculation_engine(user_data, excel_path):
         }
         chart_data = { # Using simulated data for now
             "monthly_consumption": [gasto_anual_sin_fv/12] * 12, # More realistic simulation
-            "monthly_autoconsumption": [autoconsumo/12] * 12,
-            "monthly_injection": [inyectada_red/12] * 12,
+            "monthly_autoconsumption": [energia_para_autoconsumo/12] * 12,
+            "monthly_injection": [energia_inyectada_a_red/12] * 12,
             "winter_daily_consumption": [consumo_anual/365/24] * 24,
-            "winter_daily_generation": [energia_generada_anual/365/24 * 0.5] * 24, # Simplified winter generation
+            "winter_daily_generation": [generacion_anual/365/24 * 0.5] * 24, # Simplified winter generation
             "summer_daily_consumption": [consumo_anual/365/24] * 24,
-            "summer_daily_generation": [energia_generada_anual/365/24 * 1.5] * 24, # Simplified summer generation
+            "summer_daily_generation": [generacion_anual/365/24 * 1.5] * 24, # Simplified summer generation
         }
 
         final_report = {
