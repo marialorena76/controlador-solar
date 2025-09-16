@@ -82,6 +82,9 @@ def run_calculation_engine(user_data, excel_path):
         costo_maint_total_anual = to_numeric_safe(df_datos_entrada.iloc[198, 2])
         tarifa_consumo_usd = to_numeric_safe(df_datos_entrada.iloc[210, 4])
 
+        # New value for conditional title logic
+        saldo_anual_favor = to_numeric_safe(df_area_trabajo.iloc[32, 5]) # F33
+
         print(f"DEBUG Economics: inversion={costo_inv_total}, mantenimiento={costo_maint_total_anual}, tarifa={tarifa_consumo_usd}")
 
         inversion_inicial = costo_inv_total
@@ -108,6 +111,7 @@ def run_calculation_engine(user_data, excel_path):
             "costo_anual_reducido": costo_futuro_anual,
             "gasto_anual_sin_fv": gasto_anual_sin_fv,
             "inversion_inicial": inversion_inicial,
+            "saldo_anual_favor": saldo_anual_favor,
         }
         chart_data = { # Using simulated data for now
             "monthly_consumption": [gasto_anual_sin_fv/12] * 12, # More realistic simulation
