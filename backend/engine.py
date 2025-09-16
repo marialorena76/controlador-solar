@@ -83,8 +83,11 @@ def run_calculation_engine(user_data, excel_path):
         costo_maint_total_anual = to_numeric_safe(df_datos_entrada.iloc[198, 2])
         tarifa_consumo_usd = to_numeric_safe(df_datos_entrada.iloc[210, 4])
 
-        # New value for conditional title logic
-        saldo_anual_favor = to_numeric_safe(df_resultados.iloc[32, 5]) # F33
+        # New value for conditional title logic (F33 = C39 - C38 - C36)
+        c39 = to_numeric_safe(df_resultados.iloc[38, 2])
+        c38 = to_numeric_safe(df_resultados.iloc[37, 2])
+        c36 = to_numeric_safe(df_resultados.iloc[35, 2])
+        saldo_anual_favor = c39 - c38 - c36
 
         print(f"DEBUG Economics: inversion={costo_inv_total}, mantenimiento={costo_maint_total_anual}, tarifa={tarifa_consumo_usd}")
 
