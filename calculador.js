@@ -2135,6 +2135,21 @@ function setupNavigationButtons() {
             }
 
         });
+
+        const tooltip = document.getElementById('altura-tooltip');
+        if (tooltip) {
+            alturaInstalacionInput.addEventListener('focus', () => {
+                tooltip.style.display = 'block';
+                // Position tooltip next to the input
+                const inputRect = alturaInstalacionInput.getBoundingClientRect();
+                const formRect = alturaInstalacionInput.closest('.main-content').getBoundingClientRect();
+                tooltip.style.left = `${inputRect.right - formRect.left + 10}px`;
+                tooltip.style.top = `${inputRect.top - formRect.top}px`;
+            });
+            alturaInstalacionInput.addEventListener('blur', () => {
+                tooltip.style.display = 'none';
+            });
+        }
     }
 
     // Listener for Cantidad Paneles (Expert Panel Sub-form)

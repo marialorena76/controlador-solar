@@ -597,6 +597,37 @@
             margin-bottom: 1.5rem;
             line-height: 1.6;
         }
+        .tooltip {
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            z-index: 10;
+            width: 250px;
+            text-align: left;
+            display: none; /* Hidden by default */
+            font-size: 0.95rem;
+            line-height: 1.4;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .tooltip::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            right: 100%;
+            margin-top: -8px;
+            border-width: 8px;
+            border-style: solid;
+            border-color: transparent #333 transparent transparent;
+        }
+        .tooltip-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1rem;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -793,9 +824,13 @@
                 <!-- Nueva sección para Altura Instalación -->
                 <div id="altura-instalacion-section" style="display:none;">
                     <h1>¿Cuál es la altura a la cual se encontrará la instalación fotovoltaica, desde la superficie de apoyo?</h1>
-                    <div class="form-group">
+                    <div class="form-group" style="position: relative;">
                         <label for="altura-instalacion-input">Altura (metros):</label>
                         <input type="number" id="altura-instalacion-input" name="alturaInstalacion" class="form-control" min="0" step="0.1" placeholder="Ej: 1.5">
+                        <div id="altura-tooltip" class="tooltip">
+                            <div class="tooltip-title">Altura de los paneles</div>
+                            <p>Indica la altura de los paneles desde el suelo en metros. Si los paneles se van a apoyar directamente sobre el techo sin ninguna separación, entonces esta altura es cero (0 metros).</p>
+                        </div>
                     </div>
                     <div class="form-actions">
                         <button type="button" id="back-to-rotacion-from-altura" class="back-button">Atrás</button>
