@@ -1451,13 +1451,12 @@ function initElectrodomesticosSection() {
 
 
         if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
-        console.log('[DEBUG] Basic Comercial/PYME: showing factura consumption form within energia-section.');
-            userSelections.metodoIngresoConsumoEnergia = 'boletaMensual';
+        console.log('[DEBUG] Basic Comercial/PYME: showing average consumption form.');
+        userSelections.metodoIngresoConsumoEnergia = 'promedioMensual'; // New method
 
-
-        if (consumoFacturaSection) consumoFacturaSection.style.display = 'block'; // Show the monthly bill form
-        if (summaryContainer) summaryContainer.style.display = 'flex'; // Show the summary box
-        // listContainer is already hidden by default state above
+        const consumoPromedioSection = document.getElementById('consumo-promedio-section');
+        if(consumoPromedioSection) consumoPromedioSection.style.display = 'block';
+        if (summaryContainer) summaryContainer.style.display = 'flex';
 
     } else { // Basic Residencial
         console.log('[DEBUG] Basic Residencial: showing appliance list.');
@@ -2360,8 +2359,14 @@ function setupNavigationButtons() {
     const nextToPanelesButton = document.getElementById('next-to-paneles');
     if (nextToPanelesButton) {
         nextToPanelesButton.addEventListener('click', () => {
-            // Si el modo de consumo por factura está activo, lee y guarda los datos primero.
-            if (userSelections.metodoIngresoConsumoEnergia === 'boletaMensual') {
+            if (userSelections.metodoIngresoConsumoEnergia === 'promedioMensual') {
+                const promedioInput = document.getElementById('consumo-promedio-mes');
+                if (promedioInput) {
+                    const promedioValue = parseFloat(promedioInput.value) || 0;
+                    userSelections.totalAnnualConsumption = promedioValue * 12;
+                    userSelections.totalMonthlyConsumption = promedioValue;
+                }
+            } else if (userSelections.metodoIngresoConsumoEnergia === 'boletaMensual') {
                 const monthIds = [
                     'consumo-enero', 'consumo-febrero', 'consumo-marzo', 'consumo-abril',
                     'consumo-mayo', 'consumo-junio', 'consumo-julio', 'consumo-agosto',
