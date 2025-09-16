@@ -16,6 +16,7 @@ def run_calculation_engine(user_data, excel_path):
         df_datos_entrada = all_sheets.get('Datos de Entrada')
         df_area_trabajo = all_sheets.get('Area de trabajo')
         df_ingreso_datos = all_sheets.get('ingreso_de_datos')
+        df_resultados = all_sheets.get('Resultados')
 
         def to_numeric_safe(value, default=0.0):
             # This helper function is crucial for handling non-numeric data from Excel
@@ -83,7 +84,7 @@ def run_calculation_engine(user_data, excel_path):
         tarifa_consumo_usd = to_numeric_safe(df_datos_entrada.iloc[210, 4])
 
         # New value for conditional title logic
-        saldo_anual_favor = to_numeric_safe(df_area_trabajo.iloc[32, 5]) # F33
+        saldo_anual_favor = to_numeric_safe(df_resultados.iloc[32, 5]) # F33
 
         print(f"DEBUG Economics: inversion={costo_inv_total}, mantenimiento={costo_maint_total_anual}, tarifa={tarifa_consumo_usd}")
 
