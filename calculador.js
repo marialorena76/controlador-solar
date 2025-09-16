@@ -2199,7 +2199,8 @@ function setupNavigationButtons() {
         }
     });
 
-    document.getElementById('next-to-energia')?.addEventListener('click', () => {
+    document.getElementById('next-to-energia')?.addEventListener('click', (event) => {
+        event.preventDefault();
         const selectedZona = document.querySelector('input[name="zonaInstalacionNewScreen"]:checked');
         if (selectedZona) {
             userSelections.selectedZonaInstalacion = selectedZona.value;
