@@ -1337,11 +1337,7 @@ function initElectrodomesticosSection() {
 
     if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
         title = 'Ingrese su consumo de Energia';
-        if (userSelections.userType === 'experto') {
-            description = 'Ingresa el consumo de energía eléctrica mensual registrado en tu factura “de luz” en los últimos 12 meses.';
-        } else { // 'basico'
-            description = 'Ingresa tu consumo de energía eléctrica mensual promedio';
-        }
+        description = ''; // Remove subtitle
     }
 
     if (energiaSectionTitle) energiaSectionTitle.innerHTML = title;
@@ -1468,15 +1464,16 @@ function initElectrodomesticosSection() {
             existingHelpText.remove();
         }
 
-        const helpText = document.createElement('p');
-        helpText.id = helpTextId;
-        helpText.className = 'form-description';
-        helpText.textContent = 'Ingresa la cantidad de electrodomésticos de cada tipo que tenés en tu casa.';
+        // The user requested to remove this text.
+        // const helpText = document.createElement('p');
+        // helpText.id = helpTextId;
+        // helpText.className = 'form-description';
+        // helpText.textContent = 'Ingresa la cantidad de electrodomésticos de cada tipo que tenés en tu casa.';
 
-        // Insert the help text before the appliance list container
-        if (listContainer) {
-            listContainer.before(helpText);
-        }
+        // // Insert the help text before the appliance list container
+        // if (listContainer) {
+        //     listContainer.before(helpText);
+        // }
         // END: Add help text
 
         listContainer.style.display = 'block'; // Show appliance list container
@@ -1484,6 +1481,17 @@ function initElectrodomesticosSection() {
         populateStandardApplianceList(listContainer); // Populate it with appliances
         // consumoFacturaSection is already hidden by default state above
         }
+    }
+
+    // Add event listener for the average consumption input
+    const consumoPromedioInput = document.getElementById('consumo-promedio-mes');
+    if(consumoPromedioInput) {
+        consumoPromedioInput.addEventListener('input', (e) => {
+            const monthlyValue = parseFloat(e.target.value) || 0;
+            const annualValue = monthlyValue * 12;
+            if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = monthlyValue.toFixed(2);
+            if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = annualValue.toFixed(2);
+        });
     }
 }
 
