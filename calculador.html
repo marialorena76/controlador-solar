@@ -872,16 +872,6 @@
                     </div>
 
                     <div id="electrodomesticos-list"></div>
-                    <div class="energy-summary">
-                        <div>
-                            <label for="totalConsumoMensual">Consumo Mensual Estimado (kWh/mes):</label>
-                            <input type="text" id="totalConsumoMensual" readonly value="0">
-                        </div>
-                        <div>
-                            <label for="totalConsumoAnual">Consumo Anual Estimado (kWh/año):</label>
-                            <input type="text" id="totalConsumoAnual" readonly value="0">
-                        </div>
-                    </div>
                     <!-- Nueva sección para Consumo por Factura (AHORA ANIDADA) -->
                     <div id="consumo-promedio-section" style="display:none; margin-top: 1.5rem;">
                         <hr>
@@ -911,6 +901,16 @@
                             <div class="form-group"><label for="consumo-diciembre">Diciembre:</label><input type="number" min="0" id="consumo-diciembre" name="consumo-diciembre" class="form-control"></div>
                         </div>
                         <!-- Los botones de acción para esta sub-sección se manejan en JS o se pueden dejar aquí si su lógica no interfiere -->
+                    </div>
+                    <div class="energy-summary">
+                        <div>
+                            <label for="totalConsumoMensual">Consumo Mensual Estimado (kWh/mes):</label>
+                            <input type="text" id="totalConsumoMensual" readonly value="0">
+                        </div>
+                        <div>
+                            <label for="totalConsumoAnual">Consumo Anual Estimado (kWh/año):</label>
+                            <input type="text" id="totalConsumoAnual" readonly value="0">
+                        </div>
                     </div>
                     <div class="form-actions">
                         <button type="button" id="back-to-data-meteorologicos" class="back-button">Atrás</button>
