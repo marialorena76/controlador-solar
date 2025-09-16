@@ -123,7 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('#basic-report-sections .currency').forEach(el => {
             el.textContent = monedaSimbolo;
         });
-        setTextContent('basico_costo_reducido', formatNumber(economicData.costo_anual_reducido, 0));
         setTextContent('basico_costo_sin_instalacion', formatNumber(economicData.gasto_anual_sin_fv, 0));
         setTextContent('basico_inversion_inicial_total', formatNumber(economicData.inversion_inicial, 0));
 
@@ -133,9 +132,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (resultadoLabel) {
             if (saldoAnualFavor > 0) {
                 resultadoLabel.textContent = 'Si realiza la instalación fotovoltaica tendrá un saldo neto anual a su favor de';
+                setTextContent('basico_costo_reducido', formatNumber(saldoAnualFavor, 0));
             } else {
                 resultadoLabel.textContent = 'Si realiza la instalación fotovoltaica su costo anual en energía eléctrica se reducirá a';
+                setTextContent('basico_costo_reducido', formatNumber(economicData.costo_anual_reducido, 0));
             }
+        } else {
+            setTextContent('basico_costo_reducido', formatNumber(economicData.costo_anual_reducido, 0));
         }
 
         // Emissions
