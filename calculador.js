@@ -1067,21 +1067,15 @@ function initModeloTemperaturaPanelOptions() {
 
 function initPotenciaPanelOptions() {
     const marcaSeleccionada = userSelections.marcaPanel;
-    const container = document.getElementById('panel-potencia-subform'); // The whole subform container
+    const container = document.getElementById('potencia-panel-options-container');
     const potenciaDeseadaInput = document.getElementById('potencia-panel-deseada-input');
 
-    if (!container || !potenciaDeseadaInput) {
-        console.error("Contenedor de potencia o input no encontrado.");
+    if (!container) {
+        console.error("Contenedor 'potencia-panel-options-container' no encontrado.");
         return;
     }
-
-    // Clear previous dynamic elements
-    const existingSelect = document.getElementById('potencia-panel-select');
-    if (existingSelect) {
-        existingSelect.remove();
-    }
-
-    potenciaDeseadaInput.style.display = 'block'; // Show the input by default
+    // We now clear the container itself, not a sub-form div
+    container.innerHTML = '';
 
     const powerRanges = {
         'AMERISOLAR': { start: 270, end: 400, step: 5 },
@@ -1094,8 +1088,6 @@ function initPotenciaPanelOptions() {
     const range = powerRanges[marcaSeleccionada];
 
     if (range) {
-        potenciaDeseadaInput.style.display = 'none'; // Hide the original input
-
         const selectElement = document.createElement('select');
         selectElement.id = 'potencia-panel-select';
         selectElement.className = 'form-control';
@@ -1118,21 +1110,19 @@ function initPotenciaPanelOptions() {
             selectElement.appendChild(optionElement);
         }
 
-        selectElement.addEventListener('change', (event) => {
+        selectElement.addEventListener('change', async (event) => {
             console.log("[DEBUG] Potencia panel listener fired.");
             const value = parseInt(event.target.value, 10);
             userSelections.potenciaPanelDeseada = isNaN(value) ? null : value;
 
-            // The model will be fetched when the user clicks "Next", so no call is needed here.
+            // Fetch model immediately on power selection
+            await fetchAndDisplayPanelModel();
         });
 
-        // Insert the select after the label
-        const label = container.querySelector('label[for="potencia-panel-deseada-input"]');
-        if (label) {
-            label.after(selectElement);
-        } else {
-            container.prepend(selectElement);
-        }
+        container.appendChild(selectElement);
+    } else {
+        // If no range (e.g., no brand selected), show the original free-text input
+        container.appendChild(potenciaDeseadaInput);
     }
 }
 
@@ -2445,9 +2435,8 @@ function setupNavigationButtons() {
 
     // --- Start of Paneles Sub-Form Navigation Listeners ---
 
-    // Listener for "Back" from "Marca Panel" to "Modelo Método Radiación"
+    // Listener for "Back" from the combined "Marca/Potencia/Modelo" form to "Modelo Método Radiación"
     document.getElementById('back-from-panel-marca')?.addEventListener('click', () => {
-        if (panelMarcaSubform) panelMarcaSubform.style.display = 'none';
         showScreen('modelo-metodo-section');
         updateStepIndicator('modelo-metodo-section');
         if (typeof initModeloMetodoSection === 'function') {
@@ -2455,78 +2444,23 @@ function setupNavigationButtons() {
         }
     });
 
-    // 1. From "Marca Panel" to "Potencia Deseada"
-    document.getElementById('next-from-panel-marca')?.addEventListener('click', () => {
+    // Listener for "Next" from the combined "Marca/Potencia/Modelo" form to "Modelo Temperatura"
+    document.getElementById('next-to-temperatura-from-panels')?.addEventListener('click', () => {
         if (panelMarcaSubform) panelMarcaSubform.style.display = 'none';
-        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'block';
-        updateStepIndicator('panel-potencia-subform');
-        // Ensure potencia input shows persisted value
-        if (potenciaPanelDeseadaInput && userSelections.potenciaPanelDeseada !== null) {
-            potenciaPanelDeseadaInput.value = userSelections.potenciaPanelDeseada;
-        } else if (potenciaPanelDeseadaInput) {
-            potenciaPanelDeseadaInput.value = '';
-        }
-    });
-
-    // 2. From "Potencia Deseada" back to "Marca Panel"
-    document.getElementById('back-to-panel-marca')?.addEventListener('click', () => {
-        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
-        if (panelMarcaSubform) panelMarcaSubform.style.display = 'block';
-        updateStepIndicator('panel-marca-subform');
-        // initMarcaPanelOptions(); // Optional: Re-call if options could change; usually not for 'Back'
-    });
-
-    // 3. From "Potencia Deseada" to "Modelo Panel"
-    document.getElementById('next-from-panel-potencia')?.addEventListener('click', async () => {
-        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
-        if (panelModeloSubform) panelModeloSubform.style.display = 'block';
-        updateStepIndicator('panel-modelo-subform');
-        // Fetch and display the panel model when the user proceeds to this step.
-        await fetchAndDisplayPanelModel();
-    });
-
-    // 4. From "Modelo Panel" back to "Potencia Deseada"
-    document.getElementById('back-to-panel-potencia')?.addEventListener('click', () => {
-        if (panelModeloSubform) panelModeloSubform.style.display = 'none';
-        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'block';
-        updateStepIndicator('panel-potencia-subform');
-        if (potenciaPanelDeseadaInput && userSelections.potenciaPanelDeseada !== null) {
-            potenciaPanelDeseadaInput.value = userSelections.potenciaPanelDeseada;
-        } else if (potenciaPanelDeseadaInput) {
-            potenciaPanelDeseadaInput.value = '';
-        }
-    });
-
-    // 5. From "Modelo Panel" to "Modelo Temperatura Panel"
-    document.getElementById('next-to-temperatura-from-modelo')?.addEventListener('click', () => {
-        if (panelModeloSubform) panelModeloSubform.style.display = 'none';
         if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
         initModeloTemperaturaPanelOptions();
         updateStepIndicator('panel-modelo-temperatura-subform');
     });
 
-    // 6. From "Modelo Temperatura Panel" back to "Modelo Panel"
+    // Listener for "Back" from "Modelo Temperatura" to the combined form
     document.getElementById('back-to-panel-modelo')?.addEventListener('click', () => {
         if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'none';
-        if (panelModeloSubform) panelModeloSubform.style.display = 'block';
-        updateStepIndicator('panel-modelo-subform');
+        // Show the parent 'paneles-section' and the combined sub-form within it
+        showScreen('paneles-section');
+        if (panelMarcaSubform) panelMarcaSubform.style.display = 'block';
+        updateStepIndicator('panel-marca-subform'); // Or a more generic sidebar ID if needed
     });
 
-    // 7. Navigation from "Modelo Temperatura Panel" to "Inversor" section
-    const nextFromPanelModeloToInversor = document.getElementById('next-to-inversor-from-panels');
-    if (nextFromPanelModeloToInversor) {
-        nextFromPanelModeloToInversor.addEventListener('click', () => {
-            showScreen('inversor-section');
-            updateStepIndicator('inversor-section');
-            if (typeof initInversorSection === 'function') {
-                initInversorSection();
-            } else {
-                console.warn('initInversorSection function not yet defined.');
-            }
-        });
-    } else {
-        console.warn("Button 'next-to-inversor-from-panels' (for navigating Paneles to Inversor) not found in HTML or DOM not ready.");
-    }
     // --- End of Paneles Sub-Form Navigation Listeners ---
 
 
