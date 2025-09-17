@@ -839,25 +839,17 @@
                     </div>
                 </div>
                 <!-- Fin de Nueva sección para Altura Instalación -->
-                <!-- Nueva sección para Método de Cálculo -->
+                <!-- Nueva sección para Método de Cálculo y Modelo (COMBINADAS) -->
                 <div id="metodo-calculo-section" style="display:none;">
                     <h1>¿Con qué método de cálculo de radiación desea realizar el dimensionamiento?</h1>
                     <p class="form-description">Para estimar la radiación solar total incidente sobre los paneles es posible considerar que el cielo presenta iguales propiedades en todas sus direcciones (Cielo isotrópico), por lo que la radiación difusa calculada será igual en todas las direcciones. O puede considerarse que las propiedades del cielo varían según la dirección analizada (Cielo anisotrópico), lo que hará que la radiación difusa difiera según las diferentes direcciones. Si no elige ninguna opción el sistema utilizará por defecto el método Anisotrópico.</p>
                     <div class="form-group">
-                        <!-- Options (select dropdown) will be dynamically inserted here by JavaScript -->
                         <div id="metodo-calculo-options-container">
-                            <!-- Example: <select id="metodo-calculo-select" class="form-control"></select> will go here -->
                         </div>
                     </div>
-                    <div class="form-actions">
-                        <button type="button" id="back-to-altura-from-metodo" class="back-button">Atrás</button>
-                        <button type="button" id="next-to-modelo-metodo-from-metodo">Siguiente</button>
-                    </div>
-                </div>
-                <!-- Fin de Nueva sección para Método de Cálculo -->
-                <!-- Nueva sección para Modelo del Método -->
-                <div id="modelo-metodo-section" style="display:none;">
-                    <h1>Paso 1: Datos</h1>
+
+                    <hr style="margin: 2rem 0;">
+
                     <h2>¿Con qué modelo del método desea realizar el dimensionamiento?</h2>
                     <p class="form-description">
                         - Cielo isotrópico: Presenta mejores resultados para ubicaciones con cielos mayormente despejados.<br>
@@ -868,17 +860,16 @@
                         - Pérez: considera las características variables del cielo según la ubicación, generando resultados con mayor precisión.
                     </p>
                     <div class="form-group">
-                        <!-- Options (select dropdown) will be dynamically inserted here by JavaScript -->
                         <div id="modelo-metodo-options-container">
-                            <!-- Example: <select id="modelo-metodo-select" class="form-control"></select> will go here -->
                         </div>
                     </div>
+
                     <div class="form-actions">
-                        <button type="button" id="back-to-metodo-calculo-from-modelo" class="back-button">Atrás</button>
+                        <button type="button" id="back-to-altura-from-metodo" class="back-button">Atrás</button>
                         <button type="button" id="next-to-paneles-from-modelo">Siguiente</button>
                     </div>
                 </div>
-                <!-- Fin de Nueva sección para Modelo del Método -->
+                <!-- Fin de la sección combinada -->
                 <div id="energia-section" style="display:none;">
                     <h1>Consumo de Energía</h1> <!-- This title is now dynamically changed by calculador.js -->
                     <p></p> <!-- This description is now dynamically changed by calculador.js -->

@@ -643,9 +643,10 @@ async function initModeloMetodoSection() {
     } else if (metodoCalculoSeleccionado === "Cielo Anisotrópico") {
         console.log('[initModeloMetodoSection] Filtering for "Cielo Anisotrópico"');
         filteredData = allModelOptions["Cielo Anisotrópico"];
-        if (userSelections.modeloMetodoRadiacion === "Método Liu-Jordan") {
-            userSelections.modeloMetodoRadiacion = null;
-            console.log('[initModeloMetodoSection] Cleared modeloMetodoRadiacion as "Método Liu-Jordan" is not valid for current parent selection.');
+        // If there's no valid model selected yet, or the old one is invalid, default to Perez
+        if (!userSelections.modeloMetodoRadiacion || !filteredData.includes(userSelections.modeloMetodoRadiacion)) {
+            userSelections.modeloMetodoRadiacion = "Modelo Perez";
+            console.log('[initModeloMetodoSection] Defaulting to Modelo Perez');
         }
     }
 
@@ -2309,22 +2310,7 @@ function setupNavigationButtons() {
         // No specific init for altura-instalacion
     });
 
-    document.getElementById('next-to-modelo-metodo-from-metodo')?.addEventListener('click', () => {
-        // Validate metodoCalculoRadiacion if necessary
-        // if (!userSelections.metodoCalculoRadiacion) {
-        //     alert("Por favor, seleccione un método de cálculo.");
-        //     return;
-        // }
-        showScreen('modelo-metodo-section');
-        updateStepIndicator('modelo-metodo-section');
-        if (typeof initModeloMetodoSection === 'function') initModeloMetodoSection();
-    });
 
-    document.getElementById('back-to-metodo-calculo-from-modelo')?.addEventListener('click', () => {
-        showScreen('metodo-calculo-section');
-        updateStepIndicator('metodo-calculo-section');
-        if (typeof initMetodoCalculoSection === 'function') initMetodoCalculoSection(); // Re-init
-    });
 
     // ** START: MODIFIED BLOCK for next-to-paneles-from-modelo **
     document.getElementById('next-to-paneles-from-modelo')?.addEventListener('click', () => {
