@@ -2199,7 +2199,7 @@ function setupNavigationButtons() {
         }
     });
 
-    document.getElementById('next-to-energia')?.addEventListener('click', (event) => {
+    document.getElementById('next-from-zona')?.addEventListener('click', (event) => {
         event.preventDefault();
         const selectedZona = document.querySelector('input[name="zonaInstalacionNewScreen"]:checked');
         if (selectedZona) {
