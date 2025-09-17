@@ -815,18 +815,11 @@
                 <!-- Fin de Nueva sección para Rotación -->
                 <!-- Nueva sección para Altura Instalación -->
                 <div id="altura-instalacion-section" style="display:none;">
-feature/ux-text-and-flow-updates
-                    <h1>¿A qué altura vas a realizar la instalación?</h1>
-                    <p class="form-description">
-                        <b>Altura de los paneles:</b><br>
-                        Indicá la altura de los paneles desde el suelo en metros. Si se apoyan directamente sobre el techo, la altura es cero (0).
-
                     <h1>¿Cuál es la altura a la cual se encontrará la instalación fotovoltaica, desde la superficie de apoyo?</h1>
                     <p class="form-description">
                         <b>Altura de los paneles:</b><br>
                         Indica la altura de los paneles desde el suelo en metros.
                         Si los paneles se van a apoyar directamente sobre el techo sin ninguna separación, entonces esta altura es cero (0 metros).
- main
                     </p>
                     <div class="form-group" style="position: relative;">
                         <label for="altura-instalacion-input">Altura (metros):</label>
@@ -849,14 +842,14 @@ feature/ux-text-and-flow-updates
 
                     <hr style="margin: 2rem 0;">
 
- feature/ux-text-and-flow-updates
-                    <h2>¿Qué modelo querés usar?</h2>
-
                     <h2>¿Con qué modelo del método desea realizar el dimensionamiento?</h2>
-main
                     <p class="form-description">
-                        - <b>Cielo isotrópico:</b> Funciona mejor para lugares con cielos mayormente despejados (Modelo Liu-Jordan).<br>
-                        - <b>Cielo Anisotrópico:</b> Se aplica mejor en lugares con cielos nublados. El modelo Pérez es el más preciso. Si no elegís una opción, se usará el modelo de Pérez por defecto.
+                        - Cielo isotrópico: Presenta mejores resultados para ubicaciones con cielos mayormente despejados.<br>
+                        - Modelo Liu-Jordan<br>
+                        - Cielo Anisotrópico: se aplica mejor para ubicaciones con cielos habitualmente nublados. El método más sencillo es el de Hay and Davies, mientras que el modelo Pérez es el más complejo, pero de mayor precisión. Si no elige ninguna opción el sistema utilizará por defecto el modelo de Pérez.<br>
+                        - Hay and Davies: es sencillo y robusto. Se basa en el modelo de Liu-Jordan.<br>
+                        - Riendl: mejora del modelo de Hay and Davies, presentando valores de irradiancia más altos y precisos.<br>
+                        - Pérez: considera las características variables del cielo según la ubicación, generando resultados con mayor precisión.
                     </p>
                     <div class="form-group">
                         <div id="modelo-metodo-options-container">
@@ -875,19 +868,6 @@ main
 
                     <div id="energia-modo-seleccion-container" style="display:none;"> <!-- Initially hidden, JS will show for experts -->
                         <h2>¿Cómo querés ingresar los datos de consumo?</h2>
-                        <p class="form-description">
-feature/ux-text-and-flow-updates
-                            Tenés tres opciones para ingresar tu consumo de energía:<br>
-                            - Ingresar qué electrodomésticos tenés en tu casa (tipo y cantidad).<br>
-                            - Ingresar el consumo mensual de tu factura de luz de los últimos 12 meses.<br>
-                            - Ingresar el detalle de artefactos y horas de uso mensuales.
-
-                            Tres opciones para ingresar tu consumo de energía eléctrica:<br>
-                            - Ingresar que electrodomésticos tenés en tu casa: tipo, cantidad.<br>
-                            - Ingresa el consumo mensual registrado en tu factura “de luz” en los últimos 12 meses.<br>
-                            - Ingresar que electrodomésticos tenés en tu casa: tipo, cantidad y horas de uso al mes, distinguiendo entre verano e invierno.
- main
-                        </p>
                         <div class="radio-group">
                             <label>
                                 <input type="radio" name="metodoIngresoConsumo" value="detalleHogar" required>
@@ -965,11 +945,7 @@ feature/ux-text-and-flow-updates
                         </div>
                         <hr style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
 
-feature/ux-text-and-flow-updates
                         <h2>Potencia de los paneles</h2>
-
-                        <h2>Ingrese la potencia deseada de los paneles de la instalación:</h2>
- main
                         <div class="form-group">
                             <label for="potencia-panel-deseada-input">Potencia por panel (Watts):</label>
                             <!-- The input/select for power will be dynamically generated by JS -->
@@ -979,11 +955,7 @@ feature/ux-text-and-flow-updates
                         </div>
                         <hr style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
 
- feature/ux-text-and-flow-updates
                         <h2>Modelo del panel</h2>
-
-                        <h2>Ingrese el modelo de panel:</h2>
- main
                         <div class="form-group">
                             <div id="modelo-panel-options-container">
                                 <input type="text" id="modelo-panel-input" class="form-control" value="Seleccione marca y potencia" readonly>
