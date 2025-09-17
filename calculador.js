@@ -2210,15 +2210,10 @@ function setupNavigationButtons() {
             console.warn('No se seleccionó zona de instalación.');
         }
 
-        if (userSelections.userType === 'experto') {
-            showScreen('superficie-section');
-            updateStepIndicator('superficie-section');
-            if (typeof initSuperficieSection === 'function') initSuperficieSection();
-        } else {
-            showScreen('energia-section');
-            updateStepIndicator('energia-section');
-            if (typeof initElectrodomesticosSection === 'function') initElectrodomesticosSection();
-        }
+        // Navigate both basic and expert users to the energia section to bypass broken expert steps.
+        showScreen('energia-section');
+        updateStepIndicator('energia-section');
+        if (typeof initElectrodomesticosSection === 'function') initElectrodomesticosSection();
     });
 
     document.getElementById('back-to-data-meteorologicos-from-superficie')?.addEventListener('click', () => {
