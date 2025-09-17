@@ -712,7 +712,7 @@
                 </div>
                 <div class="sidebar-item" id="sidebar-perdidas">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 15H9V9h6v6zm-2-4h-2v2h2v-2zm8-4h-2V7h-2V5h-2v2h-2V5H9v2H7V5H5v2H3v2h2v2H3v2h2v2H3v2h2v2h2v-2h2v2h2v-2h2v2h2v-2h2v-2h-2v-2h2v-2h-2V9h2V7z"/></svg>
-                    Registro Pérdidas
+                    Pérdida por Factoreo Ambiental
                 </div>
                 <div class="sidebar-item" id="sidebar-analisis-economico">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-4H7l4-4 4 4h-2v4z"/></svg>
@@ -964,34 +964,13 @@
 
                         <div class="form-actions sub-form-actions">
                             <button type="button" id="back-from-panel-marca" class="back-button">Atrás</button>
-                            <button type="button" id="next-to-temperatura-from-panels">Siguiente</button>
+                            <button type="button" id="next-to-inversor-from-panels">Siguiente</button>
                         </div>
                     </div>
 
                     <!-- Empty placeholders for the now-merged sub-forms -->
                     <div id="panel-potencia-subform" style="display:none;"></div>
                     <div id="panel-modelo-subform" style="display:none;"></div>
-
-                    <!-- Sub-Form 4: Modelo de Cálculo de Temperatura -->
-                    <div id="panel-modelo-temperatura-subform" style="display:none;">
-                        <h2>Modelo de cálculo de temperatura</h2>
-                        <p class="form-description">La eficiencia de los paneles se ve afectada por la temperatura. Si no elegís una opción, por defecto se usará el modelo Mattei, que ofrece mayor precisión.</p>
-                        <div class="form-group">
-                            <select id="modelo-temperatura-select" class="form-control">
-                                <option value="" disabled selected>Seleccione un modelo...</option>
-                                <option value="Standard">Standard</option>
-                                <option value="Skoplaki">Skoplaki</option>
-                                <option value="Koehl">Koehl</option>
-                                <option value="Mattei">Mattei</option>
-                                <option value="de Kurtz">de Kurtz</option>
-                            </select>
-                        </div>
-                        <div class="form-actions sub-form-actions">
-                            <button type="button" id="back-to-panel-modelo" class="back-button">Atrás</button>
-                            <button type="button" id="next-to-inversor-from-panels">Siguiente</button>
-                        </div>
-                        <!-- No <hr> after the last sub-form before the main section's form-actions -->
-                    </div>
 
                     <div class="form-actions"> <!-- Main form actions for paneles-section -->
                         <!-- The "Siguiente" button that was here (id="next-to-inversor") is removed
@@ -1010,7 +989,7 @@
                     </div>
                 </div>
                 <div id="perdidas-section" style="display:none;">
-                    <h1>Registro de Pérdidas</h1>
+                    <h1>Pérdida por Factoreo Ambiental</h1>
 
                     <div id="frecuencia-lluvias-subform-content" style="display:none;"> <!-- Content for first sub-form -->
                         <h2>¿Cuál es la frecuencia de lluvias estimada?</h2>
@@ -1035,10 +1014,24 @@
                         </div>
                         <div class="form-actions sub-form-actions">
                             <button type="button" id="back-to-frecuencia-lluvias-from-foco-polvo" class="back-button">Atrás</button>
-                            <button type="button" id="next-to-analisis-from-foco-polvo">Siguiente</button>
+                            <button type="button" id="next-to-modelo-temperatura-from-foco-polvo">Siguiente</button>
                         </div>
                     </div>
 
+                    <!-- Sub-Form 4: Modelo de Cálculo de Temperatura (MOVED HERE) -->
+                    <div id="panel-modelo-temperatura-subform" style="display:none;">
+                        <h2>Modelo de cálculo de temperatura</h2>
+                        <p class="form-description">La eficiencia de los paneles se ve afectada por la temperatura. Si no elegís una opción, por defecto se usará el modelo Mattei, que ofrece mayor precisión.</p>
+                        <div class="form-group">
+                            <div id="modelo-temperatura-select-container">
+                                <!-- Radio buttons will be inserted here by JS -->
+                            </div>
+                        </div>
+                        <div class="form-actions sub-form-actions">
+                            <button type="button" id="back-to-foco-polvo-from-modelo-temperatura" class="back-button">Atrás</button>
+                            <button type="button" id="next-to-analisis-from-modelo-temperatura">Siguiente</button>
+                        </div>
+                    </div>
                 </div>
                 <div id="analisis-economico-section" style="display:none;">
                     <h1>Moneda para el Análisis Económico</h1>

@@ -1032,36 +1032,36 @@ function initModeloPanelOptions() {
 }
 
 function initModeloTemperaturaPanelOptions() {
-    if (!modeloTemperaturaSelect) {
-        console.error("Elemento 'modelo-temperatura-select' no encontrado.");
+    const container = document.getElementById('modelo-temperatura-select-container');
+    if (!container) {
+        console.error("Contenedor 'modelo-temperatura-select-container' no encontrado.");
         return;
     }
+    container.innerHTML = '';
+    container.className = 'radio-group';
 
     const opciones = ['Standard', 'Skoplaki', 'Koehl', 'Mattei', 'de Kurtz'];
-    modeloTemperaturaSelect.innerHTML = '';
-
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.disabled = true;
-    placeholder.selected = true;
-    placeholder.textContent = 'Seleccione un modelo...';
-    modeloTemperaturaSelect.appendChild(placeholder);
 
     opciones.forEach(opt => {
-        const optionEl = document.createElement('option');
-        optionEl.value = opt;
-        optionEl.textContent = opt;
+        const label = document.createElement('label');
+        const radioInput = document.createElement('input');
+        radioInput.type = 'radio';
+        radioInput.name = 'modeloTemperaturaPanel';
+        radioInput.value = opt;
+
         if (userSelections.modeloTemperaturaPanel === opt) {
-            optionEl.selected = true;
-            placeholder.selected = false;
+            radioInput.checked = true;
         }
-        modeloTemperaturaSelect.appendChild(optionEl);
-    });
 
-    modeloTemperaturaSelect.addEventListener('change', (e) => {
-        const value = e.target.value;
-        userSelections.modeloTemperaturaPanel = value || null;
+        radioInput.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                userSelections.modeloTemperaturaPanel = e.target.value;
+            }
+        });
 
+        label.appendChild(radioInput);
+        label.appendChild(document.createTextNode(" " + opt));
+        container.appendChild(label);
     });
 }
 
@@ -2352,50 +2352,53 @@ function setupNavigationButtons() {
         updateStepIndicator('panel-modelo-temperatura-subform'); // Step indicator for the last panel sub-form
     });
 
-    // --- Navigation within "Pérdidas" sub-forms ---
+    // --- Navigation within "Pérdida por Factoreo Ambiental" sub-forms ---
 
     // Back from "Frecuencia Lluvias" to "Inversor"
     document.getElementById('back-to-inversor-from-perdidas')?.addEventListener('click', () => {
-        if (frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'none'; // Hide current
         showScreen('inversor-section');
         updateStepIndicator('inversor-section');
-        if (typeof initInversorSection === 'function') {
-            initInversorSection();
-        }
+        initInversorSection();
     });
 
-    const nextToFocoPolvoBtn = document.getElementById('next-to-foco-polvo-from-frecuencia');
-    if (nextToFocoPolvoBtn) {
-        nextToFocoPolvoBtn.addEventListener('click', () => {
-            if(frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'none';
-            if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block';
-            initFocoPolvoOptions();
-            updateStepIndicator('foco-polvo-subform-content');
-        });
-    }
+    // Next from "Frecuencia Lluvias" to "Foco de Polvo"
+    document.getElementById('next-to-foco-polvo-from-frecuencia')?.addEventListener('click', () => {
+        if(frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'none';
+        if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block';
+        initFocoPolvoOptions();
+        updateStepIndicator('foco-polvo-subform-content');
+    });
 
-    const backToFrecuenciaLluviasBtn = document.getElementById('back-to-frecuencia-lluvias-from-foco-polvo');
-    if (backToFrecuenciaLluviasBtn) {
-        backToFrecuenciaLluviasBtn.addEventListener('click', () => {
-            if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'none';
-            if(frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'block';
-            updateStepIndicator('frecuencia-lluvias-subform-content');
-            // Re-init frecuencia lluvias options if necessary, e.g., if they could change
-            if (typeof initFrecuenciaLluviasOptions === 'function') {
-                initFrecuenciaLluviasOptions();
-            }
-        });
-    }
+    // Back from "Foco de Polvo" to "Frecuencia Lluvias"
+    document.getElementById('back-to-frecuencia-lluvias-from-foco-polvo')?.addEventListener('click', () => {
+        if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'none';
+        if(frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'block';
+        updateStepIndicator('frecuencia-lluvias-subform-content');
+        initFrecuenciaLluviasOptions();
+    });
 
-    // Next from "Foco de Polvo" sub-form (Exiting "Pérdidas") to Analisis Economico
-    const nextToAnalisisFromFocoPolvoBtn = document.getElementById('next-to-analisis-from-foco-polvo');
-    if (nextToAnalisisFromFocoPolvoBtn) {
-        nextToAnalisisFromFocoPolvoBtn.addEventListener('click', () => {
-            showScreen('analisis-economico-section');
-            updateStepIndicator('analisis-economico-section');
-            initAnalisisEconomicoSection();
-        });
-    }
+    // Next from "Foco de Polvo" to "Modelo Temperatura"
+    document.getElementById('next-to-modelo-temperatura-from-foco-polvo')?.addEventListener('click', () => {
+        if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'none';
+        if(panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
+        initModeloTemperaturaPanelOptions();
+        updateStepIndicator('panel-modelo-temperatura-subform');
+    });
+
+    // Back from "Modelo Temperatura" to "Foco de Polvo"
+    document.getElementById('back-to-foco-polvo-from-modelo-temperatura')?.addEventListener('click', () => {
+        if(panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'none';
+        if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block';
+        updateStepIndicator('foco-polvo-subform-content');
+        initFocoPolvoOptions();
+    });
+
+    // Next from "Modelo Temperatura" to "Análisis Económico"
+    document.getElementById('next-to-analisis-from-modelo-temperatura')?.addEventListener('click', () => {
+        showScreen('analisis-economico-section');
+        updateStepIndicator('analisis-economico-section');
+        initAnalisisEconomicoSection();
+    });
 
     // Main "Back" button for perdidas-section (REMOVED as buttons are now in sub-forms)
     // const backFromPerdidasBtn = document.getElementById('back-from-perdidas');
@@ -2444,21 +2447,11 @@ function setupNavigationButtons() {
         }
     });
 
-    // Listener for "Next" from the combined "Marca/Potencia/Modelo" form to "Modelo Temperatura"
-    document.getElementById('next-to-temperatura-from-panels')?.addEventListener('click', () => {
-        if (panelMarcaSubform) panelMarcaSubform.style.display = 'none';
-        if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
-        initModeloTemperaturaPanelOptions();
-        updateStepIndicator('panel-modelo-temperatura-subform');
-    });
-
-    // Listener for "Back" from "Modelo Temperatura" to the combined form
-    document.getElementById('back-to-panel-modelo')?.addEventListener('click', () => {
-        if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'none';
-        // Show the parent 'paneles-section' and the combined sub-form within it
-        showScreen('paneles-section');
-        if (panelMarcaSubform) panelMarcaSubform.style.display = 'block';
-        updateStepIndicator('panel-marca-subform'); // Or a more generic sidebar ID if needed
+    // Listener for "Next" from the combined "Marca/Potencia/Modelo" form to "Inversor"
+    document.getElementById('next-to-inversor-from-panels')?.addEventListener('click', () => {
+        showScreen('inversor-section');
+        updateStepIndicator('inversor-section');
+        initInversorSection();
     });
 
     // --- End of Paneles Sub-Form Navigation Listeners ---
