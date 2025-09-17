@@ -1966,6 +1966,7 @@ function showMapScreenFormSection(sectionIdToShow) {
 // --- Configuración de Event Listeners para Botones y Selects (EXISTENTE, MODIFICADA) ---
 
 function setupNavigationButtons() {
+    const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
     // Get buttons - ensure these IDs exist in calculador.html
     const basicUserButton = document.getElementById('basic-user-button');
     const expertUserButton = document.getElementById('expert-user-button');
@@ -2170,7 +2171,7 @@ function setupNavigationButtons() {
     //     });
     // }
 
-    const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
+    // Declaration moved to the top of the function
     if (alturaInstalacionInput) {
         alturaInstalacionInput.addEventListener('input', (event) => {
             const value = parseFloat(event.target.value);
@@ -2210,10 +2211,15 @@ function setupNavigationButtons() {
             console.warn('No se seleccionó zona de instalación.');
         }
 
-        // Navigate both basic and expert users to the energia section to bypass broken expert steps.
-        showScreen('energia-section');
-        updateStepIndicator('energia-section');
-        if (typeof initElectrodomesticosSection === 'function') initElectrodomesticosSection();
+        if (userSelections.userType === 'experto') {
+            showScreen('superficie-section');
+            updateStepIndicator('superficie-section');
+            if (typeof initSuperficieSection === 'function') initSuperficieSection();
+        } else {
+            showScreen('energia-section');
+            updateStepIndicator('energia-section');
+            if (typeof initElectrodomesticosSection === 'function') initElectrodomesticosSection();
+        }
     });
 
     document.getElementById('back-to-data-meteorologicos-from-superficie')?.addEventListener('click', () => {
