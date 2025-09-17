@@ -1966,6 +1966,7 @@ function showMapScreenFormSection(sectionIdToShow) {
 // --- Configuración de Event Listeners para Botones y Selects (EXISTENTE, MODIFICADA) ---
 
 function setupNavigationButtons() {
+    const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
     // Get buttons - ensure these IDs exist in calculador.html
     const basicUserButton = document.getElementById('basic-user-button');
     const expertUserButton = document.getElementById('expert-user-button');
@@ -2170,7 +2171,7 @@ function setupNavigationButtons() {
     //     });
     // }
 
-    const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
+    // Declaration moved to the top of the function
     if (alturaInstalacionInput) {
         alturaInstalacionInput.addEventListener('input', (event) => {
             const value = parseFloat(event.target.value);
