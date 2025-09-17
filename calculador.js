@@ -534,179 +534,108 @@ async function initMetodoCalculoSection() {
         return;
     }
     container.innerHTML = ''; // Limpiar opciones anteriores
-
-    const selectElement = document.createElement('select');
-    selectElement.id = 'metodo-calculo-select';
-    selectElement.className = 'form-control';
-
-    const placeholderOption = document.createElement('option');
-    placeholderOption.value = '';
-    placeholderOption.textContent = 'Seleccione un método...';
-    placeholderOption.disabled = true;
-    placeholderOption.selected = true;
-    selectElement.appendChild(placeholderOption);
+    container.className = 'radio-group'; // Add class for styling
 
     try {
-        // Simulating fetch with predefined data as per requirement
         const data = ["Cielo Anisotrópico", "Cielo Isotrópico"];
 
-        data.forEach(optionText => { // data is an array of strings
-            const optionElement = document.createElement('option');
-            optionElement.value = optionText;
-            optionElement.textContent = optionText;
+        data.forEach(optionText => {
+            const label = document.createElement('label');
+            const radioInput = document.createElement('input');
+            radioInput.type = 'radio';
+            radioInput.name = 'metodoCalculoRadiacion';
+            radioInput.value = optionText;
 
             if (userSelections.metodoCalculoRadiacion === optionText) {
-                optionElement.selected = true;
-                placeholderOption.selected = false;
-            }
-            selectElement.appendChild(optionElement);
-        });
-
-        selectElement.addEventListener('change', (event) => {
-            const selectedValue = event.target.value;
-            if (selectedValue && selectedValue !== '') {
-                userSelections.metodoCalculoRadiacion = selectedValue;
-            } else {
-                userSelections.metodoCalculoRadiacion = null;
+                radioInput.checked = true;
             }
 
-            console.log('Método de cálculo seleccionado:', userSelections.metodoCalculoRadiacion);
+            radioInput.addEventListener('change', (event) => {
+                if (event.target.checked) {
+                    userSelections.metodoCalculoRadiacion = event.target.value;
+                    console.log('Método de cálculo seleccionado:', userSelections.metodoCalculoRadiacion);
 
-            console.log('[initMetodoCalculoSection] Método de cálculo changed, resetting and re-initializing modelo del método.');
-            userSelections.modeloMetodoRadiacion = null; // Clear previous model selection
-
-            // Attempt to clear existing options in child dropdown explicitly
-            const modeloMetodoContainer = document.getElementById('modelo-metodo-options-container');
-            if (modeloMetodoContainer) {
-                const modeloSelect = modeloMetodoContainer.querySelector('select'); // More robust way to find it
-                if (modeloSelect) {
-                    modeloSelect.innerHTML = ''; // Clear its options
-                    console.log('[initMetodoCalculoSection] Cleared options for modelo-metodo-select.');
+                    // Reset and re-initialize the dependent model section
+                    userSelections.modeloMetodoRadiacion = null;
+                    if (typeof initModeloMetodoSection === 'function') {
+                        initModeloMetodoSection();
+                    }
                 }
-            }
+            });
 
-            // Save the nulled modeloMetodoRadiacion
-
-            // Re-initialize the modeloMetodoSection to reflect filtered options
-            if (typeof initModeloMetodoSection === 'function') {
-                initModeloMetodoSection();
-            } else {
-                console.error('[initMetodoCalculoSection] initModeloMetodoSection function is not defined and cannot be called.');
-            }
+            label.appendChild(radioInput);
+            label.appendChild(document.createTextNode(" " + optionText));
+            container.appendChild(label);
         });
-
-        container.appendChild(selectElement);
 
     } catch (error) {
-        console.error('[METODO CALCULO OPTIONS LOAD ERROR] Error processing método de cálculo options:', error);
-        if (error.message) {
-            console.error('[METODO CALCULO OPTIONS LOAD ERROR] Message:', error.message);
-        }
-        alert('Error al cargar las opciones de método de cálculo. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
-        if (container) {
-            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de método de cálculo. Intente recargar o contacte a soporte.</p>';
-        }
+        console.error('[METODO CALCULO OPTIONS LOAD ERROR]', error);
+        container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de método de cálculo.</p>';
     }
 }
 
 // --- Nueva función para inicializar la sección de Modelo del Método ---
 async function initModeloMetodoSection() {
-    console.log('[initModeloMetodoSection] called');
     const container = document.getElementById('modelo-metodo-options-container');
-    console.log('[initModeloMetodoSection] container:', container);
-
     if (!container) {
-        console.error("[initModeloMetodoSection] Contenedor 'modelo-metodo-options-container' no encontrado.");
+        console.error("Contenedor 'modelo-metodo-options-container' no encontrado.");
         return;
     }
     container.innerHTML = '';
+    container.className = 'radio-group'; // Add class for styling
 
     const metodoCalculoSeleccionado = userSelections.metodoCalculoRadiacion;
-    console.log('[initModeloMetodoSection] Parent metodoCalculoSeleccionado:', metodoCalculoSeleccionado);
 
-    // Defining model options based on the new requirement
     const allModelOptions = {
         "Cielo Anisotrópico": ["Modelo Hay and Davies", "Modelo Riendl", "Modelo Perez"],
         "Cielo Isotrópico": ["Método Liu-Jordan"]
     };
-    console.log('[initModeloMetodoSection] allModelOptions defined:', allModelOptions);
 
     let filteredData = [];
     let autoSelectModel = null;
 
     if (metodoCalculoSeleccionado === "Cielo Isotrópico") {
-        console.log('[initModeloMetodoSection] Filtering for "Cielo Isotrópico"');
         filteredData = allModelOptions["Cielo Isotrópico"];
         autoSelectModel = "Método Liu-Jordan";
         userSelections.modeloMetodoRadiacion = autoSelectModel; // Auto-select and save
-        console.log('[initModeloMetodoSection] Auto-selecting "Método Liu-Jordan" and updated userSelections.');
     } else if (metodoCalculoSeleccionado === "Cielo Anisotrópico") {
-        console.log('[initModeloMetodoSection] Filtering for "Cielo Anisotrópico"');
         filteredData = allModelOptions["Cielo Anisotrópico"];
-        // If there's no valid model selected yet, or the old one is invalid, default to Perez
         if (!userSelections.modeloMetodoRadiacion || !filteredData.includes(userSelections.modeloMetodoRadiacion)) {
-            userSelections.modeloMetodoRadiacion = "Modelo Perez";
-            console.log('[initModeloMetodoSection] Defaulting to Modelo Perez');
+            userSelections.modeloMetodoRadiacion = "Modelo Perez"; // Default to Perez
         }
-    }
-
-    console.log('[initModeloMetodoSection] Filtered data for dropdown:', filteredData);
-
-    const selectElement = document.createElement('select');
-    selectElement.id = 'modelo-metodo-select';
-    selectElement.className = 'form-control';
-
-    if (metodoCalculoSeleccionado !== "Cielo Isotrópico") {
-        const placeholderOption = document.createElement('option');
-        placeholderOption.value = '';
-        placeholderOption.textContent = 'Seleccione un modelo...';
-        placeholderOption.disabled = true;
-        selectElement.appendChild(placeholderOption);
     }
 
     if (filteredData.length === 0) {
-        console.log('[initModeloMetodoSection] No options available after filtering.');
-    } else {
-        filteredData.forEach((optionText) => {
-            const optionElement = document.createElement('option');
-            optionElement.value = optionText;
-            optionElement.textContent = optionText;
-            console.log(`[initModeloMetodoSection] Adding option: '${optionText}'`);
+        container.innerHTML = '<p style="color: #666;">Seleccione un método de cálculo para ver los modelos disponibles.</p>';
+        return;
+    }
 
-            if (userSelections.modeloMetodoRadiacion === optionText) {
-                optionElement.selected = true;
-                if (selectElement.options[0]?.disabled) {
-                    selectElement.options[0].selected = false;
-                }
+    filteredData.forEach(optionText => {
+        const label = document.createElement('label');
+        const radioInput = document.createElement('input');
+        radioInput.type = 'radio';
+        radioInput.name = 'modeloMetodoRadiacion';
+        radioInput.value = optionText;
+
+        if (userSelections.modeloMetodoRadiacion === optionText) {
+            radioInput.checked = true;
+        }
+
+        if (metodoCalculoSeleccionado === "Cielo Isotrópico") {
+            radioInput.disabled = true;
+        }
+
+        radioInput.addEventListener('change', (event) => {
+            if (event.target.checked) {
+                userSelections.modeloMetodoRadiacion = event.target.value;
+                console.log('Modelo del método seleccionado:', userSelections.modeloMetodoRadiacion);
             }
-            selectElement.appendChild(optionElement);
         });
-    }
 
-    if (metodoCalculoSeleccionado === "Cielo Isotrópico") {
-        selectElement.disabled = true;
-    }
-
-    if (selectElement.selectedIndex === -1 || (selectElement.options[selectElement.selectedIndex] && selectElement.options[selectElement.selectedIndex].disabled)) {
-        if(selectElement.options.length > 0) selectElement.options[0].selected = true;
-        if (!autoSelectModel) {
-            userSelections.modeloMetodoRadiacion = null;
-        }
-    }
-
-    selectElement.addEventListener('change', (event) => {
-        const selectedValue = event.target.value;
-        if (selectedValue && selectedValue !== '') {
-            userSelections.modeloMetodoRadiacion = selectedValue;
-        } else {
-            userSelections.modeloMetodoRadiacion = null;
-        }
-
-        console.log('[initModeloMetodoSection] Modelo del método seleccionado:', userSelections.modeloMetodoRadiacion);
+        label.appendChild(radioInput);
+        label.appendChild(document.createTextNode(" " + optionText));
+        container.appendChild(label);
     });
-
-    container.appendChild(selectElement);
-    console.log('[initModeloMetodoSection] select element appended.');
 }
 
 // --- Nueva función para inicializar la sección de Pérdidas ---
