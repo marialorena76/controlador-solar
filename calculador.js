@@ -534,178 +534,108 @@ async function initMetodoCalculoSection() {
         return;
     }
     container.innerHTML = ''; // Limpiar opciones anteriores
-
-    const selectElement = document.createElement('select');
-    selectElement.id = 'metodo-calculo-select';
-    selectElement.className = 'form-control';
-
-    const placeholderOption = document.createElement('option');
-    placeholderOption.value = '';
-    placeholderOption.textContent = 'Seleccione un método...';
-    placeholderOption.disabled = true;
-    placeholderOption.selected = true;
-    selectElement.appendChild(placeholderOption);
+    container.className = 'radio-group'; // Add class for styling
 
     try {
-        // Simulating fetch with predefined data as per requirement
         const data = ["Cielo Anisotrópico", "Cielo Isotrópico"];
 
-        data.forEach(optionText => { // data is an array of strings
-            const optionElement = document.createElement('option');
-            optionElement.value = optionText;
-            optionElement.textContent = optionText;
+        data.forEach(optionText => {
+            const label = document.createElement('label');
+            const radioInput = document.createElement('input');
+            radioInput.type = 'radio';
+            radioInput.name = 'metodoCalculoRadiacion';
+            radioInput.value = optionText;
 
             if (userSelections.metodoCalculoRadiacion === optionText) {
-                optionElement.selected = true;
-                placeholderOption.selected = false;
-            }
-            selectElement.appendChild(optionElement);
-        });
-
-        selectElement.addEventListener('change', (event) => {
-            const selectedValue = event.target.value;
-            if (selectedValue && selectedValue !== '') {
-                userSelections.metodoCalculoRadiacion = selectedValue;
-            } else {
-                userSelections.metodoCalculoRadiacion = null;
+                radioInput.checked = true;
             }
 
-            console.log('Método de cálculo seleccionado:', userSelections.metodoCalculoRadiacion);
+            radioInput.addEventListener('change', (event) => {
+                if (event.target.checked) {
+                    userSelections.metodoCalculoRadiacion = event.target.value;
+                    console.log('Método de cálculo seleccionado:', userSelections.metodoCalculoRadiacion);
 
-            console.log('[initMetodoCalculoSection] Método de cálculo changed, resetting and re-initializing modelo del método.');
-            userSelections.modeloMetodoRadiacion = null; // Clear previous model selection
-
-            // Attempt to clear existing options in child dropdown explicitly
-            const modeloMetodoContainer = document.getElementById('modelo-metodo-options-container');
-            if (modeloMetodoContainer) {
-                const modeloSelect = modeloMetodoContainer.querySelector('select'); // More robust way to find it
-                if (modeloSelect) {
-                    modeloSelect.innerHTML = ''; // Clear its options
-                    console.log('[initMetodoCalculoSection] Cleared options for modelo-metodo-select.');
+                    // Reset and re-initialize the dependent model section
+                    userSelections.modeloMetodoRadiacion = null;
+                    if (typeof initModeloMetodoSection === 'function') {
+                        initModeloMetodoSection();
+                    }
                 }
-            }
+            });
 
-            // Save the nulled modeloMetodoRadiacion
-
-            // Re-initialize the modeloMetodoSection to reflect filtered options
-            if (typeof initModeloMetodoSection === 'function') {
-                initModeloMetodoSection();
-            } else {
-                console.error('[initMetodoCalculoSection] initModeloMetodoSection function is not defined and cannot be called.');
-            }
+            label.appendChild(radioInput);
+            label.appendChild(document.createTextNode(" " + optionText));
+            container.appendChild(label);
         });
-
-        container.appendChild(selectElement);
 
     } catch (error) {
-        console.error('[METODO CALCULO OPTIONS LOAD ERROR] Error processing método de cálculo options:', error);
-        if (error.message) {
-            console.error('[METODO CALCULO OPTIONS LOAD ERROR] Message:', error.message);
-        }
-        alert('Error al cargar las opciones de método de cálculo. Intente más tarde. Revise la consola del navegador para más detalles técnicos.');
-        if (container) {
-            container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de método de cálculo. Intente recargar o contacte a soporte.</p>';
-        }
+        console.error('[METODO CALCULO OPTIONS LOAD ERROR]', error);
+        container.innerHTML = '<p style="color: red; text-align: center;">No se pudieron cargar las opciones de método de cálculo.</p>';
     }
 }
 
 // --- Nueva función para inicializar la sección de Modelo del Método ---
 async function initModeloMetodoSection() {
-    console.log('[initModeloMetodoSection] called');
     const container = document.getElementById('modelo-metodo-options-container');
-    console.log('[initModeloMetodoSection] container:', container);
-
     if (!container) {
-        console.error("[initModeloMetodoSection] Contenedor 'modelo-metodo-options-container' no encontrado.");
+        console.error("Contenedor 'modelo-metodo-options-container' no encontrado.");
         return;
     }
     container.innerHTML = '';
+    container.className = 'radio-group'; // Add class for styling
 
     const metodoCalculoSeleccionado = userSelections.metodoCalculoRadiacion;
-    console.log('[initModeloMetodoSection] Parent metodoCalculoSeleccionado:', metodoCalculoSeleccionado);
 
-    // Defining model options based on the new requirement
     const allModelOptions = {
         "Cielo Anisotrópico": ["Modelo Hay and Davies", "Modelo Riendl", "Modelo Perez"],
         "Cielo Isotrópico": ["Método Liu-Jordan"]
     };
-    console.log('[initModeloMetodoSection] allModelOptions defined:', allModelOptions);
 
     let filteredData = [];
     let autoSelectModel = null;
 
     if (metodoCalculoSeleccionado === "Cielo Isotrópico") {
-        console.log('[initModeloMetodoSection] Filtering for "Cielo Isotrópico"');
         filteredData = allModelOptions["Cielo Isotrópico"];
         autoSelectModel = "Método Liu-Jordan";
         userSelections.modeloMetodoRadiacion = autoSelectModel; // Auto-select and save
-        console.log('[initModeloMetodoSection] Auto-selecting "Método Liu-Jordan" and updated userSelections.');
     } else if (metodoCalculoSeleccionado === "Cielo Anisotrópico") {
-        console.log('[initModeloMetodoSection] Filtering for "Cielo Anisotrópico"');
         filteredData = allModelOptions["Cielo Anisotrópico"];
-        if (userSelections.modeloMetodoRadiacion === "Método Liu-Jordan") {
-            userSelections.modeloMetodoRadiacion = null;
-            console.log('[initModeloMetodoSection] Cleared modeloMetodoRadiacion as "Método Liu-Jordan" is not valid for current parent selection.');
+        if (!userSelections.modeloMetodoRadiacion || !filteredData.includes(userSelections.modeloMetodoRadiacion)) {
+            userSelections.modeloMetodoRadiacion = "Modelo Perez"; // Default to Perez
         }
-    }
-
-    console.log('[initModeloMetodoSection] Filtered data for dropdown:', filteredData);
-
-    const selectElement = document.createElement('select');
-    selectElement.id = 'modelo-metodo-select';
-    selectElement.className = 'form-control';
-
-    if (metodoCalculoSeleccionado !== "Cielo Isotrópico") {
-        const placeholderOption = document.createElement('option');
-        placeholderOption.value = '';
-        placeholderOption.textContent = 'Seleccione un modelo...';
-        placeholderOption.disabled = true;
-        selectElement.appendChild(placeholderOption);
     }
 
     if (filteredData.length === 0) {
-        console.log('[initModeloMetodoSection] No options available after filtering.');
-    } else {
-        filteredData.forEach((optionText) => {
-            const optionElement = document.createElement('option');
-            optionElement.value = optionText;
-            optionElement.textContent = optionText;
-            console.log(`[initModeloMetodoSection] Adding option: '${optionText}'`);
+        container.innerHTML = '<p style="color: #666;">Seleccione un método de cálculo para ver los modelos disponibles.</p>';
+        return;
+    }
 
-            if (userSelections.modeloMetodoRadiacion === optionText) {
-                optionElement.selected = true;
-                if (selectElement.options[0]?.disabled) {
-                    selectElement.options[0].selected = false;
-                }
+    filteredData.forEach(optionText => {
+        const label = document.createElement('label');
+        const radioInput = document.createElement('input');
+        radioInput.type = 'radio';
+        radioInput.name = 'modeloMetodoRadiacion';
+        radioInput.value = optionText;
+
+        if (userSelections.modeloMetodoRadiacion === optionText) {
+            radioInput.checked = true;
+        }
+
+        if (metodoCalculoSeleccionado === "Cielo Isotrópico") {
+            radioInput.disabled = true;
+        }
+
+        radioInput.addEventListener('change', (event) => {
+            if (event.target.checked) {
+                userSelections.modeloMetodoRadiacion = event.target.value;
+                console.log('Modelo del método seleccionado:', userSelections.modeloMetodoRadiacion);
             }
-            selectElement.appendChild(optionElement);
         });
-    }
 
-    if (metodoCalculoSeleccionado === "Cielo Isotrópico") {
-        selectElement.disabled = true;
-    }
-
-    if (selectElement.selectedIndex === -1 || (selectElement.options[selectElement.selectedIndex] && selectElement.options[selectElement.selectedIndex].disabled)) {
-        if(selectElement.options.length > 0) selectElement.options[0].selected = true;
-        if (!autoSelectModel) {
-            userSelections.modeloMetodoRadiacion = null;
-        }
-    }
-
-    selectElement.addEventListener('change', (event) => {
-        const selectedValue = event.target.value;
-        if (selectedValue && selectedValue !== '') {
-            userSelections.modeloMetodoRadiacion = selectedValue;
-        } else {
-            userSelections.modeloMetodoRadiacion = null;
-        }
-
-        console.log('[initModeloMetodoSection] Modelo del método seleccionado:', userSelections.modeloMetodoRadiacion);
+        label.appendChild(radioInput);
+        label.appendChild(document.createTextNode(" " + optionText));
+        container.appendChild(label);
     });
-
-    container.appendChild(selectElement);
-    console.log('[initModeloMetodoSection] select element appended.');
 }
 
 // --- Nueva función para inicializar la sección de Pérdidas ---
@@ -1137,21 +1067,15 @@ function initModeloTemperaturaPanelOptions() {
 
 function initPotenciaPanelOptions() {
     const marcaSeleccionada = userSelections.marcaPanel;
-    const container = document.getElementById('panel-potencia-subform'); // The whole subform container
+    const container = document.getElementById('potencia-panel-options-container');
     const potenciaDeseadaInput = document.getElementById('potencia-panel-deseada-input');
 
-    if (!container || !potenciaDeseadaInput) {
-        console.error("Contenedor de potencia o input no encontrado.");
+    if (!container) {
+        console.error("Contenedor 'potencia-panel-options-container' no encontrado.");
         return;
     }
-
-    // Clear previous dynamic elements
-    const existingSelect = document.getElementById('potencia-panel-select');
-    if (existingSelect) {
-        existingSelect.remove();
-    }
-
-    potenciaDeseadaInput.style.display = 'block'; // Show the input by default
+    // We now clear the container itself, not a sub-form div
+    container.innerHTML = '';
 
     const powerRanges = {
         'AMERISOLAR': { start: 270, end: 400, step: 5 },
@@ -1164,8 +1088,6 @@ function initPotenciaPanelOptions() {
     const range = powerRanges[marcaSeleccionada];
 
     if (range) {
-        potenciaDeseadaInput.style.display = 'none'; // Hide the original input
-
         const selectElement = document.createElement('select');
         selectElement.id = 'potencia-panel-select';
         selectElement.className = 'form-control';
@@ -1188,21 +1110,19 @@ function initPotenciaPanelOptions() {
             selectElement.appendChild(optionElement);
         }
 
-        selectElement.addEventListener('change', (event) => {
+        selectElement.addEventListener('change', async (event) => {
             console.log("[DEBUG] Potencia panel listener fired.");
             const value = parseInt(event.target.value, 10);
             userSelections.potenciaPanelDeseada = isNaN(value) ? null : value;
 
-            // The model will be fetched when the user clicks "Next", so no call is needed here.
+            // Fetch model immediately on power selection
+            await fetchAndDisplayPanelModel();
         });
 
-        // Insert the select after the label
-        const label = container.querySelector('label[for="potencia-panel-deseada-input"]');
-        if (label) {
-            label.after(selectElement);
-        } else {
-            container.prepend(selectElement);
-        }
+        container.appendChild(selectElement);
+    } else {
+        // If no range (e.g., no brand selected), show the original free-text input
+        container.appendChild(potenciaDeseadaInput);
     }
 }
 
@@ -1966,6 +1886,7 @@ function showMapScreenFormSection(sectionIdToShow) {
 // --- Configuración de Event Listeners para Botones y Selects (EXISTENTE, MODIFICADA) ---
 
 function setupNavigationButtons() {
+    const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
     // Get buttons - ensure these IDs exist in calculador.html
     const basicUserButton = document.getElementById('basic-user-button');
     const expertUserButton = document.getElementById('expert-user-button');
@@ -2136,20 +2057,6 @@ function setupNavigationButtons() {
 
         });
 
-        const tooltip = document.getElementById('altura-tooltip');
-        if (tooltip) {
-            alturaInstalacionInput.addEventListener('focus', () => {
-                tooltip.style.display = 'block';
-                // Position tooltip next to the input
-                const inputRect = alturaInstalacionInput.getBoundingClientRect();
-                const formRect = alturaInstalacionInput.closest('.main-content').getBoundingClientRect();
-                tooltip.style.left = `${inputRect.right - formRect.left + 10}px`;
-                tooltip.style.top = `${inputRect.top - formRect.top}px`;
-            });
-            alturaInstalacionInput.addEventListener('blur', () => {
-                tooltip.style.display = 'none';
-            });
-        }
     }
 
     // Listener for Cantidad Paneles (Expert Panel Sub-form)
@@ -2170,7 +2077,7 @@ function setupNavigationButtons() {
     //     });
     // }
 
-    const alturaInstalacionInput = document.getElementById('altura-instalacion-input');
+    // Declaration moved to the top of the function
     if (alturaInstalacionInput) {
         alturaInstalacionInput.addEventListener('input', (event) => {
             const value = parseFloat(event.target.value);
@@ -2322,22 +2229,7 @@ function setupNavigationButtons() {
         // No specific init for altura-instalacion
     });
 
-    document.getElementById('next-to-modelo-metodo-from-metodo')?.addEventListener('click', () => {
-        // Validate metodoCalculoRadiacion if necessary
-        // if (!userSelections.metodoCalculoRadiacion) {
-        //     alert("Por favor, seleccione un método de cálculo.");
-        //     return;
-        // }
-        showScreen('modelo-metodo-section');
-        updateStepIndicator('modelo-metodo-section');
-        if (typeof initModeloMetodoSection === 'function') initModeloMetodoSection();
-    });
 
-    document.getElementById('back-to-metodo-calculo-from-modelo')?.addEventListener('click', () => {
-        showScreen('metodo-calculo-section');
-        updateStepIndicator('metodo-calculo-section');
-        if (typeof initMetodoCalculoSection === 'function') initMetodoCalculoSection(); // Re-init
-    });
 
     // ** START: MODIFIED BLOCK for next-to-paneles-from-modelo **
     document.getElementById('next-to-paneles-from-modelo')?.addEventListener('click', () => {
@@ -2543,9 +2435,8 @@ function setupNavigationButtons() {
 
     // --- Start of Paneles Sub-Form Navigation Listeners ---
 
-    // Listener for "Back" from "Marca Panel" to "Modelo Método Radiación"
+    // Listener for "Back" from the combined "Marca/Potencia/Modelo" form to "Modelo Método Radiación"
     document.getElementById('back-from-panel-marca')?.addEventListener('click', () => {
-        if (panelMarcaSubform) panelMarcaSubform.style.display = 'none';
         showScreen('modelo-metodo-section');
         updateStepIndicator('modelo-metodo-section');
         if (typeof initModeloMetodoSection === 'function') {
@@ -2553,78 +2444,23 @@ function setupNavigationButtons() {
         }
     });
 
-    // 1. From "Marca Panel" to "Potencia Deseada"
-    document.getElementById('next-from-panel-marca')?.addEventListener('click', () => {
+    // Listener for "Next" from the combined "Marca/Potencia/Modelo" form to "Modelo Temperatura"
+    document.getElementById('next-to-temperatura-from-panels')?.addEventListener('click', () => {
         if (panelMarcaSubform) panelMarcaSubform.style.display = 'none';
-        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'block';
-        updateStepIndicator('panel-potencia-subform');
-        // Ensure potencia input shows persisted value
-        if (potenciaPanelDeseadaInput && userSelections.potenciaPanelDeseada !== null) {
-            potenciaPanelDeseadaInput.value = userSelections.potenciaPanelDeseada;
-        } else if (potenciaPanelDeseadaInput) {
-            potenciaPanelDeseadaInput.value = '';
-        }
-    });
-
-    // 2. From "Potencia Deseada" back to "Marca Panel"
-    document.getElementById('back-to-panel-marca')?.addEventListener('click', () => {
-        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
-        if (panelMarcaSubform) panelMarcaSubform.style.display = 'block';
-        updateStepIndicator('panel-marca-subform');
-        // initMarcaPanelOptions(); // Optional: Re-call if options could change; usually not for 'Back'
-    });
-
-    // 3. From "Potencia Deseada" to "Modelo Panel"
-    document.getElementById('next-from-panel-potencia')?.addEventListener('click', async () => {
-        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'none';
-        if (panelModeloSubform) panelModeloSubform.style.display = 'block';
-        updateStepIndicator('panel-modelo-subform');
-        // Fetch and display the panel model when the user proceeds to this step.
-        await fetchAndDisplayPanelModel();
-    });
-
-    // 4. From "Modelo Panel" back to "Potencia Deseada"
-    document.getElementById('back-to-panel-potencia')?.addEventListener('click', () => {
-        if (panelModeloSubform) panelModeloSubform.style.display = 'none';
-        if (panelPotenciaSubform) panelPotenciaSubform.style.display = 'block';
-        updateStepIndicator('panel-potencia-subform');
-        if (potenciaPanelDeseadaInput && userSelections.potenciaPanelDeseada !== null) {
-            potenciaPanelDeseadaInput.value = userSelections.potenciaPanelDeseada;
-        } else if (potenciaPanelDeseadaInput) {
-            potenciaPanelDeseadaInput.value = '';
-        }
-    });
-
-    // 5. From "Modelo Panel" to "Modelo Temperatura Panel"
-    document.getElementById('next-to-temperatura-from-modelo')?.addEventListener('click', () => {
-        if (panelModeloSubform) panelModeloSubform.style.display = 'none';
         if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
         initModeloTemperaturaPanelOptions();
         updateStepIndicator('panel-modelo-temperatura-subform');
     });
 
-    // 6. From "Modelo Temperatura Panel" back to "Modelo Panel"
+    // Listener for "Back" from "Modelo Temperatura" to the combined form
     document.getElementById('back-to-panel-modelo')?.addEventListener('click', () => {
         if (panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'none';
-        if (panelModeloSubform) panelModeloSubform.style.display = 'block';
-        updateStepIndicator('panel-modelo-subform');
+        // Show the parent 'paneles-section' and the combined sub-form within it
+        showScreen('paneles-section');
+        if (panelMarcaSubform) panelMarcaSubform.style.display = 'block';
+        updateStepIndicator('panel-marca-subform'); // Or a more generic sidebar ID if needed
     });
 
-    // 7. Navigation from "Modelo Temperatura Panel" to "Inversor" section
-    const nextFromPanelModeloToInversor = document.getElementById('next-to-inversor-from-panels');
-    if (nextFromPanelModeloToInversor) {
-        nextFromPanelModeloToInversor.addEventListener('click', () => {
-            showScreen('inversor-section');
-            updateStepIndicator('inversor-section');
-            if (typeof initInversorSection === 'function') {
-                initInversorSection();
-            } else {
-                console.warn('initInversorSection function not yet defined.');
-            }
-        });
-    } else {
-        console.warn("Button 'next-to-inversor-from-panels' (for navigating Paneles to Inversor) not found in HTML or DOM not ready.");
-    }
     // --- End of Paneles Sub-Form Navigation Listeners ---
 
 
