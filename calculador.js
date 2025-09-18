@@ -640,22 +640,28 @@ async function initModeloMetodoSection() {
 
 // --- Nueva función para inicializar la sección de Pérdidas ---
 function initPerdidasSection() {
-    if (!panelModeloTemperaturaSubform || !frecuenciaLluviasSubformContent || !focoPolvoSubformContent) {
+    // Ensure global DOM variables for sub-form content wrappers are accessible here
+    // const frecuenciaLluviasSubformContent = document.getElementById('frecuencia-lluvias-subform-content');
+    // const focoPolvoSubformContent = document.getElementById('foco-polvo-subform-content');
+    // (These were defined globally in a previous step)
+
+    if (!frecuenciaLluviasSubformContent || !focoPolvoSubformContent) {
         console.error("Contenedores de sub-formularios de pérdidas no encontrados.");
         return;
     }
 
     // Hide all sub-form content wrappers first
-    panelModeloTemperaturaSubform.style.display = 'none';
     frecuenciaLluviasSubformContent.style.display = 'none';
     focoPolvoSubformContent.style.display = 'none';
 
-    // Show the first sub-form: Modelo de Temperatura
-    panelModeloTemperaturaSubform.style.display = 'block';
-    updateStepIndicator('panel-modelo-temperatura-subform');
+    // Show the first sub-form: Frecuencia de Lluvias
+    frecuenciaLluviasSubformContent.style.display = 'block';
 
-    // Initialize its content
-    initModeloTemperaturaPanelOptions();
+    // Initialize its content (e.g., populate dropdown)
+    initFrecuenciaLluviasOptions(); // This function is defined below
+
+    // The existing updateStepIndicator call when showing 'perdidas-section'
+    // from setupNavigationButtons should be sufficient for the overall section title.
 }
 
 async function initFrecuenciaLluviasOptions() {
@@ -665,7 +671,17 @@ async function initFrecuenciaLluviasOptions() {
         return;
     }
     container.innerHTML = '';
-    container.className = 'radio-group';
+
+    const selectElement = document.createElement('select');
+    selectElement.id = 'frecuencia-lluvias-select';
+    selectElement.className = 'form-control';
+
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = 'Seleccione frecuencia de lluvias...';
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    selectElement.appendChild(placeholderOption);
 
     try {
         const response = await fetch('http://127.0.0.1:5000/api/frecuencia_lluvias_options');
@@ -681,32 +697,36 @@ async function initFrecuenciaLluviasOptions() {
         }
 
         if (data.length === 0) {
+            // If no options, display a message or leave placeholder.
+            // For consistency with other similar functions, we can just leave the placeholder.
             console.log('[FRECUENCIA LLUVIAS LOAD] No hay opciones de frecuencia de lluvias disponibles.');
-            container.innerHTML = '<p>No hay opciones de frecuencia de lluvias disponibles.</p>';
+            // Optionally, add a message to the container:
+            // container.innerHTML = '<p>No hay opciones de frecuencia de lluvias disponibles.</p>';
         } else {
             data.forEach(optionText => {
-                const label = document.createElement('label');
-                const radioInput = document.createElement('input');
-                radioInput.type = 'radio';
-                radioInput.name = 'frecuenciaLluvias';
-                radioInput.value = optionText;
-
+                const optionElement = document.createElement('option');
+                optionElement.value = optionText;
+                optionElement.textContent = optionText;
                 if (userSelections.frecuenciaLluvias === optionText) {
-                    radioInput.checked = true;
+                    optionElement.selected = true;
+                    placeholderOption.selected = false; // Unselect placeholder if a real option is selected
                 }
-
-                radioInput.addEventListener('change', (event) => {
-                    if (event.target.checked) {
-                        userSelections.frecuenciaLluvias = event.target.value;
-                        console.log('Frecuencia de lluvias seleccionada:', userSelections.frecuenciaLluvias);
-                    }
-                });
-
-                label.appendChild(radioInput);
-                label.appendChild(document.createTextNode(" " + optionText));
-                container.appendChild(label);
+                selectElement.appendChild(optionElement);
             });
         }
+
+        selectElement.addEventListener('change', (event) => {
+            const selectedValue = event.target.value;
+            if (selectedValue && selectedValue !== '') { // Check it's not the placeholder
+                userSelections.frecuenciaLluvias = selectedValue;
+            } else {
+                userSelections.frecuenciaLluvias = null; // Reset if placeholder is re-selected
+            }
+
+            console.log('Frecuencia de lluvias seleccionada:', userSelections.frecuenciaLluvias);
+        });
+        container.appendChild(selectElement);
+
     } catch (error) {
         console.error('[FRECUENCIA LLUVIAS LOAD ERROR] Fetch/process error:', error);
         if (error.message) console.error('[FRECUENCIA LLUVIAS LOAD ERROR] Message:', error.message);
@@ -2332,29 +2352,13 @@ function setupNavigationButtons() {
         updateStepIndicator('panel-modelo-temperatura-subform'); // Step indicator for the last panel sub-form
     });
 
-    // --- Navigation within "Pérdida por Factoreo Ambiental" sub-forms (Reordered) ---
+    // --- Navigation within "Pérdida por Factoreo Ambiental" sub-forms ---
 
-    // Back from "Modelo Temperatura" to "Inversor"
+    // Back from "Frecuencia Lluvias" to "Inversor"
     document.getElementById('back-to-inversor-from-perdidas')?.addEventListener('click', () => {
         showScreen('inversor-section');
         updateStepIndicator('inversor-section');
         initInversorSection();
-    });
-
-    // Next from "Modelo Temperatura" to "Frecuencia Lluvias"
-    document.getElementById('next-to-frecuencia-lluvias-from-modelo-temperatura')?.addEventListener('click', () => {
-        if(panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'none';
-        if(frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'block';
-        initFrecuenciaLluviasOptions();
-        updateStepIndicator('frecuencia-lluvias-subform-content');
-    });
-
-    // Back from "Frecuencia Lluvias" to "Modelo Temperatura"
-    document.getElementById('back-to-modelo-temperatura-from-frecuencia-lluvias')?.addEventListener('click', () => {
-        if(frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'none';
-        if(panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
-        initModeloTemperaturaPanelOptions();
-        updateStepIndicator('panel-modelo-temperatura-subform');
     });
 
     // Next from "Frecuencia Lluvias" to "Foco de Polvo"
@@ -2369,12 +2373,28 @@ function setupNavigationButtons() {
     document.getElementById('back-to-frecuencia-lluvias-from-foco-polvo')?.addEventListener('click', () => {
         if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'none';
         if(frecuenciaLluviasSubformContent) frecuenciaLluviasSubformContent.style.display = 'block';
-        initFrecuenciaLluviasOptions();
         updateStepIndicator('frecuencia-lluvias-subform-content');
+        initFrecuenciaLluviasOptions();
     });
 
-    // Next from "Foco de Polvo" to "Análisis Económico"
-    document.getElementById('next-to-analisis-from-foco-polvo')?.addEventListener('click', () => {
+    // Next from "Foco de Polvo" to "Modelo Temperatura"
+    document.getElementById('next-to-modelo-temperatura-from-foco-polvo')?.addEventListener('click', () => {
+        if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'none';
+        if(panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'block';
+        initModeloTemperaturaPanelOptions();
+        updateStepIndicator('panel-modelo-temperatura-subform');
+    });
+
+    // Back from "Modelo Temperatura" to "Foco de Polvo"
+    document.getElementById('back-to-foco-polvo-from-modelo-temperatura')?.addEventListener('click', () => {
+        if(panelModeloTemperaturaSubform) panelModeloTemperaturaSubform.style.display = 'none';
+        if(focoPolvoSubformContent) focoPolvoSubformContent.style.display = 'block';
+        updateStepIndicator('foco-polvo-subform-content');
+        initFocoPolvoOptions();
+    });
+
+    // Next from "Modelo Temperatura" to "Análisis Económico"
+    document.getElementById('next-to-analisis-from-modelo-temperatura')?.addEventListener('click', () => {
         showScreen('analisis-economico-section');
         updateStepIndicator('analisis-economico-section');
         initAnalisisEconomicoSection();

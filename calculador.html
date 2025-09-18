@@ -991,21 +991,6 @@
                 <div id="perdidas-section" style="display:none;">
                     <h1>Pérdida por Factoreo Ambiental</h1>
 
-                    <!-- Sub-Form 4: Modelo de Cálculo de Temperatura (MOVED HERE) -->
-                    <div id="panel-modelo-temperatura-subform" style="display:none;">
-                        <h2>Modelo de cálculo de temperatura</h2>
-                        <p class="form-description">La eficiencia de los paneles se ve afectada por la temperatura. Si no elegís una opción, por defecto se usará el modelo Mattei, que ofrece mayor precisión.</p>
-                        <div class="form-group">
-                            <div id="modelo-temperatura-select-container">
-                                <!-- Radio buttons will be inserted here by JS -->
-                            </div>
-                        </div>
-                        <div class="form-actions sub-form-actions">
-                            <button type="button" id="back-to-inversor-from-perdidas" class="back-button">Atrás</button>
-                            <button type="button" id="next-to-frecuencia-lluvias-from-modelo-temperatura">Siguiente</button>
-                        </div>
-                    </div>
-
                     <div id="frecuencia-lluvias-subform-content" style="display:none;"> <!-- Content for first sub-form -->
                         <h2>¿Cuál es la frecuencia de lluvias estimada?</h2>
                         <p class="form-description">El rendimiento de los paneles se ve afectado por la suciedad. La frecuencia de lluvias permite estimar el grado de limpieza o ensuciamiento, ya que el agua limpia los paneles.</p>
@@ -1015,7 +1000,7 @@
                             </div>
                         </div>
                         <div class="form-actions sub-form-actions">
-                            <button type="button" id="back-to-modelo-temperatura-from-frecuencia-lluvias" class="back-button">Atrás</button>
+                            <button type="button" id="back-to-inversor-from-perdidas" class="back-button">Atrás</button>
                             <button type="button" id="next-to-foco-polvo-from-frecuencia">Siguiente</button>
                         </div>
                     </div>
@@ -1029,7 +1014,22 @@
                         </div>
                         <div class="form-actions sub-form-actions">
                             <button type="button" id="back-to-frecuencia-lluvias-from-foco-polvo" class="back-button">Atrás</button>
-                            <button type="button" id="next-to-analisis-from-foco-polvo">Siguiente</button>
+                            <button type="button" id="next-to-modelo-temperatura-from-foco-polvo">Siguiente</button>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Form 4: Modelo de Cálculo de Temperatura (MOVED HERE) -->
+                    <div id="panel-modelo-temperatura-subform" style="display:none;">
+                        <h2>Modelo de cálculo de temperatura</h2>
+                        <p class="form-description">La eficiencia de los paneles se ve afectada por la temperatura. Si no elegís una opción, por defecto se usará el modelo Mattei, que ofrece mayor precisión.</p>
+                        <div class="form-group">
+                            <div id="modelo-temperatura-select-container">
+                                <!-- Radio buttons will be inserted here by JS -->
+                            </div>
+                        </div>
+                        <div class="form-actions sub-form-actions">
+                            <button type="button" id="back-to-foco-polvo-from-modelo-temperatura" class="back-button">Atrás</button>
+                            <button type="button" id="next-to-analisis-from-modelo-temperatura">Siguiente</button>
                         </div>
                     </div>
                 </div>
