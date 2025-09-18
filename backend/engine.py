@@ -136,6 +136,20 @@ def run_calculation_engine(user_data, excel_path):
             "chart_data": chart_data
         }
 
+        if user_data.get("userType") == "experto":
+            print("Calculating expert user report data...")
+            radiacion_anual_incidente = to_numeric_safe(df_datos_entrada.iloc[19:31, 13].sum())
+            incremento_plano_horizontal = to_numeric_safe(df_datos_entrada.iloc[35, 15])
+            consumo_anual_energia = to_numeric_safe(df_datos_entrada.iloc[66, 2])
+
+            expert_data = {
+                "radiacion_anual_incidente": radiacion_anual_incidente,
+                "incremento_plano_horizontal": incremento_plano_horizontal,
+                "consumo_anual_energia_electrica": consumo_anual_energia,
+            }
+            final_report["expert_data"] = expert_data
+            print(f"Expert data calculated: {expert_data}")
+
         print("--- Engine Finished Successfully ---")
         return final_report
 
