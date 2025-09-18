@@ -70,14 +70,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const techData = datos.technical_data || {};
         const panelDetails = techData.panel_details || {};
         const inverterDetails = techData.inverter_details || {};
-        const expertData = datos.expert_data || {};
 
-        // Populate Expert Report from expert_data
-        setTextContent('experto_radiacion_anual', formatNumber(expertData.radiacion_anual_incidente, 2));
-        setTextContent('experto_incremento_radiacion', formatNumber(expertData.incremento_plano_horizontal * 100, 2));
-        setTextContent('experto_consumo_anual', formatNumber(expertData.consumo_anual_energia_electrica, 0));
+        // Populate Expert Report from technical_data
+        setTextContent('experto_radiacion_anual', `${formatNumber(techData.annual_irradiance, 2)} kWh/m²`);
+        setTextContent('experto_performance_ratio', `${formatNumber(techData.performance_ratio, 2)} %`);
 
-        // Populate the rest of the expert report
+        setTextContent('experto_consumo_anual', formatNumber(datos.consumo_anual_kwh, 0));
+
         setTextContent('experto_panel_marca', panelDetails['Marca'] || 'N/A');
         setTextContent('experto_panel_potencia', panelDetails['Potencia'] || 'N/A');
         setTextContent('experto_panel_modelo', panelDetails['Modelo'] || 'N/A');
