@@ -138,7 +138,7 @@ def get_superficie_options():
         print(f"DEBUG: Solicitud a /api/superficie_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
         # Usamos decimal=',' por si los números en la hoja 'Tablas' usan coma decimal.
         # Si esta parte específica de la hoja usa punto decimal, se puede omitir.
-        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl', decimal=',')
+        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
         print("DEBUG: Hoja 'Tablas' leída para opciones de superficie.")
 
         # Column M (descripción) es índice 12, Column N (valor) es índice 13
@@ -211,7 +211,7 @@ def get_superficie_options():
 def get_rugosidad_options():
     try:
         print(f"DEBUG: Solicitud a /api/rugosidad_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
-        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl', decimal=',')
+        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
         print("DEBUG: Hoja 'Tablas' leída para opciones de rugosidad.")
 
         col_desc_idx = 12  # Columna M
@@ -280,7 +280,7 @@ def get_rugosidad_options():
 def get_rotacion_options():
     try:
         print(f"DEBUG: Solicitud a /api/rotacion_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
-        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl', decimal=',')
+        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
         print("DEBUG: Hoja 'Tablas' leída para opciones de rotación.")
 
         col_desc_idx = 15  # Columna P
