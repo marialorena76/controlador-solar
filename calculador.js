@@ -1,3 +1,6 @@
+// ---- PRODUCCIÓN: base de API relativa al dominio ----
+const API_BASE = window.location.origin + "/api";
+
 console.log('🤖 calculador.js cargado - flujo de controlador ajustado y persistencia de datos');
 
 let map, marker, geocoderControlInstance;
@@ -155,7 +158,7 @@ async function initSuperficieSection() {
     }
     container.innerHTML = '';
 
-    const apiUrl = 'http://127.0.0.1:5000/api/superficie_options';
+    const apiUrl = API_BASE + '/superficie_options';
     console.log('[initSuperficieSection] fetching from:', apiUrl); // Before fetch
 
     try {
@@ -252,7 +255,7 @@ async function initRugosidadSection() {
     }
     container.innerHTML = '';
 
-    const apiUrl = 'http://127.0.0.1:5000/api/rugosidad_options';
+    const apiUrl = API_BASE + '/rugosidad_options';
     console.log('[initRugosidadSection] fetching from:', apiUrl);
 
     try {
@@ -413,7 +416,7 @@ async function initRotacionSection() {
         }
     }
 
-    const apiUrl = 'http://127.0.0.1:5000/api/rotacion_options';
+    const apiUrl = API_BASE + '/rotacion_options';
     console.log('[initRotacionSection] fetching from:', apiUrl);
 
     try {
@@ -668,7 +671,7 @@ async function initFrecuenciaLluviasOptions() {
     container.className = 'radio-group';
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/frecuencia_lluvias_options');
+        const response = await fetch(API_BASE + '/frecuencia_lluvias_options');
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
@@ -810,7 +813,7 @@ async function fetchAndDisplayPanelModel() {
     modeloPanelInput.value = 'Buscando modelo...'; // Show loading state
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/get_panel_model', { // Correct endpoint
+        const response = await fetch(API_BASE + '/get_panel_model', { // Correct endpoint
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -926,7 +929,7 @@ async function initMarcaPanelOptions() {
     selectElement.appendChild(placeholderOption);
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/marca_panel_options');
+        const response = await fetch(API_BASE + '/marca_panel_options');
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
         }
@@ -1116,7 +1119,7 @@ async function initInversorSection() {
     container.innerHTML = 'Cargando opciones de inversor adecuadas...';
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/get_suitable_inverters', {
+        const response = await fetch(API_BASE + '/get_suitable_inverters', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1194,7 +1197,7 @@ async function initInversorSection() {
 
 async function cargarElectrodomesticosDesdeBackend() {
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/electrodomesticos');
+        const response = await fetch(API_BASE + '/electrodomesticos');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -1723,7 +1726,7 @@ async function buscarCodigoCiudad(fullAddress) {
     }
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/buscar_ciudad', {
+        const response = await fetch(API_BASE + '/buscar_ciudad', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2475,7 +2478,7 @@ function setupNavigationButtons() {
                     inversor: userSelections.inversor
                 };
 
-                const response = await fetch('http://127.0.0.1:5000/api/generar_informe', {
+                const response = await fetch(API_BASE + '/generar_informe', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
