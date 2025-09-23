@@ -867,8 +867,8 @@ function initPanelesSectionExpert() {
     console.log('[DEBUG] panelModeloTemperaturaSubform:', typeof panelModeloTemperaturaSubform !== 'undefined' ? panelModeloTemperaturaSubform : 'NOT DEFINED');
     // panelCantidadExpertSubform was removed, ensure it's not referenced.
 
-    if (!panelMarcaSubform || !panelPotenciaSubform || !panelModeloSubform || !panelModeloTemperaturaSubform) {
-        console.error("Uno o más contenedores de sub-formularios de Paneles no fueron encontrados en initPanelesSectionExpert. panelMarcaSubform:", panelMarcaSubform, "panelPotenciaSubform:", panelPotenciaSubform, "panelModeloSubform:", panelModeloSubform, "panelModeloTemperaturaSubform:", panelModeloTemperaturaSubform);
+    if (!panelMarcaSubform || !panelPotenciaSubform || !panelModeloSubform) {
+        console.error("Uno o más contenedores de sub-formularios de Paneles no fueron encontrados en initPanelesSectionExpert. panelMarcaSubform:", panelMarcaSubform, "panelPotenciaSubform:", panelPotenciaSubform, "panelModeloSubform:", panelModeloSubform);
         return;
     }
 
@@ -877,7 +877,8 @@ function initPanelesSectionExpert() {
     panelPotenciaSubform.style.display = 'none';
     // panelCantidadExpertSubform was removed
     panelModeloSubform.style.display = 'none';
-    panelModeloTemperaturaSubform.style.display = 'none';
+    // panelModeloTemperaturaSubform is part of the "Perdidas" section, so it should not be hidden here.
+    // panelModeloTemperaturaSubform.style.display = 'none';
     console.log('[DEBUG] initPanelesSectionExpert: All panel sub-forms hidden.');
 
     console.log('[DEBUG] initPanelesSectionExpert: Attempting to show panelMarcaSubform.');

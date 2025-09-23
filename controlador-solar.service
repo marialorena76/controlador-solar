@@ -1,0 +1,34 @@
+[Unit]
+Description=Gunicorn instance to serve a Flask application
+After=network.target
+
+[Service]
+# User and Group that will run the service
+# Replace 'your_user' with the actual username on the server
+User=your_user
+Group=your_user
+
+# Working directory
+# Replace with the absolute path to the project root on the server
+# e.g., /home/your_user/calculador-solar
+WorkingDirectory=/path/to/your/project/root
+
+# Environment variables (if any)
+# Environment="FLASK_ENV=production"
+
+# Command to start the Gunicorn server
+# --workers 3: A good starting point is (2 * number_of_cpu_cores) + 1. Adjust as needed.
+# --bind unix:controlador-solar.sock: Binds to a Unix socket. This is generally safer and slightly more performant than a TCP port (like 127.0.0.1:5000) when Gunicorn and the web server (OpenLiteSpeed) are on the same machine. The web server's proxy configuration will need to point to this socket file.
+# --worker-class gthread: Using threaded workers.
+# --threads 4: Number of threads per worker.
+# wsgi:app: The entry point to the application (the 'app' object in 'wsgi.py').
+ExecStart=/path/to/your/project/root/venv/bin/gunicorn --workers 3 --worker-class gthread --threads 4 --bind unix:controlador-solar.sock wsgi:app
+
+# If you prefer to stick with a TCP port instead of a socket:
+# ExecStart=/path/to/your/project/root/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:5000 wsgi:app
+
+# Restart policy
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
