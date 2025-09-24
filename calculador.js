@@ -1260,6 +1260,13 @@ function initElectrodomesticosSection() {
         return;
     }
 
+    // Apply grid styles directly to the container for the 3-column layout
+    if (listContainer) {
+        listContainer.style.display = 'grid';
+        listContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        listContainer.style.gap = '1rem';
+    }
+
     // Default states
     modoSeleccionContainer.style.display = 'none';
     listContainer.innerHTML = ''; // Clear previous content from list area

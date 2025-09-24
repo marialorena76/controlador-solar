@@ -1,27 +1,4 @@
-# Etapa 1: Compilar el frontend de React
-# Usamos una imagen "alpine" de Node.js porque es muy ligera.
-FROM node:20-alpine AS builder
-
-# Establecemos el directorio de trabajo dentro del contenedor
-WORKDIR /app
-
-# Copiamos los archivos de manifiesto del frontend para instalar dependencias primero.
-# Esto aprovecha la caché de Docker y acelera las compilaciones futuras.
-COPY frontend/package.json frontend/package-lock.json ./frontend/
-
-# Entramos a la carpeta del frontend y ejecutamos npm install
-WORKDIR /app/frontend
-RUN npm install
-
-# Copiamos el resto del código fuente del frontend
-COPY frontend/ .
-
-# Compilamos el frontend para producción.
-# Esto generará una carpeta 'dist' con los archivos estáticos.
-RUN npm run build
-
-
-# Etapa 2: Crear la imagen final con la aplicación de Python
+# Etapa 1: Crear la imagen final con la aplicación de Python
 # Usamos una imagen "slim" de Python, que es más pequeña que la estándar.
 FROM python:3.11-slim
 
@@ -41,9 +18,11 @@ COPY backend/ ./backend/
 COPY "backend/Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx" ./backend/
 COPY consumos_electrodomesticos.json ./
 
-# Copiamos los archivos del frontend compilados desde la etapa 'builder'
-# Los colocamos en una nueva carpeta 'dist' en nuestra imagen final
-COPY --from=builder /app/frontend/dist ./dist
+# Copiamos los archivos del frontend (la aplicación real)
+COPY calculador.html .
+COPY calculador.js .
+COPY styles.css .
+COPY images/ ./images/
 
 # Exponemos el puerto en el que correrá la aplicación
 EXPOSE 8000
