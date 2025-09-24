@@ -1260,13 +1260,6 @@ function initElectrodomesticosSection() {
         return;
     }
 
-    // Apply grid styles directly to the container for the 3-column layout
-    if (listContainer) {
-        listContainer.style.display = 'grid';
-        listContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
-        listContainer.style.gap = '1rem';
-    }
-
     // Default states
     modoSeleccionContainer.style.display = 'none';
     listContainer.innerHTML = ''; // Clear previous content from list area
@@ -1387,8 +1380,14 @@ function initElectrodomesticosSection() {
         // }
         // END: Add help text
 
-        listContainer.style.display = 'block'; // Show appliance list container
+        // listContainer.style.display = 'block'; // <<< THIS WAS THE BUG. REMOVED.
         if (summaryContainer) summaryContainer.style.display = 'flex'; // Show summary
+
+        // NEW: Apply grid styles for the 3-column layout
+        listContainer.style.display = 'grid';
+        listContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        listContainer.style.gap = '1rem';
+
         populateStandardApplianceList(listContainer); // Populate it with appliances
         // consumoFacturaSection is already hidden by default state above
         }
