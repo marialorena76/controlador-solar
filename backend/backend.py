@@ -123,8 +123,8 @@ def generar_informe():
 
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
 @app.route('/')
-def serve_calculador_html():
-    return send_from_directory(PROJECT_ROOT, 'calculador.html')
+def serve_index_html():
+    return send_from_directory(PROJECT_ROOT, 'index.html')
 
 @app.route('/<path:path>')
 def serve_static_files(path):

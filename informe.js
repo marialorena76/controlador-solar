@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // En caso de error, limpia el localStorage para evitar problemas futuros
             localStorage.removeItem('informeSolar');
             alert('Hubo un problema al cargar el informe. Por favor, vuelva a realizar el cálculo.');
-            window.location.href = 'calculador.html'; // Redirige al calculador
+            window.location.href = 'index.html'; // Redirige al calculador
             return; // Detiene la ejecución
         }
     }
@@ -27,10 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 Informe de Viabilidad de Instalación Solar Fotovoltaica
             </div>
             <p style="text-align: center; padding: 20px; font-size: 1.1rem;">
-                No se ha encontrado ningún informe. Por favor, complete el <a href="calculador.html">formulario de cálculo</a> para generar uno.
+                No se ha encontrado ningún informe. Por favor, complete el <a href="index.html">formulario de cálculo</a> para generar uno.
             </p>
             <div class="informe-btns">
-                <button class="informe-btn" onclick="window.location.href='calculador.html'">Volver al Calculador</button>
+                <button class="informe-btn" onclick="window.location.href='index.html'">Volver al Calculador</button>
             </div>
         `;
         return; // Detiene la ejecución si no hay datos
