@@ -21,19 +21,19 @@ Description=Gunicorn instance to serve a Flask application
 After=network.target
 
 [Service]
-# Reemplaza 'your_user' con tu nombre de usuario en el servidor
-User=your_user
-Group=your_user
+# Reemplaza con el nombre de usuario correcto en el servidor
+User=calcu7400
+Group=calcu7400
 
 # Reemplaza con la ruta absoluta a la raíz de tu proyecto
-WorkingDirectory=/path/to/your/project/root
+WorkingDirectory=/home/calculadorsolar.soyloregonzalez.com/controlador-solar
 
 # Comando para iniciar Gunicorn (usando un socket Unix)
 # Asegúrate de que la ruta a gunicorn sea la correcta para tu entorno virtual
-ExecStart=/path/to/your/project/root/venv/bin/gunicorn --workers 3 --worker-class gthread --threads 4 --bind unix:controlador-solar.sock wsgi:app
+ExecStart=/home/calculadorsolar.soyloregonzalez.com/controlador-solar/venv/bin/gunicorn --workers 3 --worker-class gthread --threads 4 --bind unix:controlador-solar.sock wsgi:app
 
 # Si prefieres usar un puerto TCP en lugar de un socket:
-# ExecStart=/path/to/your/project/root/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:5000 wsgi:app
+# ExecStart=/home/calculadorsolar.soyloregonzalez.com/controlador-solar/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:5000 wsgi:app
 
 Restart=always
 
@@ -44,8 +44,9 @@ WantedBy=multi-user.target
 ### Pasos para la instalación:
 
 1.  **Edita el archivo:**
-    *   Cambia `User=your_user` y `Group=your_user` por tu usuario y grupo en el VPS.
-    *   Cambia `WorkingDirectory=/path/to/your/project/root` a la ruta absoluta de tu proyecto (ej. `/home/calculadorsolar.soyloregonzalez.com/`).
+    *   Cuando necesites cambiar al usuario del servicio utiliza `su - calcu7400`.
+    *   Verifica que `User=calcu7400` y `Group=calcu7400` correspondan a tu usuario y grupo en el VPS.
+    *   Cambia `WorkingDirectory=/home/calculadorsolar.soyloregonzalez.com/controlador-solar` si tu proyecto reside en otra ruta.
     *   Asegúrate de que la ruta en `ExecStart` a `gunicorn` sea la correcta (dentro de tu `venv`).
 
 2.  **Copia el archivo al directorio de systemd:**
