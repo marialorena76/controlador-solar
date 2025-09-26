@@ -19,7 +19,7 @@ COPY "backend/Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xls
 COPY consumos_electrodomesticos.json ./
 
 # Copiamos los archivos del frontend (la aplicación real)
-COPY calculador.html .
+COPY index.html .
 COPY calculador.js .
 COPY styles.css .
 COPY images/ ./images/
