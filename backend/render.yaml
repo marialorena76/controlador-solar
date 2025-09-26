@@ -16,5 +16,5 @@ services:
     name: controlador-solar-frontend
     env: static
     buildCommand: ""   # no hace falta build, solo HTML/JS
-    staticPublishPath: .   # carpeta raíz (donde tenés index.html, calculador.html, js, css)
+    staticPublishPath: .   # carpeta raíz (donde tenés index.html, js, css)
     autoDeploy: true

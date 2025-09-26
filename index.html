@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controlador Solar</title>
+    <title>Calculador Solar</title>
     <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css">
+    <link rel="stylesheet" href="./styles.css?v=prod2">
     <style>
         :root {
-            --color-primary: #FF8442; /* Pantone 137 C 80% FF8442 [cite: 9] */
-            --color-secondary: #6BBE66; /* Pantone 361 C 83% 60BE58 [cite: 10] */
-            --color-tertiary: #5884D6; /* Pantone 2718 C 100% 5884D6 [cite: 10] */
+            --color-primary: #FF8442;
+            --color-secondary: #6BBE66;
+            --color-tertiary: #5884D6;
             --bg-light: #f3f4f6;
             --text-dark: #374151;
-            --font-heading: 'Bebas Neue', sans-serif; /* BEBAS NEUE BOOK/REGULAR [cite: 16] */
-            --font-body: 'Dosis', sans-serif; /* DOSIS Regular/Medium/Bold [cite: 12] */
+            --font-heading: 'Bebas Neue', sans-serif;
+            --font-body: 'Dosis', sans-serif;
             --shadow-subtle: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
             --border-color: #e5e7eb;
         }
@@ -25,10 +26,10 @@
             background-color: var(--bg-light);
             color: var(--text-dark);
             min-height: 100vh;
-            display: flex; /* Flexbox para contenido principal */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-
-        /* Header para logos superiores */
         .app-header {
             width: 100%;
             background: white;
@@ -36,236 +37,177 @@
             padding: 15px 20px;
             box-sizing: border-box;
             display: flex;
-            flex-direction: column; /* Para dos líneas de logos */
+            flex-direction: column;
             align-items: center;
+            flex-shrink: 0;
         }
-
         .logo-row-1, .logo-row-2 {
             display: flex;
             width: 100%;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px; /* Espacio entre filas de logos */
+            margin-bottom: 10px;
         }
-
         .logo-row-1 .left-logo,
         .logo-row-1 .middle-logo,
         .logo-row-1 .right-logo {
             display: flex;
-            justify-content: center; /* Centrar logos */
+            justify-content: center;
             align-items: center;
         }
-
         .logo-row-1 .left-logo { margin-right: auto; }
         .logo-row-1 .right-logo { margin-left: auto; }
         .logo-row-1 .middle-logo { flex-grow: 1; text-align: center; }
-
-
         .logo-row-2 {
-            justify-content: center; /* Centrar logos de la segunda fila */
+            justify-content: center;
             margin-bottom: 0;
         }
+        .logo-row-2 img { margin: 0 15px; }
+        .logo { max-height: 88px; width: auto; }
+        .logo-small { max-height: 40px; width: auto; }
 
-        .logo-row-2 img {
-            margin: 0 15px; /* Espacio entre logos de la segunda fila */
-        }
-
-        .logo {
-            max-height: 88px; /* Unificar altura tomando como referencia el logo de la Provincia */
-            width: auto;
-        }
-
-        .logo-small {
-            max-height: 40px; /* Logos de la segunda línea más pequeños */
-            width: auto;
-        }
-
-        /* Main container para header y contenido principal */
-        .main-container {
-            flex-grow: 1; /* El contenido principal ocupa el espacio restante */
+#map-screen {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; 
+}
+        .main-content-wrapper {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-        }
-
-        /* Contenido principal (mapa y formulario) */
-        .content-area {
-            display: flex;
-            width: 100%;
-            max-width: 1300px;
-            margin: 2rem auto;
+            flex-grow: 1;
+    width: 100%;
+    max-width: 1600px; /* As in calculador1.html */
+    margin: 2rem auto; /* As in calculador1.html */
             box-sizing: border-box;
+            flex-direction: row;
+    align-items: flex-start; /* Changed to flex-start */
+    gap: 2rem; /* As in calculador1.html */
+    padding: 0 2rem; /* As in calculador1.html */
+        }
+        .map-area {
+            flex: 3;
+            position: relative;
+            padding: 1.5rem;
             background: white;
             border-radius: 10px;
             box-shadow: var(--shadow-subtle);
-            overflow: hidden;
-        }
-        @media (min-width: 900px) {
-            .content-area {
-                flex-direction: row;
-                min-height: 600px;
-            }
-        }
-
-        /* Mapa y área de información */
-        .map-area {
-            flex: 2;
-            position: relative;
-            padding: 2rem;
-            min-width: 350px;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
         #map {
             width: 100%;
-            height: 480px;
+            height: 600px; /* Aumentado de 480px a 600px */
             border-radius: 10px;
             border: 1px solid #ccc;
             box-shadow: var(--shadow-subtle);
             position: relative;
             z-index: 1;
         }
-        /* Geocoder (buscador) */
-        .leaflet-control-geocoder {
-            position: absolute; /* Superponer sobre el mapa */
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%); /* Centrar horizontalmente */
-            width: 80%; /* Ocupa el 80% del ancho del mapa */
-            max-width: 700px;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-            border-radius: 5px;
-            background-color: white;
-            padding: 5px;
-            z-index: 1000; /* Asegurar que esté por encima del mapa */
-            display: flex; /* Para el estilo del buscador */
-            align-items: center;
-            justify-content: center;
-        }
-        .leaflet-control-geocoder .leaflet-control-geocoder-form input {
-            border: none;
-            outline: none;
-            width: calc(100% - 40px); /* Ancho del input ajustado */
-            padding: 8px;
-            font-size: 1rem;
-            color: #333;
-            box-sizing: border-box;
-        }
-        .leaflet-control-geocoder .leaflet-control-geocoder-form button {
-            background-color: var(--color-tertiary);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 8px 15px;
-            cursor: pointer;
-            font-size: 1rem;
-            margin-left: 10px;
-            transition: background-color 0.2s;
-        }
-        .leaflet-control-geocoder .leaflet-control-geocoder-form button:hover {
-            background-color: #4665a9;
-        }
+#geocoder-container {
+    position: absolute; /* Para posicionarlo sobre el mapa */
+    bottom: 20px; /* Distancia desde abajo */
+    left: 50%;
+    transform: translateX(-50%); /* Centrar horizontalmente */
+    width: 80%; /* Ancho del contenedor del geocodificador al 80% */
+    max-width: 700px; /* Un ancho máximo para pantallas muy grandes, ajustable */
+    z-index: 1000; /* Asegurar que esté sobre el mapa */
+    background-color: rgba(255, 255, 255, 0.9); /* Fondo ligeramente transparente */
+    padding: 8px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* Estilos para el input dentro del geocodificador */
+#geocoder-container .leaflet-control-geocoder-form input {
+    width: 100%; /* Hacer que el input ocupe el ancho del #geocoder-container */
+    padding: 10px 15px;
+    font-size: 1rem;
+    color: #555; /* Tipografía gris */
+    border: 1px solid var(--color-tertiary); /* Borde fino azulino */
+    border-radius: 6px; /* Bordes redondeados */
+    box-sizing: border-box;
+    background-color: #fff;
+}
+
+/* Estilos para el botón de búsqueda (si el geocodificador lo usa visiblemente) */
+/* Leaflet Geocoder por defecto usa un ícono de lupa como botón dentro del input o al lado */
+/* Si es un botón separado, este estilo aplicaría. Si es un ícono, se necesitaría otro selector. */
+#geocoder-container .leaflet-control-geocoder-form button {
+    background-color: var(--color-tertiary); /* Fondo azulino */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-left: 5px; /* Espacio entre input y botón si están lado a lado */
+}
+#geocoder-container .leaflet-control-geocoder-icon { /* Para el ícono de lupa */
+    color: var(--color-tertiary); /* Color azulino para el ícono */
+}
+
+/* Estilos para las alternativas/sugerencias */
+#geocoder-container .leaflet-control-geocoder-alternatives {
+    background-color: white;
+    border: 1px solid var(--color-tertiary);
+    border-top: none; /* El input ya tiene borde superior */
+    border-radius: 0 0 6px 6px; /* Redondear solo esquinas inferiores */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#geocoder-container .leaflet-control-geocoder-alternatives li {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--text-dark);
+}
+
+#geocoder-container .leaflet-control-geocoder-alternatives li:hover {
+    background-color: var(--bg-light);
+    color: var(--color-primary);
+}
 
         .location-info {
-            margin-top: 1.2rem;
+            margin-top: 1.2rem; /* Ajustar si el geocodificador superpuesto lo requiere */
             padding: 1rem 1.5rem;
             background: var(--bg-light);
             border-radius: 8px;
             border: 1px solid var(--border-color);
             font-size: 1.1rem;
-            width: 100%; /* Para que ocupe todo el ancho disponible */
+            width: 100%;
             box-sizing: border-box;
         }
-
-        /* Barra lateral (ahora a la derecha) */
-        .sidebar {
-            width: 220px; /* Ancho fijo para la barra lateral */
-            background-color: white;
-            padding: 20px 15px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
+        .form-sections-container {
+            flex: 1;
+            max-width: 320px;
+            min-width: 280px;
+            background: white;
+            padding: 2.2rem 2rem;
+            border-radius: 10px;
             box-shadow: var(--shadow-subtle);
-            min-height: 100vh; /* Para que ocupe toda la altura */
-            border-left: 1px solid var(--border-color); /* Borde a la izquierda para separar del mapa */
+            box-sizing: border-box;
         }
-
-        .sidebar h2 {
-            font-family: var(--font-heading);
-            font-size: 1.45rem;
-            color: var(--color-tertiary);
-            margin-top: 0;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .sidebar button {
+        .form-section { margin-bottom: 2rem; }
+        .selection-button {
             display: block;
             width: 100%;
             padding: 12px 15px;
-            margin-bottom: 10px;
-            border: none;
-            border-radius: 8px;
-            background: var(--color-tertiary); /* Usar el color institucional para los botones [cite: 10] */
-            color: #fff;
-            font-family: var(--font-body); /* Tipografía Dosis [cite: 12] */
-            font-size: 1.1rem;
-            font-weight: 500; /* Dosis Medium [cite: 12] */
-            cursor: pointer;
-            box-sizing: border-box;
-            transition: background .2s, transform .1s;
-        }
-
-        .sidebar button:hover {
-            background: #4665a9; /* Un tono más oscuro para hover */
-            transform: translateY(-1px);
-        }
-
-        .sidebar button:active {
-            transform: translateY(0);
-        }
-
-        /* Formulario lateral (se mueve con el mapa en el content-area) */
-        .side-form {
-            flex: 1;
-            background: #fff;
-            padding: 2.2rem 2rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            min-width: 320px;
-        }
-        .side-form h2 {
-            font-family: var(--font-heading);
-            font-size: 1.45rem;
-            margin-top: 0;
-            color: var(--color-tertiary);
-        }
-        .form-section {
-            margin-bottom: 2rem;
-        }
-        .selection-button {
-            padding: 1rem 2rem;
-            margin: 0.6rem 0.5rem 0 0;
+            margin: 0.6rem 0 10px 0;
             border-radius: 8px;
             background: var(--color-tertiary);
             color: #fff;
-            font-family: var(--font-heading); /* Tipografía para botones de acción [cite: 16] */
-            font-size: 1.15rem;
-            font-weight: 600;
+            font-family: var(--font-body);
+            font-size: 1.1rem;
+            font-weight: 500;
             border: none;
             cursor: pointer;
+            box-sizing: border-box;
             transition: background .2s;
-            min-width: 160px;
         }
-        .selection-button:hover {
-            background: #4665a9;
-        }
-        .form-group {
-            margin-bottom: 1.2rem;
-        }
+        .selection-button:hover { background: #4665a9; }
+        .form-group { margin-bottom: 1.2rem; }
         .form-group label {
             display: block;
             font-weight: 500;
@@ -278,30 +220,328 @@
             border: 1px solid #d1d5db;
             font-size: 1rem;
         }
+        .data-form-screen {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            max-width: 1200px;
+            margin: 2rem auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow-subtle);
+            overflow: hidden;
+        }
+        .data-form-screen .sidebar {
+            width: 250px;
+            background-color: #f8fafc;
+            padding: 2rem 1.5rem;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .data-form-screen .sidebar-item {
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+        .data-form-screen .sidebar-item.active {
+            background-color: var(--color-tertiary);
+            color: white;
+            font-weight: 700;
+        }
+
+        #data-form-screen.basic-user-mode .sidebar .sidebar-item {
+            display: none;
+        }
+        #data-form-screen.basic-user-mode .sidebar .sidebar-item.active,
+        #data-form-screen.basic-user-mode .sidebar .sidebar-item:last-child {
+            display: flex;
+        }
+
+        #data-form-screen.basic-user-mode .sidebar-item {
+            display: none;
+        }
+        #data-form-screen.basic-user-mode .sidebar-item.active,
+        #data-form-screen.basic-user-mode .sidebar-item:last-child {
+            display: flex;
+        }
+        .data-form-screen .sidebar-item:hover:not(.active) {
+            background-color: var(--bg-light);
+        }
+        .data-form-screen .sidebar-item svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+        .data-form-screen .main-content {
+            flex-grow: 1;
+            padding: 2.5rem;
+            min-height: 480px; /* Unificar tamaño de las pantallas de formularios */
+        }
+        .data-form-screen .main-content h1 {
+            font-family: var(--font-heading);
+            font-size: 2rem;
+            color: var(--color-tertiary);
+            margin-top: 0;
+            margin-bottom: 2rem;
+        }
+        .data-form-screen .step-indicator {
+            display: none; /* Ocultar subtítulos como "Básico, Paso X" */
+        }
+        .data-form-screen .step-indicator strong { color: var(--color-tertiary); }
+        .data-form-screen .form-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: var(--shadow-subtle);
+            margin-bottom: 2rem;
+        }
+        .data-form-screen .form-group select {
+            border: 1px solid var(--border-color);
+            padding: 0.8rem;
+            border-radius: 6px;
+            background-color: white;
+            font-size: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%20viewBox%3D%220%200%20292.4%20292.4%22%3E%3Cpath%20fill%3D%22%235884D6%22%20d%3D%22M287%2C197.9c-3.2%2C3.2-8.3%2C3.2-11.5%2C0L146.2%2C68.9L17.5%2C197.9c-3.2%2C3.2-8.3%2C3.2-11.5%2C0c-3.2-3.2-3.2-8.3%2C0-11.5l134-134c3.2-3.2%2C8.3-3.2%2C11.5%2C0l134%2C134C290.2%2C189.6%2C290.2%2C194.7%2C287%2C197.9z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 0.7em top 50%, 0 0;
+            background-size: 0.65em auto, 100%;
+        }
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            padding: 1rem;
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            background-color: var(--bg-light);
+        }
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            font-weight: 400;
+        }
+        .radio-group input[type="radio"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--color-tertiary);
+            border-radius: 50%;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .radio-group input[type="radio"]:checked {
+            background-color: var(--color-tertiary);
+            border-color: var(--color-tertiary);
+        }
+        .radio-group input[type="radio"]:checked::before {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            background-color: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .data-form-screen .form-actions {
+            display: flex;
+            justify-content: space-between;
+            padding: 1.5rem 0;
+            border-top: 1px solid var(--border-color);
+            margin-top: 2rem;
+        }
+        .data-form-screen .form-actions button {
+            background-color: var(--color-secondary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .data-form-screen .form-actions button.back-button {
+            background-color: #6c757d;
+        }
+        .data-form-screen .form-actions button:hover {
+            background-color: #55a050;
+        }
+        .data-form-screen .form-actions button.back-button:hover {
+            background-color: #5a6268;
+        }
+        .energy-summary {
+            margin-top: 1.5rem;
+            padding: 1rem 1.5rem;
+            background: var(--bg-light);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .energy-summary label {
+            font-weight: 500;
+            margin-right: 10px;
+        }
+        .energy-summary input[type="text"] {
+            background-color: #e2e8f0;
+            border: 1px solid #cbd5e0;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-weight: bold;
+            color: var(--text-dark);
+            width: 120px;
+            text-align: right;
+        }
+        .acordeon-categoria[aria-expanded="true"] {
+            background: #6BBE66;
+            color: #fff;
+        }
+        .acordeon-items {
+            border-left: 4px solid #6BBE66;
+        }
+
+        /* Styles for Electrodomesticos List */
+        #electrodomesticos-list {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid var(--border-color, #e5e7eb);
+            box-shadow: var(--shadow-subtle, 0 1px 3px rgba(0,0,0,0.1));
+        }
+
+        #electrodomesticos-list h2 { /* Category headers */
+            font-family: var(--font-heading, 'Bebas Neue', sans-serif);
+            font-size: 1.2rem; /* Reduced font size for category titles */
+            color: var(--color-tertiary, #5884D6);
+            margin-top: 1rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--color-secondary, #6BBE66);
+        }
+        #electrodomesticos-list h2:first-of-type {
+            margin-top: 0;
+        }
+
+        .electrodomesticos-categoria {
+            margin-bottom: 1.5rem;
+        }
+
+        .electrodomestico-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0.5rem;
+            border-bottom: 1px solid var(--border-color, #e5e7eb);
+            background-color: #fff;
+            border-radius: 6px;
+            margin-bottom: 0.5rem; 
+        }
+
+        .electrodomestico-row:last-child {
+            border-bottom: none;
+        }
+
+        .electrodomestico-row span:first-child { /* Appliance name */
+            flex-basis: 45%;
+            font-weight: 500;
+            padding-right: 10px; /* Add some padding for spacing */
+        }
+
+        .electrodomestico-row span:nth-child(2) { /* Consumption label */
+            flex-basis: 30%;
+            text-align: right;
+            color: #555;
+            font-size: 0.9em;
+            padding-right: 10px; /* Add some padding for spacing */
+        }
+
+        .electrodomestico-input { /* Quantity input box */
+            flex-basis: 20%;
+            max-width: 70px; 
+            padding: 0.4rem;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            text-align: center;
+            /* The inline style 'margin-left: 15px;' from JS might still apply.
+               It can be removed in a subsequent JS modification if this CSS is sufficient. */
+        }
+
         @media (max-width: 900px) {
-            body { flex-direction: column; }
-            .sidebar { width: 100%; min-height: auto; flex-direction: row; justify-content: space-around; padding: 15px; border-left: none; border-bottom: 1px solid var(--border-color);}
-            .sidebar button { width: auto; margin-bottom: 0; margin-right: 10px; }
-            .sidebar h2 { display: none; }
-            .main-container { width: 100%; }
-            .content-area { flex-direction: column; }
-            .side-form { border-left: none; border-top: 1px solid var(--border-color);}
-            .map-area { padding: 1.2rem; }
-            .side-form { padding: 1.5rem 1rem;}
+            .main-content-wrapper, .data-form-screen {
+                flex-direction: column;
+                margin: 1rem auto;
+                gap: 1rem;
+                padding: 0 1rem;
+            }
+            .map-area {
+                padding: 1rem;
+                margin-bottom: 0;
+            }
+            .form-sections-container {
+                padding: 1.5rem 1rem;
+                max-width: 100%;
+                min-width: unset;
+            }
+            .data-form-screen .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                flex-direction: row;
+                justify-content: space-around;
+                flex-wrap: wrap;
+            }
+            .data-form-screen .form-actions {
+                flex-direction: column;
+                gap: 0.8rem;
+            }
+            .data-form-screen .form-actions button {
+                width: 100%;
+            }
         }
 
         footer {
             background: white;
             text-align: center;
-            padding: 15px 0;
+            padding: 20px 0;
             border-top: 1px solid var(--border-color);
-            margin-top: 1rem;
+            margin-top: 2rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .footer-logos {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 25px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
         }
 
         .footer-logo {
-            max-height: 40px;
+            max-height: 35px;
             width: auto;
-            margin-bottom: 8px;
         }
 
         .copyright {
@@ -310,15 +550,23 @@
         }
 
         /* Estilos unificados para títulos de formularios */
-        .form-section h2,
-        .side-form h2,
         .main-content h1 {
             font-family: var(--font-heading);
             font-size: 1.8rem;
             color: var(--color-tertiary);
             margin-top: 0;
             margin-bottom: 1rem;
-            text-align: center;
+            text-align: left; /* Alineación solicitada */
+        }
+
+        .form-section h2,
+        .form-sections-container .form-section h2 {
+            font-family: var(--font-heading);
+            font-size: 1.4rem; /* Tipografía más pequeña para diferenciar */
+            color: #555; /* Títulos de formularios en gris oscuro */
+            margin-top: 0;
+            margin-bottom: 1rem;
+            text-align: left;
         }
 
         .selection-summary {
@@ -328,104 +576,494 @@
             text-align: center;
             margin-bottom: 0.5rem;
         }
+        .help-text {
+            font-size: 0.9rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        .button-description {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: left;
+            margin-top: -0.5rem;
+            margin-bottom: 1rem;
+            padding-left: 0.5rem;
+        }
+        .form-description {
+            font-size: 1rem;
+            color: #374151;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        .tooltip {
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            z-index: 10;
+            width: 250px;
+            text-align: left;
+            display: none; /* Hidden by default */
+            font-size: 0.95rem;
+            line-height: 1.4;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .tooltip::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            right: 100%;
+            margin-top: -8px;
+            border-width: 8px;
+            border-style: solid;
+            border-color: transparent #333 transparent transparent;
+        }
+        .tooltip-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1rem;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
     </style>
 </head>
 <body>
-    <div class="main-container">
-        <div class="app-header">
-            <div class="logo-row-1">
-                <div class="left-logo">
-                    <img src="images/logo-freba.png" alt="FREBA Logo" class="logo">
-                </div>
-                <div class="middle-logo">
-                    <img src="images/logo-buenosaires.png" alt="Buenos Aires Provincia Logo" class="logo">
-                </div>
-                <div class="right-logo">
-                    <img src="images/logo-proinged.png" alt="PROINGED Logo" class="logo">
-                </div>
+    <div class="app-header">
+        <div class="logo-row-1">
+            <div class="left-logo">
+                    <img src="images/logo-freba.png" alt="FREBA Logo" class="logo-small">
             </div>
-            <div class="logo-row-2">
-                <img src="images/logo-ctae.png" alt="CTAE Logo" class="logo-small">
+            <div class="middle-logo">
+                <img src="images/logo-buenosaires.png" alt="Buenos Aires Provincia Logo" class="logo">
+            </div>
+            <div class="right-logo">
+                <img src="images/logo-proinged.png" alt="PROINGED Logo" class="logo">
             </div>
         </div>
+    </div>
 
-        <div class="content-area">
+    <div id="map-screen" class="screen">
+        <div class="main-content-wrapper">
             <div class="map-area">
-            <div id="map"></div>
-            <div id="geocoder-container" class="leaflet-control-geocoder">
+                <h2 style="text-align: center; font-family: var(--font-heading); font-size: 1.4rem; color: #555; margin-bottom: 1rem;">
+                    ¿Dónde será la instalación?
+                </h2>
+                <p class="help-text">Marcá el punto en el mapa donde vas a realizar la instalación o ingresá tu dirección completa.</p>
+                <div id="map"></div>
+                <div id="geocoder-container"></div>
+                <div id="location-display" style="margin-top: 1rem; padding: 0.5rem 1rem; background-color: #e9f5e9; border-radius: 6px; border: 1px solid var(--color-secondary); text-align: center; font-weight: 500; color: #333;">
+                    Ubicación no seleccionada
                 </div>
-            <div class="location-info">
-                <b>Latitud:</b> <span id="latitud-display"></span> &nbsp;
-                <b>Longitud:</b> <span id="longitud-display"></span>
             </div>
-        </div>
-            <div class="side-form">
-                <div id="selection-summary" class="selection-summary"></div>
+            <div class="form-sections-container">
+                <div class="form-section" id="user-type-section">
+                    <h2>¿Cuál es tu nivel de conocimiento?</h2>
+                    <p class="help-text" style="text-align: left;">Seleccioná Básico o Avanzado según tu nivel de conocimiento y experiencia en energía solar.</p>
+                    <button class="selection-button" id="basic-user-button">Básico</button>
+                    <button class="selection-button" id="expert-user-button">Avanzado</button>
+                </div>
                 <div class="form-section" id="supply-section" style="display:none;">
-                    <h2>Tipo de instalación</h2>
+                    <h2>¿Qué tipo de usuario sos?</h2>
+                    <p class="help-text" style="text-align: left;">Considerando la actividad principal del lugar donde vas a instalar los paneles, seleccioná el tipo de usuario:</p>
                     <button class="selection-button" id="residential-button">Residencial</button>
+                    <p class="button-description">Vivienda familiar</p>
                     <button class="selection-button" id="commercial-button">Comercial</button>
+                    <p class="button-description">Locales comerciales</p>
                     <button class="selection-button" id="pyme-button">PYME</button>
+                    <p class="button-description">Pequeña o mediana empresa</p>
                 </div>
                 <div class="form-section" id="income-section" style="display:none;">
-                    <h2>Nivel de ingreso</h2>
+                    <h2>¿Cuál es tu nivel de ingresos?</h2>
+                    <div class="form-description" style="text-align: left; margin-top: 1rem; font-size: 0.9rem; line-height: 1.5;">
+                        <b>Aplicación de subsidios</b><br>
+                        Según tu nivel de ingresos se determina la tarifa de energía eléctrica que te corresponde.<br>
+                        Si no sabés en qué nivel de ingresos te encontrás, consultá la siguiente web para más información:<br>
+                        <a href="https://www.argentina.gob.ar/subsidios" target="_blank" rel="noopener noreferrer">https://www.argentina.gob.ar/subsidios</a>
+                    </div>
                     <button class="selection-button" id="income-high-button">ALTO</button>
+                    <button class="selection-button" id="income-medium-button">MEDIO</button>
                     <button class="selection-button" id="income-low-button">BAJO</button>
-                </div>
-                <div class="form-section" id="expert-section" style="display:none;">
-                    <h2>Datos adicionales</h2>
-                    <form id="expert-data-form">
-                        <div class="form-group">
-                            <label for="zonaInstalacion">Zona de la instalación</label>
-                            <select id="zonaInstalacion" name="zonaInstalacion" required>
-                                <option value="">Seleccionar</option>
-                                <option value="Urbana">Urbana</option>
-                                <option value="Suburbana">Suburbana</option>
-                                <option value="Rural">Rural</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="selection-button" style="background: var(--color-secondary);">Guardar</button>
-                    </form>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="sidebar">
-        <h2>Tipo de Usuario</h2>
-        <button id="sidebar-admin-button">Administrador</button>
-        <button id="sidebar-basic-user-button">Usuario Básico</button>
-        <button id="sidebar-expert-user-button">Usuario Experto</button>
+    <div id="data-form-screen" class="screen" style="display:none;">
+        <div class="data-form-screen">
+            <div class="sidebar">
+                <div class="sidebar-item active" id="sidebar-datos">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    Datos
+                </div>
+                <div class="sidebar-item" id="sidebar-energia">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 13V6h-2v7H4v2h7v7h2v-7h7v-2h-7z"/></svg>
+                    Energía
+                </div>
+                <div class="sidebar-item" id="sidebar-paneles">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h16c1.11 0 2-.9 2-2V6c0-1.11-.89-2-2-2zm0 14H4V6h16v12zm-2-7h-4V7h-2v4H6v2h4v4h2v-4h4v-2z"/></svg>
+                    Paneles
+                </div>
+                <div class="sidebar-item" id="sidebar-inversor">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 12h-2V4h-2v8h-2V4h-2v8H9V4H7v8H5V4H3v8c0 2.21 1.79 4 4 4h10c2.21 0 4-1.79 4-4V4h-2v8z"/></svg>
+                    Inversor
+                </div>
+                <div class="sidebar-item" id="sidebar-perdidas">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 15H9V9h6v6zm-2-4h-2v2h2v-2zm8-4h-2V7h-2V5h-2v2h-2V5H9v2H7V5H5v2H3v2h2v2H3v2h2v2H3v2h2v2h2v-2h2v2h2v-2h2v2h2v-2h2v-2h-2v-2h2v-2h-2V9h2V7z"/></svg>
+                    Pérdida por Factoreo Ambiental
+                </div>
+                <div class="sidebar-item" id="sidebar-analisis-economico">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-4H7l4-4 4 4h-2v4z"/></svg>
+                    Análisis Económico
+                </div>
+                <div class="sidebar-item" id="sidebar-resultados">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-4H7l4-4 4 4h-2v4z"/></svg>
+                    Resultados
+                </div>
+                <div class="sidebar-item" style="color: #dc3545; margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="fill: #dc3545;"><path d="M13.41 12l4.3-4.29a1 1 0 000-1.41 1 1 0 00-1.41 0L12 10.59l-4.29-4.3a1 1 0 00-1.41 0 1 1 0 000 1.41l4.3 4.29-4.3 4.29a1 1 0 000 1.41 1 1 0 001.41 0L12 13.41l4.29 4.3a1 1 0 001.41 0 1 1 0 000-1.41z"/></svg>
+                    Salir
+                </div>
+            </div>
+            <div class="main-content">
+                <div id="selection-summary" class="selection-summary"></div>
+                <div id="data-meteorologicos-section">
+                    <h1>¿En qué zona se encuentra la instalación?</h1>
+                    <p class="form-description">Indicá en qué entorno estará ubicada la instalación (urbano, suburbano o rural). Esto influye en el grado de ensuciamiento de los paneles y afecta su rendimiento.</p>
+                    <div class="form-group">
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="zonaInstalacionNewScreen" value="Urbana" required>
+                                Urbana
+                            </label>
+                            <label>
+                                <input type="radio" name="zonaInstalacionNewScreen" value="Suburbana">
+                                Suburbana
+                            </label>
+                            <label>
+                                <input type="radio" name="zonaInstalacionNewScreen" value="Rural">
+                                Rural
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-map-from-zona" class="back-button">Atrás</button>
+                        <button type="submit" id="next-to-energia">Siguiente</button>
+                    </div>
+                </div>
+                <!-- Nueva sección para Superficie Rodea -->
+                <div id="superficie-section" style="display:none;">
+                    <h1>¿Qué superficie rodea el lugar de la instalación?</h1>
+                    <p class="form-description">Seleccioná la superficie que rodea a los paneles (pasto, cemento, etc.). Esto influye en la radiación solar que se refleja hacia los paneles.</p>
+                    <div class="form-group">
+                        <!-- Options will be dynamically inserted here by JavaScript -->
+                        <div id="superficie-options-container" class="radio-group">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-data-meteorologicos-from-superficie" class="back-button">Atrás</button>
+                        <button type="button" id="next-to-energia-from-superficie">Siguiente</button>
+                    </div>
+                </div>
+                <!-- Fin de Nueva sección para Superficie Rodea -->
+                <!-- Nueva sección para Rugosidad -->
+                <div id="rugosidad-section" style="display:none;">
+                    <h1>¿Cómo es la rugosidad de la superficie?</h1>
+                    <p class="form-description">La rugosidad (terreno plano o accidentado) afecta la velocidad del viento, que actúa como refrigerante natural para los paneles.</p>
+                    <div class="form-group">
+                        <!-- Options will be dynamically inserted here by JavaScript -->
+                        <div id="rugosidad-options-container" class="radio-group">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-superficie-from-rugosidad" class="back-button">Atrás</button>
+                        <button type="button" id="next-to-rotacion-from-rugosidad">Siguiente</button>
+                    </div>
+                </div>
+                <!-- Fin de Nueva sección para Rugosidad -->
+                <!-- Nueva sección para Rotación -->
+                <div id="rotacion-section" style="display:none;">
+                    <h1>¿Qué rotación tendrán los paneles solares?</h1>
+                    <p class="form-description">Podés instalar los paneles en una posición fija o con seguimiento de la trayectoria solar. Para una instalación simple y de menor costo, seleccioná "Fijos". Para maximizar la generación de energía, elegí "Rotación en dos ejes".</p>
+                    <div class="form-group">
+                        <!-- Options will be dynamically inserted here by JavaScript -->
+                        <div id="rotacion-options-container" class="radio-group">
+                        </div>
+                    </div>
+
+                    <!-- Container for conditional "Fijo" angle inputs -->
+                    <div id="fijo-angles-container" style="display:none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px dashed #ccc;">
+                        <h3 style="font-size: 1.1em; color: #555; margin-bottom: 1rem;">Detalles para Instalación Fija:</h3>
+                        <div class="form-group" id="form-group-inclinacion">
+                            <label for="angulo-inclinacion-input">Ángulo de inclinación del panel respecto de la horizontal (°):</label>
+                            <input type="number" id="angulo-inclinacion-input" name="anguloInclinacion" class="form-control" step="any">
+                        </div>
+                        <div class="form-group" id="form-group-orientacion">
+                            <label for="angulo-orientacion-input">Ángulo de orientación respecto del norte (° Este positivo):</label>
+                            <input type="number" id="angulo-orientacion-input" name="anguloOrientacion" class="form-control" step="any" min="-90" max="90">
+                             <small style="font-size: 0.85em; color: #666;">(Valores entre -90 para Este, 0 para Norte, y 90 para Oeste)</small>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="back-to-rugosidad-from-rotacion" class="back-button">Atrás</button>
+                        <button type="button" id="next-to-paneles-from-rotacion">Siguiente</button>
+                    </div>
+                </div>
+                <!-- Fin de Nueva sección para Rotación -->
+                <!-- Nueva sección para Altura Instalación -->
+                <div id="altura-instalacion-section" style="display:none;">
+                    <h1>¿Cuál es la altura a la cual se encontrará la instalación fotovoltaica, desde la superficie de apoyo?</h1>
+                    <p class="form-description">
+                        <b>Altura de los paneles:</b><br>
+                        Indica la altura de los paneles desde el suelo en metros.
+                        Si los paneles se van a apoyar directamente sobre el techo sin ninguna separación, entonces esta altura es cero (0 metros).
+                    </p>
+                    <div class="form-group" style="position: relative;">
+                        <label for="altura-instalacion-input">Altura (metros):</label>
+                        <input type="number" id="altura-instalacion-input" name="alturaInstalacion" class="form-control" min="0" step="0.1">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-rotacion-from-altura" class="back-button">Atrás</button>
+                        <button type="button" id="next-to-metodo-calculo-from-altura">Siguiente</button>
+                    </div>
+                </div>
+                <!-- Fin de Nueva sección para Altura Instalación -->
+                <!-- Nueva sección para Método de Cálculo y Modelo (COMBINADAS) -->
+                <div id="metodo-calculo-section" style="display:none;">
+                    <h1>¿Qué método de cálculo de radiación querés usar?</h1>
+                    <p class="form-description">Para estimar la radiación solar, podés considerar que el cielo tiene las mismas propiedades en todas las direcciones (isotrópico) o que varían según la dirección (anisotrópico). Si no elegís una opción, se usará el método Anisotrópico por defecto.</p>
+                    <div class="form-group">
+                        <div id="metodo-calculo-options-container">
+                        </div>
+                    </div>
+
+                    <hr style="margin: 2rem 0;">
+
+                    <h2>¿Con qué modelo del método desea realizar el dimensionamiento?</h2>
+                    <p class="form-description">
+                        - Cielo isotrópico: Presenta mejores resultados para ubicaciones con cielos mayormente despejados.<br>
+                        - Modelo Liu-Jordan<br>
+                        - Cielo Anisotrópico: se aplica mejor para ubicaciones con cielos habitualmente nublados. El método más sencillo es el de Hay and Davies, mientras que el modelo Pérez es el más complejo, pero de mayor precisión. Si no elige ninguna opción el sistema utilizará por defecto el modelo de Pérez.<br>
+                        - Hay and Davies: es sencillo y robusto. Se basa en el modelo de Liu-Jordan.<br>
+                        - Riendl: mejora del modelo de Hay and Davies, presentando valores de irradiancia más altos y precisos.<br>
+                        - Pérez: considera las características variables del cielo según la ubicación, generando resultados con mayor precisión.
+                    </p>
+                    <div class="form-group">
+                        <div id="modelo-metodo-options-container">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="back-to-altura-from-metodo" class="back-button">Atrás</button>
+                        <button type="button" id="next-to-paneles-from-modelo">Siguiente</button>
+                    </div>
+                </div>
+                <!-- Fin de la sección combinada -->
+                <div id="energia-section" style="display:none;">
+                    <h1>Tu consumo de energía</h1> <!-- This title is now dynamically changed by calculador.js -->
+                    <p></p> <!-- This description is now dynamically changed by calculador.js -->
+
+                    <div id="energia-modo-seleccion-container" style="display:none;"> <!-- Initially hidden, JS will show for experts -->
+                        <h2>¿Cómo querés ingresar los datos de consumo?</h2>
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="metodoIngresoConsumo" value="detalleHogar" required>
+                                INGRESO DE DETALLE DE CONSUMOS EN EL HOGAR
+                            </label>
+                            <label>
+                                <input type="radio" name="metodoIngresoConsumo" value="boletaMensual">
+                                INGRESO DE CONSUMO MENSUAL SEGUN BOLETA DE ENERGIA ELECTRICA
+                            </label>
+                            <label>
+                                <input type="radio" name="metodoIngresoConsumo" value="detalleHogarHoras">
+                                INGRESO DE DETALLE DE CONSUMO EN EL HOGAR (ARTEFACTOS Y HORAS DE USO)
+                            </label>
+                        </div>
+                        <hr style="margin-top: 1.5rem; margin-bottom: 1.5rem;"> <!-- Optional separator -->
+                    </div>
+
+                    <div id="electrodomesticos-list"></div>
+                    <!-- Nueva sección para Consumo por Factura (AHORA ANIDADA) -->
+                    <div id="consumo-promedio-section" style="display:none; margin-top: 1.5rem;">
+                        <hr>
+                        <h3>Ingreso de Consumo Mensual Según Boleta de Energía Eléctrica (Boleta de luz)</h3>
+                        <div class="form-group">
+                            <label for="consumo-promedio-mes">Energía promedio consumida por mes (kWh/mes):</label>
+                            <input type="number" min="0" id="consumo-promedio-mes" name="consumo-promedio-mes" class="form-control">
+                        </div>
+                    </div>
+
+                    <div id="consumo-factura-section" style="display:none; margin-top: 1.5rem;">
+                        <hr>
+                        <div class="form-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); row-gap: 1rem; column-gap: 2.5rem;">
+                            <div class="form-group"><label for="consumo-enero">Enero:</label><input type="number" min="0" id="consumo-enero" name="consumo-enero" class="form-control"></div>
+                            <div class="form-group"><label for="consumo-febrero">Febrero:</label><input type="number" min="0" id="consumo-febrero" name="consumo-febrero" class="form-control"></div>
+                            <div class="form-group"><label for="consumo-marzo">Marzo:</label><input type="number" min="0" id="consumo-marzo" name="consumo-marzo" class="form-control"></div>
+                            <div class="form-group"><label for="consumo-abril">Abril:</label><input type="number" min="0" id="consumo-abril" name="consumo-abril" class="form-control"></div>
+                            <div class="form-group"><label for="consumo-mayo">Mayo:</label><input type="number" min="0" id="consumo-mayo" name="consumo-mayo" class="form-control"></div>
+                            <div class="form-group"><label for="consumo-junio">Junio:</label><input type="number" min="0" id="consumo-junio" name="consumo-junio" class="form-control"></div>
+                            <div class="form-group"><label for="consumo-julio">Julio:</label><input type="number" min="0" id="consumo-julio" name="consumo-julio" class="form-control"></div>
+                            <div class="form-group"><label for="consumo-agosto">Agosto:</label><input type="number" min="0" id="consumo-agosto" name="consumo-agosto" class="form-control"></div>
+                            <div class="form-group"><label for="consumo-septiembre">Septiembre:</label><input type="number" min="0" id="consumo-septiembre" name="consumo-septiembre" class="form-control"></div>
+                            <div class="form-group"><label for="consumo-octubre">Octubre:</label><input type="number" min="0" id="consumo-octubre" name="consumo-octubre" class="form-control"></div>
+                            <div class="form-group"><label for="consumo-noviembre">Noviembre:</label><input type="number" min="0" id="consumo-noviembre" name="consumo-noviembre" class="form-control"></div>
+                            <div class="form-group"><label for="consumo-diciembre">Diciembre:</label><input type="number" min="0" id="consumo-diciembre" name="consumo-diciembre" class="form-control"></div>
+                        </div>
+                        <!-- Los botones de acción para esta sub-sección se manejan en JS o se pueden dejar aquí si su lógica no interfiere -->
+                    </div>
+                    <div class="energy-summary">
+                        <div>
+                            <label for="totalConsumoMensual">Consumo Mensual Estimado (kWh/mes):</label>
+                            <input type="text" id="totalConsumoMensual" readonly value="0">
+                        </div>
+                        <div>
+                            <label for="totalConsumoAnual">Consumo Anual Estimado (kWh/año):</label>
+                            <input type="text" id="totalConsumoAnual" readonly value="0">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-data-meteorologicos" class="back-button">Atrás</button>
+                        <button type="submit" id="next-to-paneles">Siguiente</button>
+                    </div>
+                </div>
+
+                <div id="paneles-section" style="display:none;">
+                    <h1>Paneles Solares</h1>
+                    <!-- Old input fields for Tipo de Panel and Cantidad de Paneles were removed -->
+
+                    <!-- Combined Sub-Forms: Marca, Potencia, Modelo -->
+                    <div id="panel-marca-subform" style="display:none;">
+                        <h2>Marca del panel</h2>
+                        <p class="form-subtitle" style="font-size: 0.9em; color: #555; margin-top: -1rem; margin-bottom: 1rem;">Seleccioná una marca del listado. Si no la encontrás, elegí "Genéricos". Según tu selección, te mostraremos el modelo de panel adecuado.</p>
+                        <div class="form-group">
+                            <div id="marca-panel-options-container">
+                                <!-- Dropdown select for Marca Panel will be inserted here by JS -->
+                            </div>
+                        </div>
+                        <hr style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+
+                        <h2>Potencia de los paneles</h2>
+                        <div class="form-group">
+                            <label for="potencia-panel-deseada-input">Potencia por panel (Watts):</label>
+                            <!-- The input/select for power will be dynamically generated by JS -->
+                            <div id="potencia-panel-options-container">
+                                <input type="number" id="potencia-panel-deseada-input" name="potenciaPanelDeseada" class="form-control" min="0" step="1" placeholder="Ej: 450">
+                            </div>
+                        </div>
+                        <hr style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+
+                        <h2>Modelo del panel</h2>
+                        <div class="form-group">
+                            <div id="modelo-panel-options-container">
+                                <input type="text" id="modelo-panel-input" class="form-control" value="Seleccione marca y potencia" readonly>
+                            </div>
+                        </div>
+
+                        <div class="form-actions sub-form-actions">
+                            <button type="button" id="back-from-panel-marca" class="back-button">Atrás</button>
+                            <button type="button" id="next-to-inversor-from-panels">Siguiente</button>
+                        </div>
+                    </div>
+
+                    <!-- Empty placeholders for the now-merged sub-forms -->
+                    <div id="panel-potencia-subform" style="display:none;"></div>
+                    <div id="panel-modelo-subform" style="display:none;"></div>
+
+                    <div class="form-actions"> <!-- Main form actions for paneles-section -->
+                        <!-- The "Siguiente" button that was here (id="next-to-inversor") is removed
+                             as navigation is now handled by the last sub-form's "Siguiente" button -->
+                    </div>
+                </div>
+                <div id="inversor-section" style="display:none;">
+                    <h1>Modelo de Inversor</h1>
+                    <p class="form-description">Seleccioná un inversor de la lista de opciones compatibles con tu instalación. Si no elegís uno, el sistema usará un modelo genérico por defecto.</p>
+                    <div id="inversor-options-container" class="form-group">
+                        <!-- El menú desplegable de inversores se insertará aquí dinámicamente -->
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-paneles" class="back-button">Atrás</button>
+                        <button type="submit" id="next-to-perdidas">Siguiente</button>
+                    </div>
+                </div>
+                <div id="perdidas-section" style="display:none;">
+                    <h1>Pérdida por Factoreo Ambiental</h1>
+
+                    <!-- Sub-Form 4: Modelo de Cálculo de Temperatura (MOVED HERE) -->
+                    <div id="panel-modelo-temperatura-subform" style="display:none;">
+                        <h2>Modelo de cálculo de temperatura</h2>
+                        <p class="form-description">La eficiencia de los paneles se ve afectada por la temperatura. Si no elegís una opción, por defecto se usará el modelo Mattei, que ofrece mayor precisión.</p>
+                        <div class="form-group">
+                            <div id="modelo-temperatura-select-container">
+                                <!-- Radio buttons will be inserted here by JS -->
+                            </div>
+                        </div>
+                        <div class="form-actions sub-form-actions">
+                            <button type="button" id="back-to-inversor-from-perdidas" class="back-button">Atrás</button>
+                            <button type="button" id="next-to-frecuencia-lluvias-from-modelo-temperatura">Siguiente</button>
+                        </div>
+                    </div>
+
+                    <div id="frecuencia-lluvias-subform-content" style="display:none;"> <!-- Content for first sub-form -->
+                        <h2>¿Cuál es la frecuencia de lluvias estimada?</h2>
+                        <p class="form-description">El rendimiento de los paneles se ve afectado por la suciedad. La frecuencia de lluvias permite estimar el grado de limpieza o ensuciamiento, ya que el agua limpia los paneles.</p>
+                        <div class="form-group">
+                            <div id="frecuencia-lluvias-options-container">
+                                <!-- Dropdown select will be inserted here by JS -->
+                            </div>
+                        </div>
+                        <div class="form-actions sub-form-actions">
+                            <button type="button" id="back-to-modelo-temperatura-from-frecuencia-lluvias" class="back-button">Atrás</button>
+                            <button type="button" id="next-to-foco-polvo-from-frecuencia">Siguiente</button>
+                        </div>
+                    </div>
+                    <div id="foco-polvo-subform-content" style="display:none;"> <!-- Content for second sub-form -->
+                        <h2>¿Existe algún foco de polvo cercano a la instalación?</h2>
+                        <p class="form-description">La existencia de un foco de polución cercano (fábricas, calles de tierra, etc.) puede generar partículas que afecten el funcionamiento de los paneles.</p>
+                        <div class="form-group">
+                            <div id="foco-polvo-options-container" class="radio-group">
+                                <!-- Radio buttons (SI/NO) will be inserted here by JS -->
+                            </div>
+                        </div>
+                        <div class="form-actions sub-form-actions">
+                            <button type="button" id="back-to-frecuencia-lluvias-from-foco-polvo" class="back-button">Atrás</button>
+                            <button type="button" id="next-to-analisis-from-foco-polvo">Siguiente</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="analisis-economico-section" style="display:none;">
+                    <h1>Moneda para el Análisis Económico</h1>
+                    <div class="form-group">
+                        <label for="moneda">¿Qué moneda querés usar?</label>
+                        <select id="moneda" name="moneda" required>
+                            <option value="Pesos argentinos">Pesos argentinos</option>
+                            <option value="Dólares">Dólares</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="back-to-perdidas" class="back-button">Atrás</button>
+                        <button type="submit" id="finalizar-calculo">Finalizar y ver resultados</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- ESTE ES EL CONTENEDOR DEL INFORME -->
+    <div id="resultados-informe" style="max-width:900px; margin: 2rem auto; background: #fffbe7; border-radius: 8px; padding: 2rem; font-size: 1.2rem; box-shadow: 0 1px 8px rgba(0,0,0,0.06);"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-    <script src="calculador.js"></script>
-    <script>
-        // Actualizar la lógica de los botones de la barra lateral para que controlen las secciones del formulario.
-        // Asegúrate de que 'showSection' esté disponible globalmente (ya lo está en calculador.js)
-
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeMap(); // Inicializa el mapa cuando el DOM esté cargado
-            // Oculta todas las secciones del formulario excepto si quieres que se muestre una por defecto.
-            // Para el flujo, comenzaremos sin ninguna visible hasta que se seleccione un tipo de usuario.
-            showSection(null); 
-        });
-
-        // Eventos para los botones de la barra lateral
-        document.getElementById('sidebar-basic-user-button').onclick = () => showSection(supplySection);
-        document.getElementById('sidebar-expert-user-button').onclick = () => showSection(expertSection);
-        
-        // El botón de Administrador no tiene una sección de formulario asociada en calculador.js,
-        // puedes decidir qué hacer con él (ej. mostrar una sección específica de admin o nada)
-        document.getElementById('sidebar-admin-button').onclick = () => {
-            alert('Funcionalidad de Administrador por implementar.');
-            showSection(null); // Ocultar todas las secciones si no hay una específica para admin
-        };
-    </script>
+    <script src="calculador.js?v=prod2" defer></script>
 
     <footer>
-        <img src="images/logo-facultad.png" alt="Facultad de Ingeniería Logo" class="footer-logo">
+        <div class="footer-logos">
+            <img src="images/logo-ctae.png" alt="CTAE Logo" class="footer-logo">
+            <img src="images/logo-facultad.png" alt="Facultad de Ingeniería Logo" class="footer-logo">
+        </div>
         <div class="copyright">&copy; 2024 Facultad de Ingeniería</div>
     </footer>
 </body>
