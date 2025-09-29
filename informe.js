@@ -288,6 +288,19 @@ function renderCharts(datos, userType, monedaSimbolo) {
 
 function renderBasicCharts(datos) {
     const chartData = datos.chart_data || {};
+    const energyData = {
+        ...(datos.energy || {}),
+        ...(datos.basic_report?.energy || {})
+    };
+
+    const ensureTwelveValues = (arr, fallback = []) => {
+        const source = Array.isArray(arr) ? arr : fallback;
+        const normalized = Array.isArray(source) ? source.slice(0, 12) : [];
+        if (normalized.length >= 12) {
+            return normalized.slice(0, 12);
+        }
+        return normalized.concat(Array(12 - normalized.length).fill(0));
+    };
 
     // --- Daily Profile Charts ---
     const renderDailyChart = (canvasId, title, consumptionData, generationData) => {
@@ -340,21 +353,33 @@ function renderBasicCharts(datos) {
     const monthlyCtx = document.getElementById('monthlyComparisonChart')?.getContext('2d');
     if (monthlyCtx) {
         const monthLabels = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const monthlyConsumption = ensureTwelveValues(
+            energyData.monthlyConsumption,
+            chartData.monthly_consumption
+        );
+        const monthlyAutoconsumption = ensureTwelveValues(
+            energyData.monthlyAutoconsumption,
+            chartData.monthly_autoconsumption
+        );
+        const monthlyInjection = ensureTwelveValues(
+            energyData.monthlyInjection,
+            chartData.monthly_injection
+        );
         new Chart(monthlyCtx, {
             type: 'bar',
             data: {
                 labels: monthLabels,
                 datasets: [{
                     label: 'Consumo de energía de la red',
-                    data: chartData.monthly_consumption || [],
+                    data: monthlyConsumption,
                     backgroundColor: '#d32f2f' // Red
                 }, {
                     label: 'Autoconsumo de energía solar fotovoltaica',
-                    data: chartData.monthly_autoconsumption || [],
+                    data: monthlyAutoconsumption,
                     backgroundColor: '#fbc02d' // Yellow
                 }, {
                     label: 'Sobrante de energía solar inyectada a la red',
-                    data: chartData.monthly_injection || [],
+                    data: monthlyInjection,
                     backgroundColor: '#4caf50' // Green
                 }]
             },
@@ -378,6 +403,28 @@ function renderBasicCharts(datos) {
 function renderExpertCharts(datos) {
     console.log("Rendering expert charts with corrected data paths:", datos);
     const techData = datos.technical_data || {};
+    const energyData = {
+        ...(datos.energy || {}),
+        ...(datos.expert_report?.energy || {})
+    };
+
+    const ensureTwelveValues = (arr, fallback = []) => {
+        const source = Array.isArray(arr) ? arr : fallback;
+        const normalized = Array.isArray(source) ? source.slice(0, 12) : [];
+        if (normalized.length >= 12) {
+            return normalized.slice(0, 12);
+        }
+        return normalized.concat(Array(12 - normalized.length).fill(0));
+    };
+
+    const monthlyConsumption = ensureTwelveValues(
+        energyData.monthlyConsumption,
+        datos.consumosMensualesFactura
+    );
+    const monthlyGeneration = ensureTwelveValues(
+        energyData.monthlyGeneration,
+        techData.monthly_generation
+    );
 
     // --- Monthly Balance Bar Chart ---
     const monthlyCtx = document.getElementById('monthlyBalanceChart').getContext('2d');
@@ -387,12 +434,12 @@ function renderExpertCharts(datos) {
         data: {
             labels: monthLabels,
             datasets: [{
-                label: 'Consumo (kWh)',
-                data: datos.consumosMensualesFactura || [],
+                label: 'Consumo mensual (kWh)',
+                data: monthlyConsumption,
                 backgroundColor: 'rgba(255, 99, 132, 0.5)',
             }, {
-                label: 'Generación (kWh)',
-                data: techData.monthly_generation || [],
+                label: 'Generación mensual (kWh)',
+                data: monthlyGeneration,
                 backgroundColor: 'rgba(54, 162, 235, 0.5)',
             }]
         },
@@ -457,8 +504,12 @@ function renderExpertCharts(datos) {
     const years = Array.from({
         length: 25
     }, (_, i) => i + 1);
-    const annualConsumption = datos.consumo_anual_kwh || 0;
-    const annualGenerationStart = techData.annual_generation || 0;
+    const annualConsumption = energyData.annualConsumptionKWh
+        ?? datos.consumo_anual_kwh
+        ?? 0;
+    const annualGenerationStart = energyData.annualGenerationKWh
+        ?? techData.annual_generation
+        ?? 0;
     const degradationRate = 0.005; // 0.5% annual degradation
     const annualGenSeries = years.map(year => annualGenerationStart * Math.pow(1 - degradationRate, year - 1));
 
