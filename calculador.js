@@ -1282,7 +1282,11 @@ function initElectrodomesticosSection() {
 
             if (choice === 'detalleHogar') {
                 if (summaryContainer) summaryContainer.style.display = 'flex';
-                if (electrodomesticosList) electrodomesticosList.style.display = 'block';
+                if (electrodomesticosList) {
+                    electrodomesticosList.style.display = 'grid';
+                    electrodomesticosList.style.gridTemplateColumns = 'repeat(3, 1fr)';
+                    electrodomesticosList.style.gap = '1rem';
+                }
                 populateStandardApplianceList(listContainer);
             } else if (choice === 'boletaMensual') {
                 if (consumoFacturaForm) consumoFacturaForm.style.display = 'block';
