@@ -1679,8 +1679,18 @@ function initMap() {
             geocoderControlInstance.options.geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom()), function(results) {
                 const r = results[0];
                 if (r && r.name) {
-                    console.log('Reverse geocode result from click:', r.name);
-                    buscarCodigoCiudad(r.name); // Esta función ya guarda las selecciones.
+                    console.log('Reverse geocode result from click:', r); // Log full object
+                    const locationDisplay = document.getElementById('location-display');
+                    const props = r.properties;
+                    // Instantly update UI with city name if available from geocoder
+                    const cityName = props?.address?.city || props?.address?.town || props?.address?.village || props?.city || props?.town || props?.village;
+
+                    if (cityName && locationDisplay) {
+                        locationDisplay.textContent = `Ubicación seleccionada: ${cityName}`;
+                        locationDisplay.style.backgroundColor = '#e9f5e9';
+                    }
+
+                    buscarCodigoCiudad(r.name); // This function still handles backend logic and may overwrite the display text.
                 } else {
                     const locationDisplay = document.getElementById('location-display');
                     if (locationDisplay) {
