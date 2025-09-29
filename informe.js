@@ -76,19 +76,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const monedaSimbolo = datos.moneda === 'Dólares' ? 'U$D' : '$';
 
     if (userType === 'experto') {
-        const expertReport = datos.expert_report || {
-            systemDesign: datos.system_design || {},
-            energy: datos.energy || {},
-            economy: datos.economy || {},
-            emissions: datos.emissions || {},
-            tariffs: datos.tariffs || {},
+        const fallbackIfEmpty = (section, fallback) => {
+            if (section && typeof section === 'object' && Object.keys(section).length > 0) {
+                return section;
+            }
+            if (fallback && typeof fallback === 'object' && Object.keys(fallback).length > 0) {
+                return fallback;
+            }
+            return {};
         };
 
-        const systemDesign = expertReport.systemDesign || {};
-        const energy = expertReport.energy || {};
-        const economy = expertReport.economy || {};
-        const tariffs = expertReport.tariffs || {};
-        const emissions = expertReport.emissions || {};
+        const rawExpertReport = datos.expert_report || {};
+        const expertReport = {
+            systemDesign: fallbackIfEmpty(rawExpertReport.systemDesign, datos.system_design),
+            energy: fallbackIfEmpty(rawExpertReport.energy, datos.energy),
+            economy: fallbackIfEmpty(rawExpertReport.economy, datos.economy),
+            emissions: fallbackIfEmpty(rawExpertReport.emissions, datos.emissions),
+            tariffs: fallbackIfEmpty(rawExpertReport.tariffs, datos.tariffs),
+        };
+
+        const systemDesign = fallbackIfEmpty(expertReport.systemDesign, datos.system_design);
+        const energy = fallbackIfEmpty(expertReport.energy, datos.energy);
+        const economy = fallbackIfEmpty(expertReport.economy, datos.economy);
+        const tariffs = fallbackIfEmpty(expertReport.tariffs, datos.tariffs);
+        const emissions = fallbackIfEmpty(expertReport.emissions, datos.emissions);
 
         const lifetimeYears = (typeof systemDesign.projectLifetimeYears === 'number' && Number.isFinite(systemDesign.projectLifetimeYears))
             ? systemDesign.projectLifetimeYears
@@ -378,6 +389,28 @@ function renderBasicCharts(datos) {
 function renderExpertCharts(datos) {
     console.log("Rendering expert charts with corrected data paths:", datos);
     const techData = datos.technical_data || {};
+    const energyData = {
+        ...(datos.energy || {}),
+        ...(datos.expert_report?.energy || {})
+    };
+
+    const ensureTwelveValues = (arr, fallback = []) => {
+        const source = Array.isArray(arr) ? arr : fallback;
+        const normalized = Array.isArray(source) ? source.slice(0, 12) : [];
+        if (normalized.length >= 12) {
+            return normalized.slice(0, 12);
+        }
+        return normalized.concat(Array(12 - normalized.length).fill(0));
+    };
+
+    const monthlyConsumption = ensureTwelveValues(
+        energyData.monthlyConsumption,
+        datos.consumosMensualesFactura
+    );
+    const monthlyGeneration = ensureTwelveValues(
+        energyData.monthlyGeneration,
+        techData.monthly_generation
+    );
 
     // --- Monthly Balance Bar Chart ---
     const monthlyCtx = document.getElementById('monthlyBalanceChart').getContext('2d');
@@ -387,12 +420,12 @@ function renderExpertCharts(datos) {
         data: {
             labels: monthLabels,
             datasets: [{
-                label: 'Consumo (kWh)',
-                data: datos.consumosMensualesFactura || [],
+                label: 'Consumo mensual (kWh)',
+                data: monthlyConsumption,
                 backgroundColor: 'rgba(255, 99, 132, 0.5)',
             }, {
-                label: 'Generación (kWh)',
-                data: techData.monthly_generation || [],
+                label: 'Generación mensual (kWh)',
+                data: monthlyGeneration,
                 backgroundColor: 'rgba(54, 162, 235, 0.5)',
             }]
         },
@@ -457,8 +490,12 @@ function renderExpertCharts(datos) {
     const years = Array.from({
         length: 25
     }, (_, i) => i + 1);
-    const annualConsumption = datos.consumo_anual_kwh || 0;
-    const annualGenerationStart = techData.annual_generation || 0;
+    const annualConsumption = energyData.annualConsumptionKWh
+        ?? datos.consumo_anual_kwh
+        ?? 0;
+    const annualGenerationStart = energyData.annualGenerationKWh
+        ?? techData.annual_generation
+        ?? 0;
     const degradationRate = 0.005; // 0.5% annual degradation
     const annualGenSeries = years.map(year => annualGenerationStart * Math.pow(1 - degradationRate, year - 1));
 
