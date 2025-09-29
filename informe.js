@@ -76,19 +76,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const monedaSimbolo = datos.moneda === 'Dólares' ? 'U$D' : '$';
 
     if (userType === 'experto') {
-        const expertReport = datos.expert_report || {
-            systemDesign: datos.system_design || {},
-            energy: datos.energy || {},
-            economy: datos.economy || {},
-            emissions: datos.emissions || {},
-            tariffs: datos.tariffs || {},
+        const fallbackIfEmpty = (section, fallback) => {
+            if (section && typeof section === 'object' && Object.keys(section).length > 0) {
+                return section;
+            }
+            if (fallback && typeof fallback === 'object' && Object.keys(fallback).length > 0) {
+                return fallback;
+            }
+            return {};
         };
 
-        const systemDesign = expertReport.systemDesign || {};
-        const energy = expertReport.energy || {};
-        const economy = expertReport.economy || {};
-        const tariffs = expertReport.tariffs || {};
-        const emissions = expertReport.emissions || {};
+        const rawExpertReport = datos.expert_report || {};
+        const expertReport = {
+            systemDesign: fallbackIfEmpty(rawExpertReport.systemDesign, datos.system_design),
+            energy: fallbackIfEmpty(rawExpertReport.energy, datos.energy),
+            economy: fallbackIfEmpty(rawExpertReport.economy, datos.economy),
+            emissions: fallbackIfEmpty(rawExpertReport.emissions, datos.emissions),
+            tariffs: fallbackIfEmpty(rawExpertReport.tariffs, datos.tariffs),
+        };
+
+        const systemDesign = fallbackIfEmpty(expertReport.systemDesign, datos.system_design);
+        const energy = fallbackIfEmpty(expertReport.energy, datos.energy);
+        const economy = fallbackIfEmpty(expertReport.economy, datos.economy);
+        const tariffs = fallbackIfEmpty(expertReport.tariffs, datos.tariffs);
+        const emissions = fallbackIfEmpty(expertReport.emissions, datos.emissions);
 
         const lifetimeYears = (typeof systemDesign.projectLifetimeYears === 'number' && Number.isFinite(systemDesign.projectLifetimeYears))
             ? systemDesign.projectLifetimeYears
