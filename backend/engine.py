@@ -21,6 +21,8 @@ EXPERTO_REPORT_CONTRACT: Dict[str, Dict[str, str]] = {
         "panelModel": "Modelo seleccionado de panel según catálogo.",
         "panelPowerW": "Potencia nominal individual del panel en Watts.",
         "projectLifetimeYears": "Horizonte de vida útil utilizado para métricas acumuladas.",
+        "panelBrand": "Marca del panel seleccionado cuando está disponible en el catálogo.",
+        "panelEfficiency": "Eficiencia nominal informada por el fabricante del panel (%).",
     },
     "energy": {
         "annualGenerationKWh": "Energía generada por el sistema en un año (kWh).",
@@ -93,6 +95,61 @@ def run_calculation_engine(user_data, excel_path):
         technical_data = build_legacy_technical_data(system_design, energy_metrics, support_params)
         economic_data_legacy = build_legacy_economic_data(economic_metrics)
 
+        expert_report = {
+            "systemDesign": {
+                key: system_design.get(key)
+                for key in [
+                    "panelCount",
+                    "installedCapacityKWp",
+                    "requiredSurfaceM2",
+                    "panelModel",
+                    "panelPowerW",
+                    "projectLifetimeYears",
+                    "panelBrand",
+                    "panelEfficiency",
+                ]
+            },
+            "energy": {
+                key: energy_metrics.get(key)
+                for key in [
+                    "annualGenerationKWh",
+                    "annualAutoconsumptionKWh",
+                    "annualInjectionKWh",
+                    "annualConsumptionKWh",
+                    "selfConsumptionRatio",
+                    "coverageRatio",
+                    "gridEnergyKWh",
+                ]
+            },
+            "economy": {
+                key: economic_metrics.get(key)
+                for key in [
+                    "preProjectAnnualCost",
+                    "postProjectAnnualCost",
+                    "annualSavings",
+                    "initialInvestment",
+                    "maintenanceAnnualCost",
+                    "injectionRevenue",
+                    "paybackYears",
+                ]
+            },
+            "tariffs": {
+                key: tariffs.get(key)
+                for key in [
+                    "consumptionTariff",
+                    "injectionTariff",
+                    "currency",
+                ]
+            },
+            "emissions": {
+                key: emission_metrics.get(key)
+                for key in [
+                    "avoidedTonsCO2PerYear",
+                    "avoidedTonsCO2Lifetime",
+                ]
+            },
+        }
+
         final_report = {
             "userType": user_data.get("userType", "basico"),
             "moneda": user_data.get("selectedCurrency", "Dólares"),
@@ -106,6 +163,7 @@ def run_calculation_engine(user_data, excel_path):
             "chart_data": chart_data,
             "basic_report": {"excel_table": basic_report_table},
             "expert_contract": deepcopy(EXPERTO_REPORT_CONTRACT),
+            "expert_report": expert_report,
         }
 
         print("--- Engine Finished Successfully ---")
@@ -190,6 +248,13 @@ def calculate_system_design(user_data: Dict, panel_data: Dict, support_params: D
         panel_area_m2 = largo * ancho if largo and ancho else 0
     required_surface = panel_area_m2 * panel_count
 
+    panel_brand = panel_data.get('Marca') or user_data.get('panelesSolares', {}).get('marca')
+
+    panel_efficiency = to_numeric_safe(
+        panel_data.get('Eficiencia informada por el fabricante del panel'),
+        default=None,
+    )
+
     return {
         "panelCount": panel_count,
         "installedCapacityKWp": installed_capacity_kwp,
@@ -197,6 +262,8 @@ def calculate_system_design(user_data: Dict, panel_data: Dict, support_params: D
         "panelModel": panel_data.get('Modelo', user_data.get('panelesSolares', {}).get('modelo', 'Modelo no encontrado')),
         "panelPowerW": panel_power_w,
         "projectLifetimeYears": support_params.get('project_lifetime_years', 25),
+        "panelBrand": panel_brand,
+        "panelEfficiency": panel_efficiency,
     }
 
 

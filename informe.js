@@ -40,7 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function setTextContent(id, value) {
         const element = document.getElementById(id);
         if (element) {
-            element.textContent = value;
+            const safeValue = (value === undefined || value === null || value === '') ? 'N/A' : value;
+            element.textContent = safeValue;
         } else {
             console.warn(`Elemento con ID '${id}' no encontrado.`);
         }
@@ -63,46 +64,103 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Data Population ---
-    const formatNumber = (num, decimals = 2) => num != null ? num.toLocaleString('es-AR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : 'N/A';
+    const formatNumber = (num, decimals = 2) => {
+        if (typeof num !== 'number' || !Number.isFinite(num)) {
+            return 'N/A';
+        }
+        return num.toLocaleString('es-AR', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals,
+        });
+    };
     const monedaSimbolo = datos.moneda === 'Dólares' ? 'U$D' : '$';
 
     if (userType === 'experto') {
-        const techData = datos.technical_data || {};
-        const panelDetails = techData.panel_details || {};
-        const inverterDetails = techData.inverter_details || {};
+        const expertReport = datos.expert_report || {
+            systemDesign: datos.system_design || {},
+            energy: datos.energy || {},
+            economy: datos.economy || {},
+            emissions: datos.emissions || {},
+            tariffs: datos.tariffs || {},
+        };
 
-        // Populate Expert Report from technical_data
-        setTextContent('experto_radiacion_anual', `${formatNumber(techData.annual_irradiance, 2)} kWh/m²`);
-        setTextContent('experto_performance_ratio', `${formatNumber(techData.performance_ratio, 2)} %`);
+        const systemDesign = expertReport.systemDesign || {};
+        const energy = expertReport.energy || {};
+        const economy = expertReport.economy || {};
+        const tariffs = expertReport.tariffs || {};
+        const emissions = expertReport.emissions || {};
 
-        setTextContent('experto_consumo_anual', formatNumber(datos.consumo_anual_kwh, 0));
+        const lifetimeYears = (typeof systemDesign.projectLifetimeYears === 'number' && Number.isFinite(systemDesign.projectLifetimeYears))
+            ? systemDesign.projectLifetimeYears
+            : 0;
 
-        setTextContent('experto_panel_marca', panelDetails['Marca'] || 'N/A');
-        setTextContent('experto_panel_potencia', panelDetails['Potencia'] || 'N/A');
-        setTextContent('experto_panel_modelo', panelDetails['Modelo'] || 'N/A');
-        setTextContent('experto_panel_eficiencia', `${formatNumber(panelDetails['Eficiencia informada por el fabricante del panel'], 2)} %` || 'N/A');
-        setTextContent('experto_cantidad_paneles', panelDetails['Cantidad Paneles Necesarios'] || 'N/A');
-        setTextContent('experto_superficie', `${formatNumber(panelDetails['Superficie necesaria'], 2)} m²` || 'N/A');
-        setTextContent('experto_potencia_instalada', `${formatNumber(panelDetails['Potencia Instalada Wp'], 0)} Wp` || 'N/A');
+        const installedCapacityKWp = (typeof systemDesign.installedCapacityKWp === 'number' && Number.isFinite(systemDesign.installedCapacityKWp))
+            ? systemDesign.installedCapacityKWp
+            : null;
+        const installedCapacityW = installedCapacityKWp != null ? installedCapacityKWp * 1000 : null;
 
-        setTextContent('experto_inversor_sugerido', inverterDetails['Inversores sugeridos'] || 'N/A');
-        setTextContent('experto_inversor_potencia', `${formatNumber(inverterDetails['Potencia'], 0)} W` || 'N/A');
-        setTextContent('experto_inversor_eficiencia', `${formatNumber(inverterDetails['Eficiencia informada por el fabricante del INVERSOR'], 2)} %` || 'N/A');
-        setTextContent('experto_cantidad_inversores', inverterDetails['Cantidad de Inversores'] || 'N/A');
+        const requiredSurface = (typeof systemDesign.requiredSurfaceM2 === 'number' && Number.isFinite(systemDesign.requiredSurfaceM2) && systemDesign.requiredSurfaceM2 > 0)
+            ? systemDesign.requiredSurfaceM2
+            : null;
+        const annualIrradiance = (typeof energy.annualGenerationKWh === 'number' && Number.isFinite(energy.annualGenerationKWh) && requiredSurface)
+            ? energy.annualGenerationKWh / requiredSurface
+            : null;
 
+        const totalConsumptionCost = (typeof economy.preProjectAnnualCost === 'number' && Number.isFinite(economy.preProjectAnnualCost) && lifetimeYears)
+            ? economy.preProjectAnnualCost * lifetimeYears
+            : null;
+        const postProjectLifetimeCost = (typeof economy.postProjectAnnualCost === 'number' && Number.isFinite(economy.postProjectAnnualCost) && lifetimeYears)
+            ? economy.postProjectAnnualCost * lifetimeYears
+            : null;
+        const totalSavingsLifetime = (totalConsumptionCost != null && postProjectLifetimeCost != null)
+            ? totalConsumptionCost - postProjectLifetimeCost
+            : null;
+        const netSavingsLifetime = (totalSavingsLifetime != null && typeof economy.initialInvestment === 'number' && Number.isFinite(economy.initialInvestment))
+            ? totalSavingsLifetime - economy.initialInvestment
+            : null;
+        const totalInjectionRevenue = (typeof economy.injectionRevenue === 'number' && Number.isFinite(economy.injectionRevenue) && lifetimeYears)
+            ? economy.injectionRevenue * lifetimeYears
+            : null;
 
-        // Economic data from main report object
+        // Radiación y consumo
+        setTextContent('experto_radiacion_anual', formatNumber(annualIrradiance, 2));
+        setTextContent('experto_incremento_radiacion', 'N/A');
+        setTextContent('experto_consumo_anual', formatNumber(energy.annualConsumptionKWh, 0));
+
+        // Paneles
+        const panelBrand = systemDesign.panelBrand || systemDesign.panelModel || 'N/A';
+        setTextContent('experto_panel_marca', panelBrand);
+        setTextContent('experto_panel_potencia', formatNumber(systemDesign.panelPowerW, 0));
+        setTextContent('experto_panel_modelo', systemDesign.panelModel || 'N/A');
+        setTextContent('experto_panel_eficiencia', formatNumber(systemDesign.panelEfficiency, 2));
+        setTextContent('experto_cantidad_paneles', systemDesign.panelCount);
+        setTextContent('experto_superficie', formatNumber(requiredSurface, 2));
+        setTextContent('experto_potencia_instalada', formatNumber(installedCapacityW, 0));
+
+        // Inversores - no disponibles actualmente en el motor
+        setTextContent('experto_inversor_sugerido', 'No disponible');
+        setTextContent('experto_inversor_potencia', 'N/A');
+        setTextContent('experto_inversor_eficiencia', 'N/A');
+        setTextContent('experto_cantidad_inversores', 'N/A');
+
+        // Datos económicos
         document.querySelectorAll('[id^="experto_moneda_"]').forEach(el => el.textContent = monedaSimbolo);
-        setTextContent('experto_costo_actual', formatNumber(datos.costo_actual, 0));
-        setTextContent('experto_inversion_inicial', formatNumber(datos.inversion_inicial, 0));
-        setTextContent('experto_mantenimiento', formatNumber(datos.mantenimiento, 0));
-        setTextContent('experto_costo_futuro', formatNumber(datos.costo_futuro, 0));
-        setTextContent('experto_ingreso_anual_inyeccion', formatNumber(datos.ingreso_red, 0));
-        setTextContent('experto_ahorro_neto', formatNumber(datos.ahorro_total, 0));
+        setTextContent('experto_cargo_pico', formatNumber(tariffs.consumptionTariff, 4));
+        setTextContent('experto_cargo_fuera_pico', formatNumber(tariffs.consumptionTariff, 4));
+        setTextContent('experto_costo_actual', formatNumber(economy.preProjectAnnualCost, 0));
+        setTextContent('experto_costo_total_actualizado', formatNumber(totalConsumptionCost, 0));
+        setTextContent('experto_inversion_inicial', formatNumber(economy.initialInvestment, 0));
+        setTextContent('experto_mantenimiento', formatNumber(economy.maintenanceAnnualCost, 0));
+        setTextContent('experto_tarifa_inyeccion', formatNumber(tariffs.injectionTariff, 4));
+        setTextContent('experto_costo_futuro', formatNumber(postProjectLifetimeCost, 0));
+        setTextContent('experto_ahorro_actualizado', formatNumber(totalSavingsLifetime, 0));
+        setTextContent('experto_ingreso_anual_inyeccion', formatNumber(economy.injectionRevenue, 0));
+        setTextContent('experto_ingreso_total_inyeccion', formatNumber(totalInjectionRevenue, 0));
+        setTextContent('experto_ahorro_neto', formatNumber(netSavingsLifetime, 0));
 
-        // Emissions
-        setTextContent('experto_emisiones_primer_ano', formatNumber(datos.emisiones_evitadas_primer_ano_tco2, 2));
-        setTextContent('experto_emisiones_totales', formatNumber(datos.emisiones_evitadas_total_tco2, 2));
+        // Emisiones
+        setTextContent('experto_emisiones_primer_ano', formatNumber(emissions.avoidedTonsCO2PerYear, 2));
+        setTextContent('experto_emisiones_totales', formatNumber(emissions.avoidedTonsCO2Lifetime, 2));
 
     } else { // Basic user
         const economicData = datos.economic_data || {};
