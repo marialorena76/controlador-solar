@@ -299,6 +299,19 @@ function renderCharts(datos, userType, monedaSimbolo) {
 
 function renderBasicCharts(datos) {
     const chartData = datos.chart_data || {};
+    const energyData = {
+        ...(datos.energy || {}),
+        ...(datos.basic_report?.energy || {})
+    };
+
+    const ensureTwelveValues = (arr, fallback = []) => {
+        const source = Array.isArray(arr) ? arr : fallback;
+        const normalized = Array.isArray(source) ? source.slice(0, 12) : [];
+        if (normalized.length >= 12) {
+            return normalized.slice(0, 12);
+        }
+        return normalized.concat(Array(12 - normalized.length).fill(0));
+    };
 
     // --- Daily Profile Charts ---
     const renderDailyChart = (canvasId, title, consumptionData, generationData) => {
@@ -351,21 +364,33 @@ function renderBasicCharts(datos) {
     const monthlyCtx = document.getElementById('monthlyComparisonChart')?.getContext('2d');
     if (monthlyCtx) {
         const monthLabels = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const monthlyConsumption = ensureTwelveValues(
+            energyData.monthlyConsumption,
+            chartData.monthly_consumption
+        );
+        const monthlyAutoconsumption = ensureTwelveValues(
+            energyData.monthlyAutoconsumption,
+            chartData.monthly_autoconsumption
+        );
+        const monthlyInjection = ensureTwelveValues(
+            energyData.monthlyInjection,
+            chartData.monthly_injection
+        );
         new Chart(monthlyCtx, {
             type: 'bar',
             data: {
                 labels: monthLabels,
                 datasets: [{
                     label: 'Consumo de energía de la red',
-                    data: chartData.monthly_consumption || [],
+                    data: monthlyConsumption,
                     backgroundColor: '#d32f2f' // Red
                 }, {
                     label: 'Autoconsumo de energía solar fotovoltaica',
-                    data: chartData.monthly_autoconsumption || [],
+                    data: monthlyAutoconsumption,
                     backgroundColor: '#fbc02d' // Yellow
                 }, {
                     label: 'Sobrante de energía solar inyectada a la red',
-                    data: chartData.monthly_injection || [],
+                    data: monthlyInjection,
                     backgroundColor: '#4caf50' // Green
                 }]
             },

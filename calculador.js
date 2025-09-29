@@ -1688,7 +1688,7 @@ function initMap() {
                         locationDisplay.style.backgroundColor = '#fbe9e7';
                     }
                     // Si no se encuentra un nombre, nos aseguramos de que el código de ciudad sea nulo y guardamos.
-                    userSelections.codigoCiudad = null;
+                    userSelections.ciudad = { codigo: null, nombre: null };
 
                 }
             });
