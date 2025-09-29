@@ -1291,7 +1291,11 @@ function initElectrodomesticosSection() {
             } else if (choice === 'boletaMensual') {
                 if (consumoFacturaForm) consumoFacturaForm.style.display = 'block';
             } else if (choice === 'detalleHogarHoras') {
-                if (electrodomesticosList) electrodomesticosList.style.display = 'block';
+                if (electrodomesticosList) {
+                    electrodomesticosList.style.display = 'grid';
+                    electrodomesticosList.style.gridTemplateColumns = 'repeat(3, 1fr)';
+                    electrodomesticosList.style.gap = '1rem';
+                }
                 populateDetailedApplianceList(listContainer);
             }
         };
