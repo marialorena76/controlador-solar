@@ -107,6 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else { // Basic user
         const economicData = datos.economic_data || {};
         const techData = datos.technical_data || {};
+        const basicReportData = datos.basic_report && datos.basic_report.excel_table ? datos.basic_report.excel_table : [];
+
+        renderBasicExcelTable(basicReportData);
 
         // Technical Data
         setTextContent('basico_consumo_anual_kwh', formatNumber(techData.consumo_anual_kwh, 0));
@@ -161,6 +164,59 @@ document.addEventListener('DOMContentLoaded', () => {
         html2pdf().set(opt).from(element).save();
     });
 });
+
+function renderBasicExcelTable(tableData) {
+    const tbody = document.getElementById('basico_resultados_excel_body');
+    if (!tbody) {
+        return;
+    }
+
+    tbody.innerHTML = '';
+
+    if (!Array.isArray(tableData) || tableData.length === 0) {
+        const emptyRow = document.createElement('tr');
+        const emptyCell = document.createElement('td');
+        emptyCell.colSpan = 11;
+        emptyCell.textContent = 'No se encontraron datos para mostrar el informe básico detallado.';
+        emptyRow.appendChild(emptyCell);
+        tbody.appendChild(emptyRow);
+        return;
+    }
+
+    const columnCount = Array.isArray(tableData[0]) ? tableData[0].length : 1;
+
+    tableData.forEach((row) => {
+        const tr = document.createElement('tr');
+        const normalizedRow = Array.isArray(row) ? row : [row];
+
+        normalizedRow.forEach((cellValue) => {
+            const td = document.createElement('td');
+            let displayValue = '';
+
+            if (cellValue !== null && cellValue !== undefined) {
+                if (typeof cellValue === 'number') {
+                    let formatted = cellValue.toFixed(6).replace(/\.0+$/, '').replace(/\.?0+$/, '');
+                    if (formatted === '') {
+                        formatted = '0';
+                    }
+                    displayValue = formatted;
+                } else {
+                    displayValue = String(cellValue);
+                }
+            }
+
+            td.textContent = displayValue;
+            tr.appendChild(td);
+        });
+
+        const cellsToPad = columnCount - tr.children.length;
+        for (let i = 0; i < cellsToPad; i += 1) {
+            tr.appendChild(document.createElement('td'));
+        }
+
+        tbody.appendChild(tr);
+    });
+}
 
 function renderCharts(datos, userType, monedaSimbolo) {
     if (!datos) return;

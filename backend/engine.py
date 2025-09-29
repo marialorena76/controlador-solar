@@ -127,13 +127,26 @@ def run_calculation_engine(user_data, excel_path):
             "summer_daily_generation": [generacion_anual/365/24 * 1.5] * 24, # Simplified summer generation
         }
 
+        basic_report_table = []
+        if df_resultados is not None:
+            try:
+                basic_table_df = df_resultados.iloc[2:56, 1:12]
+                basic_report_table = basic_table_df.where(pd.notna(basic_table_df), None).values.tolist()
+            except Exception as table_error:
+                print(f"WARN: Unable to extract basic report table: {table_error}")
+        else:
+            print("WARN: 'Resultados' sheet not found. Basic report table will be empty.")
+
         final_report = {
             "userType": user_data.get("userType", "basico"),
             "moneda": user_data.get("selectedCurrency", "Dólares"),
             "emisiones_evitadas_total_tco2": emisiones_total,
             "technical_data": tech_data,
             "economic_data": economic_data,
-            "chart_data": chart_data
+            "chart_data": chart_data,
+            "basic_report": {
+                "excel_table": basic_report_table
+            }
         }
 
         print("--- Engine Finished Successfully ---")

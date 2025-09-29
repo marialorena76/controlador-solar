@@ -60,6 +60,9 @@
       background-color: #f2f2f2;
       font-weight: bold;
     }
+    .basic-excel-table td {
+      white-space: normal;
+    }
     .result-blue {
       color: #007bff;
       font-weight: bold;
@@ -178,6 +181,12 @@
 
     <!-- Basic User Report Sections -->
     <div id="basic-report-sections">
+        <div class="report-section">
+          <div class="section-header">Resultados completos del informe básico</div>
+          <table class="report-table basic-excel-table">
+            <tbody id="basico_resultados_excel_body"></tbody>
+          </table>
+        </div>
         <div class="report-section">
           <div class="section-header">• Consumo y generación</div>
           <table class="report-table">
