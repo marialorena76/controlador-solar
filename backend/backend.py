@@ -10,6 +10,10 @@ from openpyxl import load_workbook
 from . import engine
 
 excel_lock = Lock()
+# Nota: este candado se reutiliza tanto para la escritura directa en el archivo
+# Excel como para las ejecuciones del motor de cálculo, de modo que todas las
+# operaciones que interactúan con el libro queden coordinadas y se evite el
+# acceso concurrente.
 
 # The write_to_debug_log function is being removed and replaced with standard prints.
 
@@ -140,7 +144,12 @@ def generar_informe():
             return jsonify({"error": "No se recibieron datos"}), 400
 
         print("Calling calculation engine...")
-        resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
+        # El motor de cálculo accede al mismo archivo Excel que la ruta de
+        # actualización, por lo que ambas operaciones comparten el mismo lock
+        # para evitar condiciones de carrera. La sección crítica se mantiene al
+        # mínimo, limitándose a la llamada del motor.
+        with excel_lock:
+            resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
         print("Engine call successful.")
 
         # Clean NaN values before returning the JSON response.
