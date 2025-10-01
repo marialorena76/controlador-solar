@@ -57,38 +57,16 @@ def update_excel_cell():
             return jsonify({"success": False, "error": "Archivo Excel de configuración no encontrado."}), 404
 
         with excel_lock:
- codex/add-post-endpoint-for-excel-updates-twtkeg
-            workbook = load_workbook(EXCEL_FILE_PATH)
-            try:
-                worksheet = workbook['Datos de Entrada']
-            except KeyError:
-                return jsonify({"success": False, "error": "Hoja 'Datos de Entrada' no encontrada en el Excel."}), 500
-
-            worksheet['B7'] = city_name
-
-            try:
-                workbook.save(EXCEL_FILE_PATH)
-            except (OSError, IOError) as save_error:
-                return jsonify({"success": False, "error": f"No se pudo guardar el archivo Excel: {save_error}"}), 500
-
-        return jsonify({"success": True})
-
-      workbook = None
+            workbook = None
             try:
                 workbook = load_workbook(EXCEL_FILE_PATH)
-                try:
-                    worksheet = workbook['Datos de Entrada']
-                except KeyError:
-                    return jsonify({"success": False, "error": "Hoja 'Datos de Entrada' no encontrada en el Excel."}), 500
-
+                worksheet = workbook['Datos de Entrada']
                 worksheet['B7'] = city_name
-
-                try:
-                    workbook.save(EXCEL_FILE_PATH)
-                except (OSError, IOError) as save_error:
-                    return jsonify({"success": False, "error": f"No se pudo guardar el archivo Excel: {save_error}"}), 500
-
-                return jsonify({"success": True})
+                workbook.save(EXCEL_FILE_PATH)
+            except KeyError:
+                return jsonify({"success": False, "error": "Hoja 'Datos de Entrada' no encontrada en el Excel."}), 500
+            except (OSError, IOError) as save_error:
+                return jsonify({"success": False, "error": f"No se pudo guardar el archivo Excel: {save_error}"}), 500
             finally:
                 if workbook is not None:
                     try:
@@ -96,7 +74,8 @@ def update_excel_cell():
                     except Exception:
                         # Ignoramos el error de cierre para no sobreescribir la respuesta original.
                         pass
- main
+
+        return jsonify({"success": True})
 
     except (OSError, IOError) as io_error:
         return jsonify({"success": False, "error": f"Error de E/S al actualizar el Excel: {io_error}"}), 500
