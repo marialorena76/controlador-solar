@@ -1642,6 +1642,36 @@ function extraerCiudadDeDireccion(direccion) {
     return null;
 }
 
+async function persistSelectedCityName(cityName) {
+    const locationDisplay = document.getElementById('location-display');
+    try {
+        const response = await fetch(API_BASE + '/excel/update_cell', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ciudad: cityName || '' })
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || data.success === false) {
+            const errorMessage = (data && data.error) ? data.error : `Error del servidor: ${response.status}`;
+            throw new Error(errorMessage);
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error al persistir la ciudad seleccionada:', error);
+        if (locationDisplay) {
+            const warningSuffix = ' (No se pudo guardar en el servidor)';
+            if (!locationDisplay.textContent.includes(warningSuffix.trim())) {
+                locationDisplay.textContent = `${locationDisplay.textContent}${warningSuffix}`;
+            }
+            locationDisplay.style.backgroundColor = '#fbe9e7';
+        }
+        return false;
+    }
+}
+
 // --- Lógica del Mapa (EXISTENTE, CON PEQUEÑAS MEJORAS) ---
 
 function initMap() {
@@ -1706,17 +1736,21 @@ function initMap() {
                             locationDisplay.style.backgroundColor = '#fbe9e7'; // Red for failure
                         }
                     }
+
+                    await persistSelectedCityName(ciudadResult ? ciudadResult.nombre : '');
                 } else {
                     if (locationDisplay) {
                         locationDisplay.textContent = 'No se pudo identificar la ubicación. Intente de nuevo.';
                         locationDisplay.style.backgroundColor = '#fbe9e7';
                     }
                     userSelections.ciudad = { codigo: null, nombre: null };
+                    await persistSelectedCityName('');
                 }
             });
         } else {
             // Fallback if geocoder is not available
             userSelections.ciudad = { codigo: null, nombre: null };
+            persistSelectedCityName('');
         }
     });
 
@@ -1756,12 +1790,14 @@ function initMap() {
                         locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
                         locationDisplay.style.backgroundColor = '#e9f5e9'; // Green for success
                     }
+                    await persistSelectedCityName(ciudadResult.nombre);
                 } else {
                     userSelections.ciudad = { codigo: null, nombre: null };
                     if (locationDisplay) {
                         locationDisplay.textContent = 'No se pudo encontrar la ciudad en la base de datos.';
                         locationDisplay.style.backgroundColor = '#fbe9e7'; // Red for failure
                     }
+                    await persistSelectedCityName('');
                 }
             } else {
                 console.warn('Geocoder did not return a name.');
@@ -1770,6 +1806,7 @@ function initMap() {
                     locationDisplay.textContent = 'Dirección no válida.';
                     locationDisplay.style.backgroundColor = '#fbe9e7';
                 }
+                await persistSelectedCityName('');
             }
         }
     }).addTo(map);
