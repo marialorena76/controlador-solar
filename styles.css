@@ -1065,3 +1065,136 @@ footer {
 .acordeon-items .form-group-energia:last-child {
   margin-bottom: 0;
 }
+
+/* Shared styling for the tabla del informe básico en el calculador */
+.basic-report-summary-container {
+  display: none;
+  max-width: 960px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #ffffff;
+  border: 2px solid #1f497d;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(15, 46, 99, 0.08);
+}
+
+.basic-report-table-wrapper {
+  overflow-x: auto;
+  margin-top: 1.5rem;
+}
+
+.basic-report-table-wrapper .basic-excel-table {
+  margin-bottom: 0;
+}
+
+.basic-excel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1rem;
+  background: #ffffff;
+  border: 2px solid #1f497d;
+  box-shadow: 0 4px 12px rgba(17, 52, 105, 0.06);
+  margin-bottom: 1.5rem;
+}
+
+.basic-excel-table td {
+  border: 1px solid #b4c6e7;
+  padding: 12px 16px;
+  color: #1f2a44;
+}
+
+.basic-excel-table tr.spacer-row td {
+  border: none;
+  padding: 6px 0;
+  background: transparent;
+  height: 8px;
+}
+
+.basic-excel-table td:first-child {
+  font-weight: 600;
+  width: 45%;
+  color: #1f497d;
+}
+
+.basic-excel-table td:nth-child(2) {
+  text-align: right;
+  font-weight: 600;
+}
+
+.basic-excel-table td:nth-child(3) {
+  text-align: center;
+  font-weight: 500;
+  width: 140px;
+}
+
+.basic-excel-table td.note-cell {
+  white-space: pre-line;
+  font-size: 0.95rem;
+  color: #1f2a44;
+}
+
+.basic-excel-table tr.table-main-title td {
+  background: #1f497d;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.25rem;
+  text-align: center;
+  border-color: #1f497d;
+}
+
+.basic-excel-table tr.section-header td {
+  background: #dae3f3;
+  color: #1f497d;
+  font-weight: 700;
+}
+
+.basic-excel-table tr.subsection-header td {
+  background: #e9eff9;
+  color: #1f497d;
+  font-weight: 600;
+}
+
+.basic-excel-table tr.highlight-row td {
+  background: #fff2cc;
+  color: #7f4e00;
+  font-weight: 600;
+}
+
+.basic-excel-table tr.warning-row td {
+  background: #fde9d9;
+  color: #9c2f13;
+  font-weight: 600;
+}
+
+.basic-excel-table tr.warning-row.negative-value td {
+  background: #fbe3d4;
+  color: #8c1e07;
+}
+
+.basic-excel-table tr.note-row td {
+  background: #f7f9fc;
+  color: #1f2a44;
+  font-style: italic;
+}
+
+.basic-report-open-button {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.75rem;
+  background-color: #1f497d;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+.basic-report-open-button:hover {
+  background-color: #17345d;
+  transform: translateY(-1px);
+}
+
+.basic-report-open-button:active {
+  transform: translateY(0);
+}

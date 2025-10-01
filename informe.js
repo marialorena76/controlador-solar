@@ -175,50 +175,11 @@ document.addEventListener('DOMContentLoaded', () => {
         setTextContent('experto_emisiones_totales', formatNumber(emissions.avoidedTonsCO2Lifetime));
 
     } else { // Basic user
-        const economicData = datos.economic_data || {};
-        const techData = datos.technical_data || {};
-        const basicReportData = datos.basic_report && datos.basic_report.excel_table ? datos.basic_report.excel_table : [];
+        const basicReportData = datos.basic_report && Array.isArray(datos.basic_report.excel_table)
+            ? datos.basic_report.excel_table
+            : [];
 
         renderBasicExcelTable(basicReportData);
-
-        // Technical Data
-        setTextContent('basico_consumo_anual_kwh', formatNumber(techData.consumo_anual_kwh));
-        setTextContent('basico_energia_generada_anual', formatNumber(techData.energia_generada_anual));
-        setTextContent('basico_autoconsumo', formatNumber(techData.autoconsumo));
-        setTextContent('basico_inyectada_red', formatNumber(techData.inyectada_red));
-        setTextContent('basico_potencia_panel_sugerida', formatNumber(techData.potencia_paneles_sugerida));
-        setTextContent('basico_numero_paneles', techData.cantidad_paneles_necesarios || 'N/A');
-        setTextContent('basico_area_paneles_m2', formatNumber(techData.superficie_necesaria));
-        const vidaUtil = (typeof techData.vida_util_proyecto === 'number' && Number.isFinite(techData.vida_util_proyecto))
-            ? techData.vida_util_proyecto
-            : 25;
-        setTextContent('basico_vida_util', formatNumber(vidaUtil));
-
-        // Economic Data (New Boxes)
-        // Ensure the currency symbol is set correctly in the new layout
-        document.querySelectorAll('#basic-report-sections .currency').forEach(el => {
-            el.textContent = monedaSimbolo;
-        });
-        setTextContent('basico_costo_sin_instalacion', formatNumber(economicData.gasto_anual_sin_fv));
-        setTextContent('basico_inversion_inicial_total', formatNumber(economicData.inversion_inicial));
-
-        // Conditional title based on saldo_anual_favor
-        const saldoAnualFavor = economicData.saldo_anual_favor || 0;
-        const resultadoLabel = document.getElementById('basico_resultado_label');
-        if (resultadoLabel) {
-            if (saldoAnualFavor > 0) {
-                resultadoLabel.textContent = 'Si realiza la instalación fotovoltaica tendrá un saldo neto anual a su favor de';
-                setTextContent('basico_costo_reducido', formatNumber(saldoAnualFavor));
-            } else {
-                resultadoLabel.textContent = 'Si realiza la instalación fotovoltaica su costo anual en energía eléctrica se reducirá a';
-                setTextContent('basico_costo_reducido', formatNumber(economicData.costo_anual_reducido));
-            }
-        } else {
-            setTextContent('basico_costo_reducido', formatNumber(economicData.costo_anual_reducido));
-        }
-
-        // Emissions
-        setTextContent('basico_emisiones_total_vida_util', formatNumber(datos.emisiones_evitadas_total_tco2));
     }
 
     // --- Chart Rendering ---
@@ -244,51 +205,187 @@ function renderBasicExcelTable(tableData) {
         return;
     }
 
+    if (window.BasicReportTableHelper && typeof window.BasicReportTableHelper.renderRows === 'function') {
+        window.BasicReportTableHelper.renderRows(tbody, tableData, { columnCount: 4 });
+        return;
+    }
+
+    // Fallback rendering in case the helper is not available for any reason.
     tbody.innerHTML = '';
 
     if (!Array.isArray(tableData) || tableData.length === 0) {
         const emptyRow = document.createElement('tr');
         const emptyCell = document.createElement('td');
-        emptyCell.colSpan = 11;
+        emptyCell.colSpan = 4;
         emptyCell.textContent = 'No se encontraron datos para mostrar el informe básico detallado.';
         emptyRow.appendChild(emptyCell);
         tbody.appendChild(emptyRow);
         return;
     }
 
-    const columnCount = Array.isArray(tableData[0]) ? tableData[0].length : 1;
+    const formatNumber = (value) => {
+        if (typeof value !== 'number' || !Number.isFinite(value)) {
+            return '';
+        }
+        if (Number.isInteger(value)) {
+            return value.toLocaleString('es-AR', { maximumFractionDigits: 0 });
+        }
+        const abs = Math.abs(value);
+        const fractionDigits = abs < 1 ? 3 : 2;
+        return value.toLocaleString('es-AR', {
+            minimumFractionDigits: fractionDigits,
+            maximumFractionDigits: fractionDigits,
+        });
+    };
+
+    const isUnit = (value) => typeof value === 'string' && /(%|US\$|U\$S|\$|d[oó]lares|tCO2|m2|kWh|W|años?|USD)/i.test(value);
+
+    const applyRowClass = (rowElement, className) => {
+        if (!rowElement || !className) {
+            return;
+        }
+        className.split(/\s+/).forEach((cls) => {
+            if (cls) {
+                rowElement.classList.add(cls);
+            }
+        });
+    };
 
     tableData.forEach((row) => {
-        const tr = document.createElement('tr');
-        const normalizedRow = Array.isArray(row) ? row : [row];
+        const rawCells = Array.isArray(row) ? row : [row];
+        const cleanedCells = rawCells.map((cell) => {
+            if (cell === null || cell === undefined) {
+                return null;
+            }
+            if (typeof cell === 'number') {
+                return Number.isFinite(cell) ? cell : null;
+            }
+            if (typeof cell === 'string') {
+                const trimmed = cell.trim();
+                return trimmed ? trimmed : null;
+            }
+            return null;
+        });
 
-        normalizedRow.forEach((cellValue) => {
-            const td = document.createElement('td');
-            let displayValue = '';
+        if (cleanedCells.every((cell) => cell === null)) {
+            const spacerRow = document.createElement('tr');
+            applyRowClass(spacerRow, 'spacer-row');
+            for (let i = 0; i < 4; i += 1) {
+                const td = document.createElement('td');
+                td.innerHTML = '&nbsp;';
+                spacerRow.appendChild(td);
+            }
+            tbody.appendChild(spacerRow);
+            return;
+        }
 
-            if (cellValue !== null && cellValue !== undefined) {
-                if (typeof cellValue === 'number') {
-                    if (Number.isFinite(cellValue)) {
-                        const roundedValue = Math.round(cellValue);
-                        displayValue = roundedValue.toLocaleString('es-AR', {
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0,
-                        });
-                    } else {
-                        displayValue = 'N/A';
-                    }
-                } else {
-                    displayValue = String(cellValue);
+        const label = typeof cleanedCells[0] === 'string' ? cleanedCells[0] : '';
+        const rest = cleanedCells.slice(1);
+        let value = '';
+        let numericValue = null;
+        let unit = typeof cleanedCells[2] === 'string' ? cleanedCells[2] : '';
+        const notes = [];
+
+        if (typeof cleanedCells[1] === 'number') {
+            value = formatNumber(cleanedCells[1]);
+            numericValue = cleanedCells[1];
+        } else if (typeof cleanedCells[1] === 'string') {
+            value = cleanedCells[1];
+        }
+
+        if (!value) {
+            const fallbackNumber = rest.find((cell) => typeof cell === 'number');
+            if (typeof fallbackNumber === 'number') {
+                value = formatNumber(fallbackNumber);
+                numericValue = fallbackNumber;
+            } else {
+                const fallbackText = rest.find((cell) => typeof cell === 'string' && !isUnit(cell));
+                if (fallbackText) {
+                    value = fallbackText;
                 }
             }
+        }
 
-            td.textContent = displayValue;
+        if (!unit) {
+            const fallbackUnit = rest.find((cell) => typeof cell === 'string' && isUnit(cell));
+            if (fallbackUnit) {
+                unit = fallbackUnit;
+            }
+        }
+
+        rest.forEach((cell) => {
+            if (!cell) {
+                return;
+            }
+            if (typeof cell === 'string' && !isUnit(cell) && cell !== value) {
+                notes.push(cell);
+            }
+        });
+
+        const note = notes.join('\n');
+        const tr = document.createElement('tr');
+
+        const addFullRow = (className, text) => {
+            applyRowClass(tr, className);
+            const td = document.createElement('td');
+            td.colSpan = 4;
+            td.textContent = text;
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+        };
+
+        const normalizedLabel = (label || '').toLowerCase();
+
+        if (normalizedLabel.includes('resultado del dimensionamiento') ||
+            normalizedLabel.includes('datos técnicos') ||
+            normalizedLabel.includes('resultados económicos') ||
+            normalizedLabel.includes('contribución a la mitigación') ||
+            normalizedLabel.startsWith('•')) {
+            const className = normalizedLabel.includes('resultado del dimensionamiento')
+                ? 'table-main-title'
+                : normalizedLabel.startsWith('•')
+                    ? 'subsection-header'
+                    : 'section-header';
+            addFullRow(className, label);
+            return;
+        }
+
+        if (!label && note) {
+            addFullRow('note-row', note);
+            return;
+        }
+
+        if (!label && !note && !value && !unit) {
+            addFullRow('spacer-row', '');
+            return;
+        }
+
+        const displayValue = value || (label ? 'N/A' : '');
+        const cells = [label || '', displayValue, unit || '', note || ''];
+
+        cells.forEach((cellValue, index) => {
+            const td = document.createElement('td');
+            td.textContent = cellValue;
+            if (index === 3 && note) {
+                td.classList.add('note-cell');
+            }
             tr.appendChild(td);
         });
 
-        const cellsToPad = columnCount - tr.children.length;
-        for (let i = 0; i < cellsToPad; i += 1) {
-            tr.appendChild(document.createElement('td'));
+        const highlightRow = label && (
+            normalizedLabel.includes('saldo neto') ||
+            normalizedLabel.includes('inversión inicial') ||
+            normalizedLabel.includes('ahorro económico') ||
+            normalizedLabel.includes('ahorro anual')
+        );
+
+        if (highlightRow) {
+            tr.classList.add('highlight-row');
+        }
+
+        if (normalizedLabel.includes('efecto económico') || (numericValue !== null && Number.isFinite(numericValue) && numericValue < 0)) {
+            tr.classList.remove('highlight-row');
+            tr.classList.add('warning-row', 'negative-value');
         }
 
         tbody.appendChild(tr);
@@ -312,6 +409,12 @@ function renderBasicCharts(datos) {
         ...(datos.basic_report?.energy || {})
     };
 
+    const canvasIds = ['winterDailyChart', 'summerDailyChart', 'monthlyComparisonChart'];
+    const hasAnyCanvas = canvasIds.some((id) => document.getElementById(id));
+    if (!hasAnyCanvas) {
+        return;
+    }
+
     const ensureTwelveValues = (arr, fallback = []) => {
         const source = Array.isArray(arr) ? arr : fallback;
         const normalized = Array.isArray(source) ? source.slice(0, 12) : [];
@@ -325,7 +428,6 @@ function renderBasicCharts(datos) {
     const renderDailyChart = (canvasId, title, consumptionData, generationData) => {
         const ctx = document.getElementById(canvasId)?.getContext('2d');
         if (!ctx) {
-            console.error(`Canvas con ID '${canvasId}' no encontrado.`);
             return;
         }
 
@@ -414,8 +516,6 @@ function renderBasicCharts(datos) {
                 }
             }
         });
-    } else {
-        console.error("Canvas con ID 'monthlyComparisonChart' no encontrado.");
     }
 }
 
