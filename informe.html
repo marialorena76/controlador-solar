@@ -31,6 +31,7 @@
       border-radius: 10px 10px 0 0;
       letter-spacing: 0.5px;
       font-family: 'Bebas Neue', Arial, sans-serif;
+      text-transform: uppercase;
     }
     .report-section {
         margin-bottom: 32px;
@@ -182,114 +183,14 @@
     <!-- Basic User Report Sections -->
     <div id="basic-report-sections">
         <div class="report-section">
-          <div class="section-header">Resultados completos del informe básico</div>
-          <table class="report-table basic-excel-table">
-            <tbody id="basico_resultados_excel_body"></tbody>
-          </table>
-        </div>
-        <div class="report-section">
-          <div class="section-header">• Consumo y generación</div>
-          <table class="report-table">
-            <tr>
-              <td>Consumo anual de energía eléctrica</td>
-              <td><span id="basico_consumo_anual_kwh"></span> (kWh/año)</td>
-            </tr>
-            <tr>
-              <td>Generación anual de energía eléctrica</td>
-              <td><span id="basico_energia_generada_anual"></span> (kWh/año)</td>
-            </tr>
-            <tr>
-              <td>Energía para autoconsumo</td>
-              <td><span id="basico_autoconsumo"></span> (kWh/año)</td>
-            </tr>
-            <tr>
-              <td>Energía inyectada a la red</td>
-              <td><span id="basico_inyectada_red"></span> (kWh/año)</td>
-            </tr>
-          </table>
-        </div>
-        <div class="report-section">
-          <div class="section-header">• Detalles de la instalación</div>
-          <table class="report-table">
-            <tr>
-              <td>Potencia de paneles sugerida</td>
-              <td><span id="basico_potencia_panel_sugerida"></span> W</td>
-            </tr>
-            <tr>
-              <td>Cantidad paneles necesarios</td>
-              <td><span id="basico_numero_paneles"></span></td>
-            </tr>
-            <tr>
-              <td>Superficie necesaria</td>
-              <td><span id="basico_area_paneles_m2"></span> m2</td>
-            </tr>
-          </table>
-        </div>
-        <div class="report-section">
-            <table class="report-table">
-                <tr>
-                    <td>Vida útil del proyecto (años)</td>
-                    <td><span id="basico_vida_util"></span></td>
-                </tr>
+          <div class="section-header">Datos técnicos del dimensionamiento</div>
+          <div class="basic-report-table-wrapper">
+            <table class="report-table basic-excel-table">
+              <tbody id="basico_resultados_excel_body"></tbody>
             </table>
-        </div>
-        <div class="report-section">
-            <div class="section-header">Resultados económicos</div>
-
-            <div class="economic-result-box blue-box">
-                <div class="economic-result-label" id="basico_resultado_label">Si realiza la instalación fotovoltaica su costo anual en energía eléctrica se reducirá a</div>
-                <div class="economic-result-value">
-                    <span id="basico_costo_reducido"></span>
-                    <span class="currency">U$S</span>
-                </div>
-            </div>
-
-            <div class="economic-result-box gray-box">
-                <div class="economic-result-label">Sin la instalación fotovoltaica su gasto anual en energía eléctrica es de</div>
-                <div class="economic-result-value">
-                    <span id="basico_costo_sin_instalacion"></span>
-                    <span class="currency">U$S</span>
-                </div>
-            </div>
-
-            <div class="economic-result-box yellow-box">
-                <div class="economic-result-label">Inversión inicial necesaria para el sistema solar fotovoltaico</div>
-                <div class="economic-result-value">
-                    <span id="basico_inversion_inicial_total"></span>
-                    <span class="currency">U$S</span>
-                </div>
-            </div>
-
-            <div class="aclaracion-box">
-                <strong>ACLARACIÓN:</strong> El análisis ecónomico aquí presentado no considera los costos fijos en la factura de Energía Eléctrica, ya que el costo fijo no variará en caso de realizar la instalación de paneles solares fotovoltaicos.
-                Tampoco se consideran los impuestos que pueden llegar a ser entre un 30% y 40% de su factura. Debe considerar que los impuestos en su factura de energía eléctrica disminiurán de llevar adelante la instalación, en particular aquellos que esten ligados al consumo, como por ejemplo el IVA.
-            </div>
-        </div>
-        <div class="report-section">
-          <div class="section-header">• Contribución a la mitigación del cambio climático</div>
-          <table class="report-table">
-            <tr>
-              <td>Emisiones de gases de efecto invernadero evitadas con la instalación</td>
-              <td><span id="basico_emisiones_total_vida_util"></span> tCO2</td>
-            </tr>
-          </table>
-        </div>
-
-        <!-- Chart Sections -->
-        <div class="report-section">
-          <div class="section-header">Consumo de energía eléctrica vs generación de energía solar fotovoltaica para un día típico de Invierno</div>
-          <div style="width: 100%; margin: auto;"><canvas id="winterDailyChart"></canvas></div>
-        </div>
-        <div class="report-section">
-          <div class="section-header">Consumo de energía eléctrica vs generación de energía solar fotovoltaica para un día típico de Verano</div>
-          <div style="width: 100%; margin: auto;"><canvas id="summerDailyChart"></canvas></div>
-        </div>
-        <div class="report-section">
-          <div class="section-header">Comparativa entre consumo de energía eléctrica y generación solar fotovoltaica para cada mes del año</div>
-          <div style="width: 100%; margin: auto;"><canvas id="monthlyComparisonChart"></canvas></div>
+          </div>
         </div>
     </div>
-
     <!-- Expert User Report Sections -->
     <div id="expert-report-sections" style="display: none;">
         <!-- Radiación -->
