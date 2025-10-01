@@ -64,13 +64,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Data Population ---
-    const formatNumber = (num, decimals = 2) => {
+    const formatNumber = (num) => {
         if (typeof num !== 'number' || !Number.isFinite(num)) {
             return 'N/A';
         }
-        return num.toLocaleString('es-AR', {
-            minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals,
+        const rounded = Math.round(num);
+        return rounded.toLocaleString('es-AR', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         });
     };
     const monedaSimbolo = datos.moneda === 'Dólares' ? 'U$D' : '$';
@@ -134,19 +135,19 @@ document.addEventListener('DOMContentLoaded', () => {
             : null;
 
         // Radiación y consumo
-        setTextContent('experto_radiacion_anual', formatNumber(annualIrradiance, 2));
+        setTextContent('experto_radiacion_anual', formatNumber(annualIrradiance));
         setTextContent('experto_incremento_radiacion', 'N/A');
-        setTextContent('experto_consumo_anual', formatNumber(energy.annualConsumptionKWh, 0));
+        setTextContent('experto_consumo_anual', formatNumber(energy.annualConsumptionKWh));
 
         // Paneles
         const panelBrand = systemDesign.panelBrand || systemDesign.panelModel || 'N/A';
         setTextContent('experto_panel_marca', panelBrand);
-        setTextContent('experto_panel_potencia', formatNumber(systemDesign.panelPowerW, 0));
+        setTextContent('experto_panel_potencia', formatNumber(systemDesign.panelPowerW));
         setTextContent('experto_panel_modelo', systemDesign.panelModel || 'N/A');
-        setTextContent('experto_panel_eficiencia', formatNumber(systemDesign.panelEfficiency, 2));
+        setTextContent('experto_panel_eficiencia', formatNumber(systemDesign.panelEfficiency));
         setTextContent('experto_cantidad_paneles', systemDesign.panelCount);
-        setTextContent('experto_superficie', formatNumber(requiredSurface, 2));
-        setTextContent('experto_potencia_instalada', formatNumber(installedCapacityW, 0));
+        setTextContent('experto_superficie', formatNumber(requiredSurface));
+        setTextContent('experto_potencia_instalada', formatNumber(installedCapacityW));
 
         // Inversores - no disponibles actualmente en el motor
         setTextContent('experto_inversor_sugerido', 'No disponible');
@@ -156,22 +157,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Datos económicos
         document.querySelectorAll('[id^="experto_moneda_"]').forEach(el => el.textContent = monedaSimbolo);
-        setTextContent('experto_cargo_pico', formatNumber(tariffs.consumptionTariff, 4));
-        setTextContent('experto_cargo_fuera_pico', formatNumber(tariffs.consumptionTariff, 4));
-        setTextContent('experto_costo_actual', formatNumber(economy.preProjectAnnualCost, 0));
-        setTextContent('experto_costo_total_actualizado', formatNumber(totalConsumptionCost, 0));
-        setTextContent('experto_inversion_inicial', formatNumber(economy.initialInvestment, 0));
-        setTextContent('experto_mantenimiento', formatNumber(economy.maintenanceAnnualCost, 0));
-        setTextContent('experto_tarifa_inyeccion', formatNumber(tariffs.injectionTariff, 4));
-        setTextContent('experto_costo_futuro', formatNumber(postProjectLifetimeCost, 0));
-        setTextContent('experto_ahorro_actualizado', formatNumber(totalSavingsLifetime, 0));
-        setTextContent('experto_ingreso_anual_inyeccion', formatNumber(economy.injectionRevenue, 0));
-        setTextContent('experto_ingreso_total_inyeccion', formatNumber(totalInjectionRevenue, 0));
-        setTextContent('experto_ahorro_neto', formatNumber(netSavingsLifetime, 0));
+        setTextContent('experto_cargo_pico', formatNumber(tariffs.consumptionTariff));
+        setTextContent('experto_cargo_fuera_pico', formatNumber(tariffs.consumptionTariff));
+        setTextContent('experto_costo_actual', formatNumber(economy.preProjectAnnualCost));
+        setTextContent('experto_costo_total_actualizado', formatNumber(totalConsumptionCost));
+        setTextContent('experto_inversion_inicial', formatNumber(economy.initialInvestment));
+        setTextContent('experto_mantenimiento', formatNumber(economy.maintenanceAnnualCost));
+        setTextContent('experto_tarifa_inyeccion', formatNumber(tariffs.injectionTariff));
+        setTextContent('experto_costo_futuro', formatNumber(postProjectLifetimeCost));
+        setTextContent('experto_ahorro_actualizado', formatNumber(totalSavingsLifetime));
+        setTextContent('experto_ingreso_anual_inyeccion', formatNumber(economy.injectionRevenue));
+        setTextContent('experto_ingreso_total_inyeccion', formatNumber(totalInjectionRevenue));
+        setTextContent('experto_ahorro_neto', formatNumber(netSavingsLifetime));
 
         // Emisiones
-        setTextContent('experto_emisiones_primer_ano', formatNumber(emissions.avoidedTonsCO2PerYear, 2));
-        setTextContent('experto_emisiones_totales', formatNumber(emissions.avoidedTonsCO2Lifetime, 2));
+        setTextContent('experto_emisiones_primer_ano', formatNumber(emissions.avoidedTonsCO2PerYear));
+        setTextContent('experto_emisiones_totales', formatNumber(emissions.avoidedTonsCO2Lifetime));
 
     } else { // Basic user
         const economicData = datos.economic_data || {};
@@ -181,22 +182,25 @@ document.addEventListener('DOMContentLoaded', () => {
         renderBasicExcelTable(basicReportData);
 
         // Technical Data
-        setTextContent('basico_consumo_anual_kwh', formatNumber(techData.consumo_anual_kwh, 0));
-        setTextContent('basico_energia_generada_anual', formatNumber(techData.energia_generada_anual, 0));
-        setTextContent('basico_autoconsumo', formatNumber(techData.autoconsumo, 0));
-        setTextContent('basico_inyectada_red', formatNumber(techData.inyectada_red, 0));
-        setTextContent('basico_potencia_panel_sugerida', formatNumber(techData.potencia_paneles_sugerida, 0));
+        setTextContent('basico_consumo_anual_kwh', formatNumber(techData.consumo_anual_kwh));
+        setTextContent('basico_energia_generada_anual', formatNumber(techData.energia_generada_anual));
+        setTextContent('basico_autoconsumo', formatNumber(techData.autoconsumo));
+        setTextContent('basico_inyectada_red', formatNumber(techData.inyectada_red));
+        setTextContent('basico_potencia_panel_sugerida', formatNumber(techData.potencia_paneles_sugerida));
         setTextContent('basico_numero_paneles', techData.cantidad_paneles_necesarios || 'N/A');
-        setTextContent('basico_area_paneles_m2', formatNumber(techData.superficie_necesaria, 2));
-        setTextContent('basico_vida_util', techData.vida_util_proyecto || '25');
+        setTextContent('basico_area_paneles_m2', formatNumber(techData.superficie_necesaria));
+        const vidaUtil = (typeof techData.vida_util_proyecto === 'number' && Number.isFinite(techData.vida_util_proyecto))
+            ? techData.vida_util_proyecto
+            : 25;
+        setTextContent('basico_vida_util', formatNumber(vidaUtil));
 
         // Economic Data (New Boxes)
         // Ensure the currency symbol is set correctly in the new layout
         document.querySelectorAll('#basic-report-sections .currency').forEach(el => {
             el.textContent = monedaSimbolo;
         });
-        setTextContent('basico_costo_sin_instalacion', formatNumber(economicData.gasto_anual_sin_fv, 0));
-        setTextContent('basico_inversion_inicial_total', formatNumber(economicData.inversion_inicial, 0));
+        setTextContent('basico_costo_sin_instalacion', formatNumber(economicData.gasto_anual_sin_fv));
+        setTextContent('basico_inversion_inicial_total', formatNumber(economicData.inversion_inicial));
 
         // Conditional title based on saldo_anual_favor
         const saldoAnualFavor = economicData.saldo_anual_favor || 0;
@@ -204,17 +208,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (resultadoLabel) {
             if (saldoAnualFavor > 0) {
                 resultadoLabel.textContent = 'Si realiza la instalación fotovoltaica tendrá un saldo neto anual a su favor de';
-                setTextContent('basico_costo_reducido', formatNumber(saldoAnualFavor, 0));
+                setTextContent('basico_costo_reducido', formatNumber(saldoAnualFavor));
             } else {
                 resultadoLabel.textContent = 'Si realiza la instalación fotovoltaica su costo anual en energía eléctrica se reducirá a';
-                setTextContent('basico_costo_reducido', formatNumber(economicData.costo_anual_reducido, 0));
+                setTextContent('basico_costo_reducido', formatNumber(economicData.costo_anual_reducido));
             }
         } else {
-            setTextContent('basico_costo_reducido', formatNumber(economicData.costo_anual_reducido, 0));
+            setTextContent('basico_costo_reducido', formatNumber(economicData.costo_anual_reducido));
         }
 
         // Emissions
-        setTextContent('basico_emisiones_total_vida_util', formatNumber(datos.emisiones_evitadas_total_tco2, 2));
+        setTextContent('basico_emisiones_total_vida_util', formatNumber(datos.emisiones_evitadas_total_tco2));
     }
 
     // --- Chart Rendering ---
@@ -264,11 +268,15 @@ function renderBasicExcelTable(tableData) {
 
             if (cellValue !== null && cellValue !== undefined) {
                 if (typeof cellValue === 'number') {
-                    let formatted = cellValue.toFixed(6).replace(/\.0+$/, '').replace(/\.?0+$/, '');
-                    if (formatted === '') {
-                        formatted = '0';
+                    if (Number.isFinite(cellValue)) {
+                        const roundedValue = Math.round(cellValue);
+                        displayValue = roundedValue.toLocaleString('es-AR', {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                        });
+                    } else {
+                        displayValue = 'N/A';
                     }
-                    displayValue = formatted;
                 } else {
                     displayValue = String(cellValue);
                 }
@@ -499,8 +507,8 @@ function renderExpertCharts(datos) {
                             if (label) {
                                 label += ': ';
                             }
-                            if (context.parsed !== null) {
-                                label += context.parsed.toFixed(2) + '%';
+                            if (Number.isFinite(context.parsed)) {
+                                label += `${Math.round(context.parsed)}%`;
                             }
                             return label;
                         }

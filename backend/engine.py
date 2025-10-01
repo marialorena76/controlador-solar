@@ -227,9 +227,8 @@ def extract_support_parameters(df_datos_entrada) -> Dict[str, float]:
     total_losses_factor = sum(loss_components.values())
     performance_ratio = max(0.0, 1 - total_losses_factor)
 
-    vida_util_valor = to_numeric_safe(df_datos_entrada.iloc[190, 2], default=25)
-    vida_util_personalizada = df_datos_entrada.iloc[190, 4] if df_datos_entrada.shape[1] > 4 else None
-    vida_util = to_numeric_safe(vida_util_personalizada, default=vida_util_valor)
+    # La vida útil del proyecto se establece en 25 años para el informe.
+    vida_util = 25
 
     costo_inversion_kw_usd = to_numeric_safe(df_datos_entrada.iloc[197, 2])
     costo_mantenimiento_kw_year_usd = to_numeric_safe(df_datos_entrada.iloc[198, 2])
@@ -239,7 +238,7 @@ def extract_support_parameters(df_datos_entrada) -> Dict[str, float]:
         "hsp_anual": hsp_anual,
         "performance_ratio": performance_ratio,
         **loss_components,
-        "project_lifetime_years": vida_util or 25,
+        "project_lifetime_years": vida_util,
         "investment_cost_kw_usd": costo_inversion_kw_usd,
         "maintenance_kw_year_usd": costo_mantenimiento_kw_year_usd,
         "usd_to_ars": tipo_cambio if tipo_cambio > 0 else 1.0,

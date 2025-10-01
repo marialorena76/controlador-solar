@@ -6,6 +6,7 @@ import os
 import json
 import math
 from threading import Lock
+from openpyxl import load_workbook
 from . import engine
 
 excel_lock = Lock()
@@ -37,6 +38,43 @@ CONSUMOS_JSON_PATH = os.path.join(PROJECT_ROOT, 'consumos_electrodomesticos.json
 
 app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path='')
 CORS(app)  # Habilita CORS para permitir solicitudes desde el frontend
+
+
+# --- Ruta para actualizar una celda específica del Excel ---
+@app.route('/api/excel/update_cell', methods=['POST'])
+def update_excel_cell():
+    try:
+        payload = request.get_json(silent=True) or {}
+        raw_city_name = payload.get('ciudad', '')
+        # Manejar valores None o que no sean strings convirtiéndolos explícitamente
+        city_name = '' if raw_city_name is None else str(raw_city_name)
+
+        if not os.path.exists(EXCEL_FILE_PATH):
+            return jsonify({"success": False, "error": "Archivo Excel de configuración no encontrado."}), 404
+
+        with excel_lock:
+            workbook = load_workbook(EXCEL_FILE_PATH)
+            try:
+                worksheet = workbook['Datos de Entrada']
+            except KeyError:
+                return jsonify({"success": False, "error": "Hoja 'Datos de Entrada' no encontrada en el Excel."}), 500
+
+            worksheet['B7'] = city_name
+
+            try:
+                workbook.save(EXCEL_FILE_PATH)
+            except (OSError, IOError) as save_error:
+                return jsonify({"success": False, "error": f"No se pudo guardar el archivo Excel: {save_error}"}), 500
+
+        return jsonify({"success": True})
+
+    except (OSError, IOError) as io_error:
+        return jsonify({"success": False, "error": f"Error de E/S al actualizar el Excel: {io_error}"}), 500
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/excel/update_cell: {e}")
+        print(traceback.format_exc())
+        return jsonify({"success": False, "error": f"Error interno del servidor: {e}"}), 500
 
 
 # --- NUEVA RUTA: Para obtener la lista de electrodomésticos y sus consumos ---
