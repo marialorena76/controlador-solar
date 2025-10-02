@@ -70,8 +70,24 @@ def run_calculation_engine(user_data, excel_path):
         paneles_comerciales = pd.read_excel(excel_path, sheet_name='Paneles comerciales')
         paneles_genericos = pd.read_excel(excel_path, sheet_name='Paneles genéricos')
 
+        panel_marca = user_data.get('marcaPanel', 'GENERICOS')
+        panel_potencia_deseada = to_numeric_safe(user_data.get('potenciaPanelDeseada', 450))
+
+        panel_data = get_panel_data(
+            panel_marca,
+            panel_potencia_deseada,
+            paneles_comerciales,
+            paneles_genericos,
+        )
+
         city_profile = resolve_city_profile(user_data, all_sheets)
-        support_params = extract_support_parameters(df_datos_entrada)
+        support_params = extract_support_parameters(
+            df_datos_entrada,
+            panel_data,
+            all_sheets,
+            paneles_comerciales,
+            paneles_genericos,
+        )
         support_params = apply_city_adjustments(
             user_data,
             support_params,
@@ -201,14 +217,81 @@ def to_numeric_safe(value, default=0.0):
     return numeric_val if pd.notna(numeric_val) else default
 
 
-def extract_support_parameters(df_datos_entrada) -> Dict[str, float]:
-    """Pull fixed parameters from the workbook."""
+def _calculate_loss_qual(
+    panel_brand: str,
+    panel_power: float,
+    df_paneles_genericos: pd.DataFrame,
+    df_paneles_comerciales: pd.DataFrame,
+    df_tablas: pd.DataFrame,
+) -> float:
+    """
+    Replicates the logic for calculating 'loss_qual' from the Excel formula:
+    =IF($C$81=Tablas!$I$11,
+        VLOOKUP(C82,'Paneles genéricos'!B2:R40,17,FALSE),
+        VLOOKUP(CONCATENATE('Datos de Entrada'!$C$81,'Datos de Entrada'!$C$82),'Paneles comerciales'!$A$2:$V$135,22,FALSE)
+    ) / 4
+    """
+    try:
+        # Get the brand name for generic panels from Tablas!I11
+        generic_brand_name = df_tablas.iloc[10, 8]  # Corresponds to cell I11
+
+        if panel_brand == generic_brand_name:
+            # VLOOKUP in 'Paneles genéricos'
+            lookup_df = df_paneles_genericos
+            lookup_df['Pmax[W]'] = pd.to_numeric(lookup_df['Pmax[W]'], errors='coerce')
+
+            # Find the closest power value
+            match = lookup_df.iloc[(lookup_df['Pmax[W]'] - panel_power).abs().argsort()[:1]]
+
+            if not match.empty:
+                # Column 17 corresponds to 'Tolerancia de potencias'
+                tolerance = to_numeric_safe(match.iloc[0, 16], default=0.0)
+                return tolerance / 4
+        else:
+            # VLOOKUP in 'Paneles comerciales'
+            lookup_df = df_paneles_comerciales
+            # Create the concatenated key for lookup
+            lookup_df['lookup_key'] = lookup_df['Marca'].astype(str) + lookup_df['Pmax[W]'].astype(str)
+
+            target_key = f"{panel_brand}{panel_power}"
+            match = lookup_df[lookup_df['lookup_key'] == target_key]
+
+            if not match.empty:
+                # Column 22 corresponds to 'Tolerancia (+)'
+                tolerance = to_numeric_safe(match.iloc[0, 21], default=0.0)
+                return tolerance / 4
+
+        return 0.0  # Default if no match is found
+
+    except (IndexError, KeyError) as e:
+        print(f"Error calculating loss_qual: {e}")
+        return 0.0 # Return a default value in case of error
+
+
+def extract_support_parameters(
+    df_datos_entrada,
+    panel_data: Dict,
+    all_sheets: Dict[str, pd.DataFrame],
+    paneles_comerciales: pd.DataFrame,
+    paneles_genericos: pd.DataFrame,
+) -> Dict[str, float]:
+    """Pull fixed parameters from the workbook, calculating some from scratch."""
 
     hsp_anual = to_numeric_safe(df_datos_entrada.iloc[30, 8])
 
     loss_fiam = to_numeric_safe(df_datos_entrada.iloc[128, 2])
     loss_temp = to_numeric_safe(df_datos_entrada.iloc[130, 2])
-    loss_qual = to_numeric_safe(df_datos_entrada.iloc[132, 2])
+
+    # --- Start: Replaced direct read with calculation ---
+    loss_qual = _calculate_loss_qual(
+        panel_brand=panel_data.get('Marca', 'GENERICOS'),
+        panel_power=to_numeric_safe(panel_data.get('Pmax[W]', 450)),
+        df_paneles_genericos=paneles_genericos,
+        df_paneles_comerciales=paneles_comerciales,
+        df_tablas=all_sheets.get('Tablas')
+    )
+    # --- End: Replaced direct read with calculation ---
+
     loss_dirt = to_numeric_safe(df_datos_entrada.iloc[134, 2])
     loss_mismatch = to_numeric_safe(df_datos_entrada.iloc[136, 2])
     loss_wiring = to_numeric_safe(df_datos_entrada.iloc[138, 2])
