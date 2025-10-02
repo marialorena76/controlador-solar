@@ -2612,7 +2612,7 @@ function setupNavigationButtons() {
                         fullReportButton.textContent = 'Abrir informe completo';
                         fullReportButton.className = 'basic-report-open-button';
                         fullReportButton.addEventListener('click', () => {
-                            window.location.href = 'informe.html';
+                            window.location.href = 'generar_informe.html';
                         });
                         resultadosContainer.appendChild(fullReportButton);
 
@@ -2623,11 +2623,11 @@ function setupNavigationButtons() {
                         resultadosContainer.scrollIntoView({ behavior: 'smooth' });
                     } else {
                         // Fallback if rendering fails: redirect to the full report page
-                        window.location.href = 'informe.html';
+                        window.location.href = 'generar_informe.html';
                     }
                 } else {
                     // Expert user always redirects
-                    window.location.href = 'informe.html';
+                    window.location.href = 'generar_informe.html';
                 }
             } catch (error) {
                 console.error('Error al generar el informe:', error);
