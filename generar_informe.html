@@ -531,10 +531,17 @@
         }
       })();
 
+codex/generate-generar_informe.html-with-solar-report-ccoub5
       const payload = userSelections && typeof userSelections === 'object' ? userSelections : {};
 
       try {
         const response = await fetch('/api/generar_informe', {
+
+      const payload = userSelections ? { userSelections } : {};
+
+      try {
+        const response = await fetch('/generar_informe', {
+ main
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
