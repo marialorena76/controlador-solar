@@ -2583,6 +2583,11 @@ function setupNavigationButtons() {
                 const selectedUserType = typeof userSelections.userType === 'string'
                     ? userSelections.userType.toLowerCase()
                     : null;
+codex/replace-report-url-in-calculador.js-oxo1d5
+                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
+                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
+                window.location.href = 'generar_informe.html';
+
                 const isBasicUser = backendUserType === 'basico' || selectedUserType === 'basico';
 
                 if (isBasicUser) {
@@ -2629,6 +2634,7 @@ function setupNavigationButtons() {
                     // Expert user always redirects
                     window.location.href = 'generar_informe.html';
                 }
+ main
             } catch (error) {
                 console.error('Error al generar el informe:', error);
                 alert('Hubo un error al generar el informe. Por favor, intente de nuevo. Detalle: ' + error.message);
