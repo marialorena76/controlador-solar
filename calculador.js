@@ -2607,11 +2607,14 @@ function setupNavigationButtons() {
                         resultadosContainer.style.display = 'block';
 
                         resultadosContainer.scrollIntoView({ behavior: 'smooth' });
-                        return;
+                    } else {
+                        // Fallback if rendering fails: redirect to the full report page
+                        window.location.href = 'informe.html';
                     }
+                } else {
+                    // Expert user always redirects
+                    window.location.href = 'informe.html';
                 }
-
-                window.location.href = 'informe.html';
             } catch (error) {
                 console.error('Error al generar el informe:', error);
                 alert('Hubo un error al generar el informe. Por favor, intente de nuevo. Detalle: ' + error.message);
