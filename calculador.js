@@ -1677,6 +1677,8 @@ async function persistSelectedCityName(cityName) {
 function initMap() {
     console.log('--- initMap CALLED ---');
 
+ codex/replace-report-url-in-calculador.js-yq8c7q
+
 codex/replace-report-url-in-calculador.js-iv0085
     const mapContainer = document.getElementById('map');
     if (!mapContainer) {
@@ -1702,16 +1704,20 @@ main
         geocoderControlInstance = null;
     }
 
+ main
     if (map) {
         map.off();
         map.remove();
     }
+
+ codex/replace-report-url-in-calculador.js-yq8c7q
 
     marker = null;
 
 codex/replace-report-url-in-calculador.js-iv0085
     map = L.map(mapContainer).setView(userLocation, 13);
 
+ main
     map = L.map('map').setView(userLocation, 13);
  main
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1853,6 +1859,18 @@ codex/replace-report-url-in-calculador.js-iv0085
 
     geocoderControlInstance.addTo(map);
 
+ codex/replace-report-url-in-calculador.js-yq8c7q
+    const geocoderContainer = document.getElementById('geocoder-container');
+    if (geocoderContainer) {
+        const geocoderElement = geocoderControlInstance.getContainer();
+        if (geocoderElement) {
+            geocoderContainer.innerHTML = '';
+            geocoderContainer.appendChild(geocoderElement);
+        }
+    }
+
+    setTimeout(() => {
+
     const geocoderElement = geocoderControlInstance.getContainer();
     const geocoderContainer = document.getElementById('geocoder-container');
 
@@ -1866,11 +1884,15 @@ codex/replace-report-url-in-calculador.js-iv0085
 
     setTimeout(() => {
  main
+ main
         try {
             map.invalidateSize();
         } catch (error) {
             console.warn('No se pudo recalcular el tamaño del mapa después de inicializarlo:', error);
         }
+codex/replace-report-url-in-calculador.js-yq8c7q
+    }, 200);
+
  codex/replace-report-url-in-calculador.js-iv0085
     };
 
@@ -1885,6 +1907,7 @@ codex/replace-report-url-in-calculador.js-iv0085
     }, 0);
  main
 
+ main
 }
 
 // --- Nueva función para buscar el código de la ciudad (refactorizada) ---
@@ -1946,6 +1969,13 @@ function showScreen(screenId) {
     if (targetElement) {
         if (screenId === 'map-screen') {
             if (mapScreen) {
+ codex/replace-report-url-in-calculador.js-yq8c7q
+                mapScreen.style.display = 'block';
+            }
+
+            if (map) {
+                setTimeout(() => {
+
                 mapScreen.style.display = 'flex';
 codex/replace-report-url-in-calculador.js-iv0085
                 // Fuerza un reflow para asegurar que Leaflet tenga dimensiones válidas
@@ -1961,11 +1991,16 @@ codex/replace-report-url-in-calculador.js-iv0085
             requestAnimationFrame(() => {
  main
                 if (map) {
+main
                     try {
                         map.invalidateSize();
                     } catch (error) {
                         console.warn('No se pudo recalcular el tamaño del mapa al mostrar la pantalla:', error);
                     }
+ codex/replace-report-url-in-calculador.js-yq8c7q
+                }, 100);
+            }
+
  codex/replace-report-url-in-calculador.js-iv0085
                 }
             };
@@ -1980,6 +2015,7 @@ codex/replace-report-url-in-calculador.js-iv0085
                 }
  main
             });
+main
         } else if (screenId === 'data-form-screen') {
             // Ensure dataFormScreen variable is the correct DOM element
             if (dataFormScreen) dataFormScreen.style.display = 'block'; 
@@ -2681,6 +2717,11 @@ function setupNavigationButtons() {
                 const selectedUserType = typeof userSelections.userType === 'string'
                     ? userSelections.userType.toLowerCase()
                     : null;
+codex/replace-report-url-in-calculador.js-yq8c7q
+                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
+                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
+                window.location.href = 'generar_informe.html';
+
 codex/replace-report-url-in-calculador.js-iv0085
                 // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
                 // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
@@ -2751,6 +2792,7 @@ codex/replace-report-url-in-calculador.js-oxo1d5
  main
 main
 main
+ main
             } catch (error) {
                 console.error('Error al generar el informe:', error);
                 alert('Hubo un error al generar el informe. Por favor, intente de nuevo. Detalle: ' + error.message);
