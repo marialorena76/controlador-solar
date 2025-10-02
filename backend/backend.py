@@ -6,9 +6,14 @@ import os
 import json
 import math
 from threading import Lock
+from openpyxl import load_workbook
 from . import engine
 
 excel_lock = Lock()
+# Nota: este candado se reutiliza tanto para la escritura directa en el archivo
+# Excel como para las ejecuciones del motor de cálculo, de modo que todas las
+# operaciones que interactúan con el libro queden coordinadas y se evite el
+# acceso concurrente.
 
 # The write_to_debug_log function is being removed and replaced with standard prints.
 
@@ -37,6 +42,48 @@ CONSUMOS_JSON_PATH = os.path.join(PROJECT_ROOT, 'consumos_electrodomesticos.json
 
 app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path='')
 CORS(app)  # Habilita CORS para permitir solicitudes desde el frontend
+
+
+# --- Ruta para actualizar una celda específica del Excel ---
+@app.route('/api/excel/update_cell', methods=['POST'])
+def update_excel_cell():
+    try:
+        payload = request.get_json(silent=True) or {}
+        raw_city_name = payload.get('ciudad', '')
+        # Manejar valores None o que no sean strings convirtiéndolos explícitamente
+        city_name = '' if raw_city_name is None else str(raw_city_name)
+
+        if not os.path.exists(EXCEL_FILE_PATH):
+            return jsonify({"success": False, "error": "Archivo Excel de configuración no encontrado."}), 404
+
+        with excel_lock:
+            workbook = None
+            try:
+                workbook = load_workbook(EXCEL_FILE_PATH)
+                worksheet = workbook['Datos de Entrada']
+                worksheet['B7'] = city_name
+                workbook.save(EXCEL_FILE_PATH)
+            except KeyError:
+                return jsonify({"success": False, "error": "Hoja 'Datos de Entrada' no encontrada en el Excel."}), 500
+            except (OSError, IOError) as save_error:
+                return jsonify({"success": False, "error": f"No se pudo guardar el archivo Excel: {save_error}"}), 500
+            finally:
+                if workbook is not None:
+                    try:
+                        workbook.close()
+                    except Exception:
+                        # Ignoramos el error de cierre para no sobreescribir la respuesta original.
+                        pass
+
+        return jsonify({"success": True})
+
+    except (OSError, IOError) as io_error:
+        return jsonify({"success": False, "error": f"Error de E/S al actualizar el Excel: {io_error}"}), 500
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/excel/update_cell: {e}")
+        print(traceback.format_exc())
+        return jsonify({"success": False, "error": f"Error interno del servidor: {e}"}), 500
 
 
 # --- NUEVA RUTA: Para obtener la lista de electrodomésticos y sus consumos ---
@@ -102,7 +149,12 @@ def generar_informe():
             return jsonify({"error": "No se recibieron datos"}), 400
 
         print("Calling calculation engine...")
-        resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
+        # El motor de cálculo accede al mismo archivo Excel que la ruta de
+        # actualización, por lo que ambas operaciones comparten el mismo lock
+        # para evitar condiciones de carrera. La sección crítica se mantiene al
+        # mínimo, limitándose a la llamada del motor.
+        with excel_lock:
+            resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
         print("Engine call successful.")
 
         # Clean NaN values before returning the JSON response.

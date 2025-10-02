@@ -1282,20 +1282,12 @@ function initElectrodomesticosSection() {
 
             if (choice === 'detalleHogar') {
                 if (summaryContainer) summaryContainer.style.display = 'flex';
-                if (electrodomesticosList) {
-                    electrodomesticosList.style.display = 'grid';
-                    electrodomesticosList.style.gridTemplateColumns = 'repeat(3, 1fr)';
-                    electrodomesticosList.style.gap = '1rem';
-                }
+                if (electrodomesticosList) electrodomesticosList.style.display = 'block';
                 populateStandardApplianceList(listContainer);
             } else if (choice === 'boletaMensual') {
                 if (consumoFacturaForm) consumoFacturaForm.style.display = 'block';
             } else if (choice === 'detalleHogarHoras') {
-                if (electrodomesticosList) {
-                    electrodomesticosList.style.display = 'grid';
-                    electrodomesticosList.style.gridTemplateColumns = 'repeat(3, 1fr)';
-                    electrodomesticosList.style.gap = '1rem';
-                }
+                if (electrodomesticosList) electrodomesticosList.style.display = 'block';
                 populateDetailedApplianceList(listContainer);
             }
         };
@@ -1650,6 +1642,36 @@ function extraerCiudadDeDireccion(direccion) {
     return null;
 }
 
+async function persistSelectedCityName(cityName) {
+    const locationDisplay = document.getElementById('location-display');
+    try {
+        const response = await fetch(API_BASE + '/excel/update_cell', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ciudad: cityName || '' })
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || data.success === false) {
+            const errorMessage = (data && data.error) ? data.error : `Error del servidor: ${response.status}`;
+            throw new Error(errorMessage);
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error al persistir la ciudad seleccionada:', error);
+        if (locationDisplay) {
+            const warningSuffix = ' (No se pudo guardar en el servidor)';
+            if (!locationDisplay.textContent.includes(warningSuffix.trim())) {
+                locationDisplay.textContent = `${locationDisplay.textContent}${warningSuffix}`;
+            }
+            locationDisplay.style.backgroundColor = '#fbe9e7';
+        }
+        return false;
+    }
+}
+
 // --- Lógica del Mapa (EXISTENTE, CON PEQUEÑAS MEJORAS) ---
 
 function initMap() {
@@ -1676,35 +1698,59 @@ function initMap() {
 
         // Realizar geocodificación inversa para encontrar la ciudad
         if (geocoderControlInstance && geocoderControlInstance.options.geocoder) {
-            geocoderControlInstance.options.geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom()), function(results) {
+            geocoderControlInstance.options.geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom()), async function(results) {
                 const r = results[0];
-                if (r && r.name) {
-                    console.log('Reverse geocode result from click:', r); // Log full object
-                    const locationDisplay = document.getElementById('location-display');
-                    const props = r.properties;
-                    // Instantly update UI with city name if available from geocoder
-                    const cityName = props?.address?.city || props?.address?.town || props?.address?.village || props?.city || props?.town || props?.village;
+                const locationDisplay = document.getElementById('location-display');
 
-                    if (cityName && locationDisplay) {
-                        locationDisplay.textContent = `Ubicación seleccionada: ${cityName}`;
-                        locationDisplay.style.backgroundColor = '#e9f5e9';
+                if (r && r.name && locationDisplay) {
+                    console.log('Reverse geocode result from click:', r);
+                    const props = r.properties || {};
+                    const address = props.address || {};
+
+                    // 1. Instant UI update with best-guess city name from geocoder
+                    const immediateCityName = address.city || address.town || address.village || props.city || props.town || props.village;
+                    if (immediateCityName) {
+                        locationDisplay.textContent = `Ubicación: ${immediateCityName}`;
+                        locationDisplay.style.backgroundColor = '#e9f5e9'; // Optimistic green
+                    } else {
+                        locationDisplay.textContent = 'Identificando ubicación...';
+                        locationDisplay.style.backgroundColor = '#e3f2fd'; // Blue for searching
                     }
 
-                    buscarCodigoCiudad(r.name); // This function still handles backend logic and may overwrite the display text.
+                    // 2. Call backend for definitive city data
+                    const ciudadResult = await buscarCodigoCiudad(r.name);
+
+                    // 3. Update UI and state with definitive data from backend
+                    if (ciudadResult) {
+                        userSelections.ciudad = ciudadResult;
+                        locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
+                        locationDisplay.style.backgroundColor = '#e9f5e9';
+                    } else {
+                        userSelections.ciudad = { codigo: null, nombre: null };
+                        // If we had an immediate name, keep it but show it's unconfirmed. Otherwise, show error.
+                        if (immediateCityName) {
+                            locationDisplay.textContent = `Ubicación: ${immediateCityName} (No confirmada)`;
+                            locationDisplay.style.backgroundColor = '#fff9c4'; // Yellow for unconfirmed
+                        } else {
+                            locationDisplay.textContent = 'No se pudo encontrar la ciudad en la base de datos.';
+                            locationDisplay.style.backgroundColor = '#fbe9e7'; // Red for failure
+                        }
+                    }
+
+                    await persistSelectedCityName(ciudadResult ? ciudadResult.nombre : '');
                 } else {
-                    const locationDisplay = document.getElementById('location-display');
                     if (locationDisplay) {
                         locationDisplay.textContent = 'No se pudo identificar la ubicación. Intente de nuevo.';
                         locationDisplay.style.backgroundColor = '#fbe9e7';
                     }
-                    // Si no se encuentra un nombre, nos aseguramos de que el código de ciudad sea nulo y guardamos.
                     userSelections.ciudad = { codigo: null, nombre: null };
-
+                    await persistSelectedCityName('');
                 }
             });
         } else {
-            // Si no hay geocodificador, al menos guardamos la lat/lng.
-
+            // Fallback if geocoder is not available
+            userSelections.ciudad = { codigo: null, nombre: null };
+            persistSelectedCityName('');
         }
     });
 
@@ -1716,6 +1762,8 @@ function initMap() {
         defaultMarkGeocode: false
     }).on('markgeocode', async function(e) {
         console.log('Geocode event:', e);
+        const locationDisplay = document.getElementById('location-display');
+
         if (e.geocode && e.geocode.center) {
             userLocation.lat = e.geocode.center.lat;
             userLocation.lng = e.geocode.center.lng;
@@ -1728,34 +1776,49 @@ function initMap() {
             map.setView(userLocation, 13);
             userSelections.location = userLocation;
 
-            // Enviar la dirección completa al backend para que la procese
             if (e.geocode.name) {
-                console.log('Geocode name to be sent to backend:', e.geocode.name);
-                buscarCodigoCiudad(e.geocode.name);
+                if (locationDisplay) {
+                    locationDisplay.textContent = 'Buscando ciudad...';
+                    locationDisplay.style.backgroundColor = '#e3f2fd'; // Blue for searching
+                }
+
+                const ciudadResult = await buscarCodigoCiudad(e.geocode.name);
+
+                if (ciudadResult) {
+                    userSelections.ciudad = ciudadResult;
+                    if (locationDisplay) {
+                        locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
+                        locationDisplay.style.backgroundColor = '#e9f5e9'; // Green for success
+                    }
+                    await persistSelectedCityName(ciudadResult.nombre);
+                } else {
+                    userSelections.ciudad = { codigo: null, nombre: null };
+                    if (locationDisplay) {
+                        locationDisplay.textContent = 'No se pudo encontrar la ciudad en la base de datos.';
+                        locationDisplay.style.backgroundColor = '#fbe9e7'; // Red for failure
+                    }
+                    await persistSelectedCityName('');
+                }
             } else {
                 console.warn('Geocoder did not return a name.');
                 userSelections.ciudad = { codigo: null, nombre: null };
-
+                if (locationDisplay) {
+                    locationDisplay.textContent = 'Dirección no válida.';
+                    locationDisplay.style.backgroundColor = '#fbe9e7';
+                }
+                await persistSelectedCityName('');
             }
         }
     }).addTo(map);
 
 }
 
-// --- Nueva función para buscar el código de la ciudad (modificada) ---
+// --- Nueva función para buscar el código de la ciudad (refactorizada) ---
 async function buscarCodigoCiudad(fullAddress) {
-    const locationDisplay = document.getElementById('location-display');
-    if (locationDisplay) {
-        locationDisplay.textContent = 'Buscando ciudad...';
-        locationDisplay.style.backgroundColor = '#e3f2fd'; // Blue for searching
-    }
-
     try {
         const response = await fetch(API_BASE + '/buscar_ciudad', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ full_address: fullAddress }),
         });
 
@@ -1765,38 +1828,19 @@ async function buscarCodigoCiudad(fullAddress) {
         }
 
         const data = await response.json();
-        // MODIFICACIÓN: Comprobar explícitamente que no sea null o undefined.
-        // Esto evita problemas si el código de ciudad es 0 (aunque ya vimos que no es el caso)
-        // y es una comprobación más robusta.
         if (data.codigo_ciudad !== null && data.codigo_ciudad !== undefined) {
-            console.log(`Ciudad encontrada: ${data.nombre_ciudad}, Código: ${data.codigo_ciudad}`);
-            userSelections.ciudad = {
+            console.log(`Ciudad encontrada desde backend: ${data.nombre_ciudad}, Código: ${data.codigo_ciudad}`);
+            return {
                 codigo: data.codigo_ciudad,
                 nombre: data.nombre_ciudad
             };
-
-            if (locationDisplay) {
-                locationDisplay.textContent = `Ubicación seleccionada: ${data.nombre_ciudad}`;
-                locationDisplay.style.backgroundColor = '#e9f5e9'; // Green for success
-            }
-            // La escritura al archivo Excel se ha eliminado para evitar corrupción.
         } else {
-            console.warn('No se encontró código para la dirección:', fullAddress);
-            userSelections.ciudad = { codigo: null, nombre: null };
-            if (locationDisplay) {
-                locationDisplay.textContent = 'No se pudo encontrar la ciudad en la base de datos.';
-                locationDisplay.style.backgroundColor = '#fbe9e7'; // Red for failure
-            }
+            console.warn('Backend no encontró código para la dirección:', fullAddress);
+            return null; // Devuelve null si el backend no encuentra la ciudad
         }
     } catch (error) {
-        console.error('Error en la búsqueda de ciudad:', error);
-        if (locationDisplay) {
-            locationDisplay.textContent = 'Error al buscar la ciudad.';
-            locationDisplay.style.backgroundColor = '#fbe9e7';
-        }
-        userSelections.ciudad = { codigo: null, nombre: null };
-    } finally {
-
+        console.error('Error en la llamada a /buscar_ciudad:', error);
+        return null; // Devuelve null en caso de error de red o de servidor
     }
 }
 
@@ -2517,11 +2561,60 @@ function setupNavigationButtons() {
                 const informeFinal = await response.json();
                 console.log('Informe recibido del backend:', informeFinal);
 
-                // The userType from the backend's response is now the source of truth.
-                // The redundant and buggy overwriting of the value has been removed.
-
                 localStorage.setItem('informeSolar', JSON.stringify(informeFinal));
-                window.location.href = 'informe.html';
+
+                const backendUserType = typeof informeFinal.userType === 'string'
+                    ? informeFinal.userType.toLowerCase()
+                    : null;
+                const selectedUserType = typeof userSelections.userType === 'string'
+                    ? userSelections.userType.toLowerCase()
+                    : null;
+                const isBasicUser = backendUserType === 'basico' || selectedUserType === 'basico';
+
+                if (isBasicUser) {
+                    const resultadosContainer = document.getElementById('resultados-informe');
+                    const tableData = informeFinal?.basic_report?.excel_table || [];
+
+                    if (
+                        resultadosContainer &&
+                        window.BasicReportTableHelper &&
+                        typeof window.BasicReportTableHelper.renderTableInContainer === 'function'
+                    ) {
+                        resultadosContainer.innerHTML = '';
+                        resultadosContainer.classList.add('basic-report-summary-container');
+
+                        const helperOptions = {
+                            columnCount: 4,
+                            emptyMessage: 'No se encontraron datos para mostrar el informe básico detallado.',
+                        };
+
+                        const tableWrapper = document.createElement('div');
+                        tableWrapper.className = 'basic-report-table-wrapper';
+                        window.BasicReportTableHelper.renderTableInContainer(tableWrapper, tableData, helperOptions);
+                        resultadosContainer.appendChild(tableWrapper);
+
+                        const fullReportButton = document.createElement('button');
+                        fullReportButton.type = 'button';
+                        fullReportButton.textContent = 'Abrir informe completo';
+                        fullReportButton.className = 'basic-report-open-button';
+                        fullReportButton.addEventListener('click', () => {
+                            window.location.href = 'informe.html';
+                        });
+                        resultadosContainer.appendChild(fullReportButton);
+
+                        if (mapScreen) mapScreen.style.display = 'none';
+                        if (dataFormScreen) dataFormScreen.style.display = 'none';
+                        resultadosContainer.style.display = 'block';
+
+                        resultadosContainer.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                        // Fallback if rendering fails: redirect to the full report page
+                        window.location.href = 'informe.html';
+                    }
+                } else {
+                    // Expert user always redirects
+                    window.location.href = 'informe.html';
+                }
             } catch (error) {
                 console.error('Error al generar el informe:', error);
                 alert('Hubo un error al generar el informe. Por favor, intente de nuevo. Detalle: ' + error.message);

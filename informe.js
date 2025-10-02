@@ -64,13 +64,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Data Population ---
-    const formatNumber = (num, decimals = 2) => {
+    const formatNumber = (num) => {
         if (typeof num !== 'number' || !Number.isFinite(num)) {
             return 'N/A';
         }
-        return num.toLocaleString('es-AR', {
-            minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals,
+        const rounded = Math.round(num);
+        return rounded.toLocaleString('es-AR', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         });
     };
     const monedaSimbolo = datos.moneda === 'Dólares' ? 'U$D' : '$';
@@ -134,19 +135,19 @@ document.addEventListener('DOMContentLoaded', () => {
             : null;
 
         // Radiación y consumo
-        setTextContent('experto_radiacion_anual', formatNumber(annualIrradiance, 2));
+        setTextContent('experto_radiacion_anual', formatNumber(annualIrradiance));
         setTextContent('experto_incremento_radiacion', 'N/A');
-        setTextContent('experto_consumo_anual', formatNumber(energy.annualConsumptionKWh, 0));
+        setTextContent('experto_consumo_anual', formatNumber(energy.annualConsumptionKWh));
 
         // Paneles
         const panelBrand = systemDesign.panelBrand || systemDesign.panelModel || 'N/A';
         setTextContent('experto_panel_marca', panelBrand);
-        setTextContent('experto_panel_potencia', formatNumber(systemDesign.panelPowerW, 0));
+        setTextContent('experto_panel_potencia', formatNumber(systemDesign.panelPowerW));
         setTextContent('experto_panel_modelo', systemDesign.panelModel || 'N/A');
-        setTextContent('experto_panel_eficiencia', formatNumber(systemDesign.panelEfficiency, 2));
+        setTextContent('experto_panel_eficiencia', formatNumber(systemDesign.panelEfficiency));
         setTextContent('experto_cantidad_paneles', systemDesign.panelCount);
-        setTextContent('experto_superficie', formatNumber(requiredSurface, 2));
-        setTextContent('experto_potencia_instalada', formatNumber(installedCapacityW, 0));
+        setTextContent('experto_superficie', formatNumber(requiredSurface));
+        setTextContent('experto_potencia_instalada', formatNumber(installedCapacityW));
 
         // Inversores - no disponibles actualmente en el motor
         setTextContent('experto_inversor_sugerido', 'No disponible');
@@ -156,65 +157,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Datos económicos
         document.querySelectorAll('[id^="experto_moneda_"]').forEach(el => el.textContent = monedaSimbolo);
-        setTextContent('experto_cargo_pico', formatNumber(tariffs.consumptionTariff, 4));
-        setTextContent('experto_cargo_fuera_pico', formatNumber(tariffs.consumptionTariff, 4));
-        setTextContent('experto_costo_actual', formatNumber(economy.preProjectAnnualCost, 0));
-        setTextContent('experto_costo_total_actualizado', formatNumber(totalConsumptionCost, 0));
-        setTextContent('experto_inversion_inicial', formatNumber(economy.initialInvestment, 0));
-        setTextContent('experto_mantenimiento', formatNumber(economy.maintenanceAnnualCost, 0));
-        setTextContent('experto_tarifa_inyeccion', formatNumber(tariffs.injectionTariff, 4));
-        setTextContent('experto_costo_futuro', formatNumber(postProjectLifetimeCost, 0));
-        setTextContent('experto_ahorro_actualizado', formatNumber(totalSavingsLifetime, 0));
-        setTextContent('experto_ingreso_anual_inyeccion', formatNumber(economy.injectionRevenue, 0));
-        setTextContent('experto_ingreso_total_inyeccion', formatNumber(totalInjectionRevenue, 0));
-        setTextContent('experto_ahorro_neto', formatNumber(netSavingsLifetime, 0));
+        setTextContent('experto_cargo_pico', formatNumber(tariffs.consumptionTariff));
+        setTextContent('experto_cargo_fuera_pico', formatNumber(tariffs.consumptionTariff));
+        setTextContent('experto_costo_actual', formatNumber(economy.preProjectAnnualCost));
+        setTextContent('experto_costo_total_actualizado', formatNumber(totalConsumptionCost));
+        setTextContent('experto_inversion_inicial', formatNumber(economy.initialInvestment));
+        setTextContent('experto_mantenimiento', formatNumber(economy.maintenanceAnnualCost));
+        setTextContent('experto_tarifa_inyeccion', formatNumber(tariffs.injectionTariff));
+        setTextContent('experto_costo_futuro', formatNumber(postProjectLifetimeCost));
+        setTextContent('experto_ahorro_actualizado', formatNumber(totalSavingsLifetime));
+        setTextContent('experto_ingreso_anual_inyeccion', formatNumber(economy.injectionRevenue));
+        setTextContent('experto_ingreso_total_inyeccion', formatNumber(totalInjectionRevenue));
+        setTextContent('experto_ahorro_neto', formatNumber(netSavingsLifetime));
 
         // Emisiones
-        setTextContent('experto_emisiones_primer_ano', formatNumber(emissions.avoidedTonsCO2PerYear, 2));
-        setTextContent('experto_emisiones_totales', formatNumber(emissions.avoidedTonsCO2Lifetime, 2));
+        setTextContent('experto_emisiones_primer_ano', formatNumber(emissions.avoidedTonsCO2PerYear));
+        setTextContent('experto_emisiones_totales', formatNumber(emissions.avoidedTonsCO2Lifetime));
 
     } else { // Basic user
-        const economicData = datos.economic_data || {};
-        const techData = datos.technical_data || {};
-        const basicReportData = datos.basic_report && datos.basic_report.excel_table ? datos.basic_report.excel_table : [];
+        const basicReportData = datos.basic_report && Array.isArray(datos.basic_report.excel_table)
+            ? datos.basic_report.excel_table
+            : [];
 
         renderBasicExcelTable(basicReportData);
-
-        // Technical Data
-        setTextContent('basico_consumo_anual_kwh', formatNumber(techData.consumo_anual_kwh, 0));
-        setTextContent('basico_energia_generada_anual', formatNumber(techData.energia_generada_anual, 0));
-        setTextContent('basico_autoconsumo', formatNumber(techData.autoconsumo, 0));
-        setTextContent('basico_inyectada_red', formatNumber(techData.inyectada_red, 0));
-        setTextContent('basico_potencia_panel_sugerida', formatNumber(techData.potencia_paneles_sugerida, 0));
-        setTextContent('basico_numero_paneles', techData.cantidad_paneles_necesarios || 'N/A');
-        setTextContent('basico_area_paneles_m2', formatNumber(techData.superficie_necesaria, 2));
-        setTextContent('basico_vida_util', techData.vida_util_proyecto || '25');
-
-        // Economic Data (New Boxes)
-        // Ensure the currency symbol is set correctly in the new layout
-        document.querySelectorAll('#basic-report-sections .currency').forEach(el => {
-            el.textContent = monedaSimbolo;
-        });
-        setTextContent('basico_costo_sin_instalacion', formatNumber(economicData.gasto_anual_sin_fv, 0));
-        setTextContent('basico_inversion_inicial_total', formatNumber(economicData.inversion_inicial, 0));
-
-        // Conditional title based on saldo_anual_favor
-        const saldoAnualFavor = economicData.saldo_anual_favor || 0;
-        const resultadoLabel = document.getElementById('basico_resultado_label');
-        if (resultadoLabel) {
-            if (saldoAnualFavor > 0) {
-                resultadoLabel.textContent = 'Si realiza la instalación fotovoltaica tendrá un saldo neto anual a su favor de';
-                setTextContent('basico_costo_reducido', formatNumber(saldoAnualFavor, 0));
-            } else {
-                resultadoLabel.textContent = 'Si realiza la instalación fotovoltaica su costo anual en energía eléctrica se reducirá a';
-                setTextContent('basico_costo_reducido', formatNumber(economicData.costo_anual_reducido, 0));
-            }
-        } else {
-            setTextContent('basico_costo_reducido', formatNumber(economicData.costo_anual_reducido, 0));
-        }
-
-        // Emissions
-        setTextContent('basico_emisiones_total_vida_util', formatNumber(datos.emisiones_evitadas_total_tco2, 2));
     }
 
     // --- Chart Rendering ---
@@ -234,53 +199,90 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// --- Start: Inlined and adapted logic from reportTableHelper.js ---
+
 function renderBasicExcelTable(tableData) {
     const tbody = document.getElementById('basico_resultados_excel_body');
     if (!tbody) {
+        console.error("Contenedor de tabla para informe básico ('basico_resultados_excel_body') no encontrado.");
         return;
     }
-
     tbody.innerHTML = '';
+
+    const columnCount = 4; // We are aiming for a 4-column layout: Label, Value, Unit, Notes
 
     if (!Array.isArray(tableData) || tableData.length === 0) {
         const emptyRow = document.createElement('tr');
         const emptyCell = document.createElement('td');
-        emptyCell.colSpan = 11;
-        emptyCell.textContent = 'No se encontraron datos para mostrar el informe básico detallado.';
+        emptyCell.colSpan = columnCount;
+        emptyCell.textContent = 'No se encontraron datos para mostrar el informe.';
+        emptyCell.style.textAlign = 'center';
         emptyRow.appendChild(emptyCell);
         tbody.appendChild(emptyRow);
         return;
     }
 
-    const columnCount = Array.isArray(tableData[0]) ? tableData[0].length : 1;
+    // --- Helper functions ---
+    const formatNumber = (value) => {
+        if (typeof value !== 'number' || !Number.isFinite(value)) return '';
+        if (Number.isInteger(value)) return value.toLocaleString('es-AR');
+        return value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
 
-    tableData.forEach((row) => {
+    const isUnit = (value) => typeof value === 'string' && /(%|US\$|U\$S|\$|tCO2|m2|kWh|W|años?|USD)/i.test(value);
+
+    // --- Row processing logic ---
+    tableData.forEach(rowData => {
         const tr = document.createElement('tr');
-        const normalizedRow = Array.isArray(row) ? row : [row];
+        const cleanedCells = Array.isArray(rowData) ? rowData.map(c => (c === null || c === undefined) ? '' : c) : [];
 
-        normalizedRow.forEach((cellValue) => {
+        if (cleanedCells.every(cell => cell === '')) {
+            // It's a spacer row
             const td = document.createElement('td');
-            let displayValue = '';
-
-            if (cellValue !== null && cellValue !== undefined) {
-                if (typeof cellValue === 'number') {
-                    let formatted = cellValue.toFixed(6).replace(/\.0+$/, '').replace(/\.?0+$/, '');
-                    if (formatted === '') {
-                        formatted = '0';
-                    }
-                    displayValue = formatted;
-                } else {
-                    displayValue = String(cellValue);
-                }
-            }
-
-            td.textContent = displayValue;
+            td.colSpan = columnCount;
+            td.innerHTML = '&nbsp;';
             tr.appendChild(td);
-        });
+            tbody.appendChild(tr);
+            return;
+        }
 
-        const cellsToPad = columnCount - tr.children.length;
-        for (let i = 0; i < cellsToPad; i += 1) {
-            tr.appendChild(document.createElement('td'));
+        const label = cleanedCells[0] || '';
+        const normalizedLabel = label.toString().trim().toLowerCase();
+
+        // Check for headers or full-width rows
+        if (normalizedLabel.includes('resultado del dimensionamiento') ||
+            normalizedLabel.includes('datos técnicos') ||
+            normalizedLabel.includes('resultados económicos') ||
+            normalizedLabel.includes('contribución a la mitigación') ||
+            normalizedLabel.startsWith('•')) {
+            const td = document.createElement('td');
+            td.textContent = label;
+            td.colSpan = columnCount;
+            if (normalizedLabel.startsWith('•')) {
+                td.style.fontWeight = 'bold';
+                td.style.paddingLeft = '20px';
+            } else {
+                td.style.fontWeight = 'bold';
+                td.style.backgroundColor = '#e5ecf6';
+                td.style.color = '#337ab7';
+            }
+            tr.appendChild(td);
+        } else {
+            // Standard data row (Label, Value, Unit, Notes)
+            const labelCell = document.createElement('td');
+            labelCell.textContent = label;
+            labelCell.colSpan = 2;
+            tr.appendChild(labelCell);
+
+            const valueCell = document.createElement('td');
+            const value = typeof cleanedCells[1] === 'number' ? formatNumber(cleanedCells[1]) : cleanedCells[1] || '';
+            valueCell.textContent = value;
+            valueCell.style.textAlign = 'right';
+            tr.appendChild(valueCell);
+
+            const unitCell = document.createElement('td');
+            unitCell.textContent = cleanedCells[2] || '';
+            tr.appendChild(unitCell);
         }
 
         tbody.appendChild(tr);
@@ -304,6 +306,12 @@ function renderBasicCharts(datos) {
         ...(datos.basic_report?.energy || {})
     };
 
+    const canvasIds = ['winterDailyChart', 'summerDailyChart', 'monthlyComparisonChart'];
+    const hasAnyCanvas = canvasIds.some((id) => document.getElementById(id));
+    if (!hasAnyCanvas) {
+        return;
+    }
+
     const ensureTwelveValues = (arr, fallback = []) => {
         const source = Array.isArray(arr) ? arr : fallback;
         const normalized = Array.isArray(source) ? source.slice(0, 12) : [];
@@ -317,7 +325,6 @@ function renderBasicCharts(datos) {
     const renderDailyChart = (canvasId, title, consumptionData, generationData) => {
         const ctx = document.getElementById(canvasId)?.getContext('2d');
         if (!ctx) {
-            console.error(`Canvas con ID '${canvasId}' no encontrado.`);
             return;
         }
 
@@ -406,8 +413,6 @@ function renderBasicCharts(datos) {
                 }
             }
         });
-    } else {
-        console.error("Canvas con ID 'monthlyComparisonChart' no encontrado.");
     }
 }
 
@@ -499,8 +504,8 @@ function renderExpertCharts(datos) {
                             if (label) {
                                 label += ': ';
                             }
-                            if (context.parsed !== null) {
-                                label += context.parsed.toFixed(2) + '%';
+                            if (Number.isFinite(context.parsed)) {
+                                label += `${Math.round(context.parsed)}%`;
                             }
                             return label;
                         }
