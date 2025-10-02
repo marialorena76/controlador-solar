@@ -2583,52 +2583,9 @@ function setupNavigationButtons() {
                 const selectedUserType = typeof userSelections.userType === 'string'
                     ? userSelections.userType.toLowerCase()
                     : null;
-                const isBasicUser = backendUserType === 'basico' || selectedUserType === 'basico';
-
-                if (isBasicUser) {
-                    const resultadosContainer = document.getElementById('resultados-informe');
-                    const tableData = informeFinal?.basic_report?.excel_table || [];
-
-                    if (
-                        resultadosContainer &&
-                        window.BasicReportTableHelper &&
-                        typeof window.BasicReportTableHelper.renderTableInContainer === 'function'
-                    ) {
-                        resultadosContainer.innerHTML = '';
-                        resultadosContainer.classList.add('basic-report-summary-container');
-
-                        const helperOptions = {
-                            columnCount: 4,
-                            emptyMessage: 'No se encontraron datos para mostrar el informe básico detallado.',
-                        };
-
-                        const tableWrapper = document.createElement('div');
-                        tableWrapper.className = 'basic-report-table-wrapper';
-                        window.BasicReportTableHelper.renderTableInContainer(tableWrapper, tableData, helperOptions);
-                        resultadosContainer.appendChild(tableWrapper);
-
-                        const fullReportButton = document.createElement('button');
-                        fullReportButton.type = 'button';
-                        fullReportButton.textContent = 'Abrir informe completo';
-                        fullReportButton.className = 'basic-report-open-button';
-                        fullReportButton.addEventListener('click', () => {
-                            window.location.href = 'informe.html';
-                        });
-                        resultadosContainer.appendChild(fullReportButton);
-
-                        if (mapScreen) mapScreen.style.display = 'none';
-                        if (dataFormScreen) dataFormScreen.style.display = 'none';
-                        resultadosContainer.style.display = 'block';
-
-                        resultadosContainer.scrollIntoView({ behavior: 'smooth' });
-                    } else {
-                        // Fallback if rendering fails: redirect to the full report page
-                        window.location.href = 'informe.html';
-                    }
-                } else {
-                    // Expert user always redirects
-                    window.location.href = 'informe.html';
-                }
+                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
+                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
+                window.location.href = 'generar_informe.html';
             } catch (error) {
                 console.error('Error al generar el informe:', error);
                 alert('Hubo un error al generar el informe. Por favor, intente de nuevo. Detalle: ' + error.message);
