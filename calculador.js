@@ -1676,10 +1676,24 @@ async function persistSelectedCityName(cityName) {
 
 function initMap() {
     console.log('--- initMap CALLED ---');
-    // CORRECCIÓN: Si el mapa ya está inicializado, lo destruimos para evitar errores de doble inicialización
+
+    if (geocoderControlInstance) {
+        try {
+            geocoderControlInstance.off('markgeocode');
+            geocoderControlInstance.remove();
+        } catch (error) {
+            console.warn('No se pudo desmontar el geocodificador existente:', error);
+        }
+        geocoderControlInstance = null;
+    }
+
     if (map) {
+        map.off();
         map.remove();
     }
+
+    marker = null;
+
     map = L.map('map').setView(userLocation, 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -1828,6 +1842,14 @@ function initMap() {
         geocoderContainer.appendChild(geocoderElement);
     }
 
+    setTimeout(() => {
+        try {
+            map.invalidateSize();
+        } catch (error) {
+            console.warn('No se pudo recalcular el tamaño del mapa después de inicializarlo:', error);
+        }
+    }, 0);
+
 }
 
 // --- Nueva función para buscar el código de la ciudad (refactorizada) ---
@@ -1888,8 +1910,20 @@ function showScreen(screenId) {
 
     if (targetElement) {
         if (screenId === 'map-screen') {
-            // Ensure mapScreen variable is the correct DOM element
-            if (mapScreen) mapScreen.style.display = 'block'; 
+            if (mapScreen) {
+                mapScreen.style.display = 'flex';
+            }
+            requestAnimationFrame(() => {
+                if (map) {
+                    try {
+                        map.invalidateSize();
+                    } catch (error) {
+                        console.warn('No se pudo recalcular el tamaño del mapa al mostrar la pantalla:', error);
+                    }
+                } else {
+                    initMap();
+                }
+            });
         } else if (screenId === 'data-form-screen') {
             // Ensure dataFormScreen variable is the correct DOM element
             if (dataFormScreen) dataFormScreen.style.display = 'block'; 
@@ -2591,6 +2625,11 @@ function setupNavigationButtons() {
                 const selectedUserType = typeof userSelections.userType === 'string'
                     ? userSelections.userType.toLowerCase()
                     : null;
+codex/replace-report-url-in-calculador.js-if90kv
+                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
+                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
+                window.location.href = 'generar_informe.html';
+
 codex/replace-report-url-in-calculador.js-uaonog
                 // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
                 // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
@@ -2649,6 +2688,7 @@ codex/replace-report-url-in-calculador.js-oxo1d5
                 }
  main
  main
+main
             } catch (error) {
                 console.error('Error al generar el informe:', error);
                 alert('Hubo un error al generar el informe. Por favor, intente de nuevo. Detalle: ' + error.message);
