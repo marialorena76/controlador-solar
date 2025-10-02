@@ -71,12 +71,8 @@
     if (
       safeLabel.includes('saldo neto') ||
       safeLabel.includes('inversión inicial') ||
- codex/add-usertype-check-and-report-rendering-8qnaoy
       safeLabel.includes('ahorro económico') ||
       safeLabel.includes('ahorro anual')
-
-      safeLabel.includes('ahorro económico')
- main
     ) {
       return 'highlight-row';
     }
@@ -91,10 +87,7 @@
   function normalizeRow(row, columnCount) {
     const baseRow = Array.isArray(row) ? row : [row];
     const cleaned = baseRow.map(cleanCellValue);
- codex/add-usertype-check-and-report-rendering-8qnaoy
     const resolvedColumns = columnCount || DEFAULT_COLUMN_COUNT;
-
- main
 
     const hasMeaningfulContent = cleaned.some((cell) => {
       if (cell === null) {
@@ -107,15 +100,11 @@
     });
 
     if (!hasMeaningfulContent) {
- codex/add-usertype-check-and-report-rendering-8qnaoy
       return {
         type: 'spacer',
         className: 'spacer-row',
         cells: new Array(resolvedColumns).fill(''),
       };
-
-      return null;
- main
     }
 
     const label = typeof cleaned[0] === 'string' ? cleaned[0] : '';
@@ -123,15 +112,10 @@
     const usedRestIndices = new Set();
 
     let value = '';
- codex/add-usertype-check-and-report-rendering-8qnaoy
     let numericValue = null;
     if (typeof cleaned[1] === 'number') {
       value = formatNumber(cleaned[1]);
       numericValue = cleaned[1];
-
-    if (typeof cleaned[1] === 'number') {
-      value = formatNumber(cleaned[1]);
-main
       usedRestIndices.add(0);
     } else if (typeof cleaned[1] === 'string') {
       value = cleaned[1];
@@ -143,10 +127,7 @@ main
         const cell = rest[i];
         if (typeof cell === 'number') {
           value = formatNumber(cell);
-codex/add-usertype-check-and-report-rendering-8qnaoy
           numericValue = cell;
-
-main
           usedRestIndices.add(i);
           break;
         }
@@ -190,7 +171,6 @@ main
     }
 
     const note = noteParts.join('\n');
- codex/add-usertype-check-and-report-rendering-8qnaoy
     if (numericValue === null) {
       const fallbackNumeric = rest.find((cell, index) => {
         if (usedRestIndices.has(index)) {
@@ -206,17 +186,7 @@ main
     let rowClass = deriveRowClass(label, note);
 
     if (!label && !note && !value && !unit) {
-      return {
-        type: 'spacer',
-        className: 'spacer-row',
-        cells: new Array(resolvedColumns).fill(''),
-      };
-
-    const rowClass = deriveRowClass(label, note);
-
-    if (!label && !note && !value && !unit) {
       return null;
- main
     }
 
     if (rowClass === 'table-main-title' || rowClass === 'section-header' || rowClass === 'subsection-header') {
@@ -237,7 +207,6 @@ main
       };
     }
 
- codex/add-usertype-check-and-report-rendering-8qnaoy
     const cells = new Array(resolvedColumns).fill('');
     cells[0] = label || '';
     if (value) {
@@ -245,34 +214,22 @@ main
     } else if (label) {
       cells[1] = 'N/A';
     }
-
-    const resolvedColumns = columnCount || DEFAULT_COLUMN_COUNT;
-    const cells = new Array(resolvedColumns).fill('');
-    cells[0] = label || '';
-    cells[1] = value || '';
- main
     cells[2] = unit || '';
     if (note) {
       cells[3] = note;
     }
 
-codex/add-usertype-check-and-report-rendering-8qnaoy
     if (numericValue !== null && Number.isFinite(numericValue) && numericValue < 0) {
-      rowClass = rowClass === 'highlight-row' ? 'warning-row' : rowClass || 'warning-row';
+      rowClass = rowClass === 'highlight-row' ? rowClass : rowClass || 'warning-row';
       rowClass += ' negative-value';
     }
 
-
- main
     return {
       type: 'standard',
       className: rowClass,
       cells,
       noteColumnIndex: note ? 3 : null,
-codex/add-usertype-check-and-report-rendering-8qnaoy
       numericValue,
-
-main
     };
   }
 
@@ -315,15 +272,11 @@ main
     processedRows.forEach((row) => {
       const tr = document.createElement('tr');
       if (row.className) {
-codex/add-usertype-check-and-report-rendering-8qnaoy
         row.className.split(/\s+/).forEach((cls) => {
           if (cls) {
             tr.classList.add(cls);
           }
         });
-
-        tr.classList.add(row.className);
- main
       }
 
       if (row.type === 'full') {
@@ -331,15 +284,12 @@ codex/add-usertype-check-and-report-rendering-8qnaoy
         td.colSpan = resolvedColumnCount;
         td.textContent = row.cells[0] || '';
         tr.appendChild(td);
-codex/add-usertype-check-and-report-rendering-8qnaoy
       } else if (row.type === 'spacer') {
         for (let i = 0; i < resolvedColumnCount; i += 1) {
           const td = document.createElement('td');
           td.innerHTML = '&nbsp;';
           tr.appendChild(td);
         }
-
-main
       } else {
         row.cells.forEach((cellValue, cellIndex) => {
           const td = document.createElement('td');

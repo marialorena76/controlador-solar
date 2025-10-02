@@ -1103,7 +1103,6 @@ footer {
   color: #1f2a44;
 }
 
-codex/add-usertype-check-and-report-rendering-8qnaoy
 .basic-excel-table tr.spacer-row td {
   border: none;
   padding: 6px 0;
@@ -1111,8 +1110,6 @@ codex/add-usertype-check-and-report-rendering-8qnaoy
   height: 8px;
 }
 
-
- main
 .basic-excel-table td:first-child {
   font-weight: 600;
   width: 45%;
@@ -1166,16 +1163,13 @@ codex/add-usertype-check-and-report-rendering-8qnaoy
 .basic-excel-table tr.warning-row td {
   background: #fde9d9;
   color: #9c2f13;
- codex/add-usertype-check-and-report-rendering-8qnaoy
   font-weight: 600;
 }
 
 .basic-excel-table tr.warning-row.negative-value td {
   background: #fbe3d4;
   color: #8c1e07;
-
   font-style: italic;
- main
 }
 
 .basic-excel-table tr.note-row td {
