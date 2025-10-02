@@ -97,8 +97,6 @@ const sectionInfoMap = {
 };
 
 // Elementos principales del DOM
-// const latitudDisplay = document.getElementById('latitud-display'); // Eliminado
-// const longitudDisplay = document.getElementById('longitud-display'); // Eliminado
 const mapScreen = document.getElementById('map-screen');
 const dataFormScreen = document.getElementById('data-form-screen');
 const dataMeteorologicosSection = document.getElementById('data-meteorologicos-section');
@@ -1676,190 +1674,111 @@ async function persistSelectedCityName(cityName) {
 
 function initMap() {
     console.log('--- initMap CALLED ---');
-
- codex/replace-report-url-in-calculador.js-yq8c7q
-
-codex/replace-report-url-in-calculador.js-iv0085
     const mapContainer = document.getElementById('map');
     if (!mapContainer) {
         console.error('No se encontró el contenedor del mapa.');
         return;
     }
 
-    if (!mapContainer.style.height) {
-        mapContainer.style.height = '600px';
-    }
-    if (!mapContainer.style.minHeight) {
-        mapContainer.style.minHeight = '400px';
-    }
-
-main
-    if (geocoderControlInstance) {
-        try {
-            geocoderControlInstance.off('markgeocode');
-            geocoderControlInstance.remove();
-        } catch (error) {
-            console.warn('No se pudo desmontar el geocodificador existente:', error);
-        }
-        geocoderControlInstance = null;
-    }
-
- main
+    // Si el mapa ya existe, lo eliminamos para recrearlo.
+    // Esto previene errores de Leaflet si la función se llama más de una vez.
     if (map) {
         map.off();
         map.remove();
     }
+    marker = null; // Reset marker reference
 
- codex/replace-report-url-in-calculador.js-yq8c7q
-
-    marker = null;
-
-codex/replace-report-url-in-calculador.js-iv0085
     map = L.map(mapContainer).setView(userLocation, 13);
-
- main
-    map = L.map('map').setView(userLocation, 13);
- main
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
     marker = L.marker(userLocation).addTo(map);
-    // if (latitudDisplay) latitudDisplay.value = userLocation.lat.toFixed(6); // Eliminado
-    // if (longitudDisplay) longitudDisplay.value = userLocation.lng.toFixed(6); // Eliminado
 
     map.on('click', function(e) {
         userLocation.lat = e.latlng.lat;
         userLocation.lng = e.latlng.lng;
         marker.setLatLng(userLocation);
         userSelections.location = userLocation;
-        // La llamada a saveUserSelections() se mueve para ser consistente con el geocodificador de búsqueda.
 
-        // Realizar geocodificación inversa para encontrar la ciudad
         if (geocoderControlInstance && geocoderControlInstance.options.geocoder) {
             geocoderControlInstance.options.geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom()), async function(results) {
                 const r = results[0];
                 const locationDisplay = document.getElementById('location-display');
 
                 if (r && r.name) {
-                    console.log('Reverse geocode result from click:', r);
                     const props = r.properties || {};
                     const address = props.address || {};
-
                     const immediateCityName = address.city || address.town || address.village || props.city || props.town || props.village;
+
                     if (locationDisplay) {
-                        if (immediateCityName) {
-                            locationDisplay.textContent = `Ubicación: ${immediateCityName}`;
-                            locationDisplay.style.backgroundColor = '#e9f5e9';
-                        } else {
-                            locationDisplay.textContent = 'Identificando ubicación...';
-                            locationDisplay.style.backgroundColor = '#e3f2fd';
-                        }
+                        locationDisplay.textContent = immediateCityName ? `Ubicación: ${immediateCityName}` : 'Identificando ubicación...';
+                        locationDisplay.style.backgroundColor = immediateCityName ? '#e9f5e9' : '#e3f2fd';
                     }
 
                     const ciudadResult = await buscarCodigoCiudad(r.name);
-
                     if (ciudadResult) {
                         userSelections.ciudad = ciudadResult;
-                        if (locationDisplay) {
-                            locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
-                            locationDisplay.style.backgroundColor = '#e9f5e9';
-                        }
+                        if (locationDisplay) locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
                         await persistSelectedCityName(ciudadResult.nombre);
                     } else {
-                        userSelections.ciudad = {
-                            codigo: null,
-                            nombre: immediateCityName || null
-                        };
+                        userSelections.ciudad = { codigo: null, nombre: immediateCityName || null };
                         if (locationDisplay) {
-                            if (immediateCityName) {
-                                locationDisplay.textContent = `Ubicación: ${immediateCityName} (No confirmada)`;
-                                locationDisplay.style.backgroundColor = '#fff9c4';
-                            } else {
-                                locationDisplay.textContent = 'No se pudo encontrar la ciudad en la base de datos.';
-                                locationDisplay.style.backgroundColor = '#fbe9e7';
-                            }
+                            locationDisplay.textContent = immediateCityName ? `Ubicación: ${immediateCityName} (No confirmada)` : 'No se pudo encontrar la ciudad.';
+                            locationDisplay.style.backgroundColor = immediateCityName ? '#fff9c4' : '#fbe9e7';
                         }
                         await persistSelectedCityName(immediateCityName || '');
                     }
                 } else {
                     if (locationDisplay) {
-                        locationDisplay.textContent = 'No se pudo identificar la ubicación. Intente de nuevo.';
+                        locationDisplay.textContent = 'No se pudo identificar la ubicación.';
                         locationDisplay.style.backgroundColor = '#fbe9e7';
                     }
                     userSelections.ciudad = { codigo: null, nombre: null };
                     await persistSelectedCityName('');
                 }
             });
-        } else {
-            // Fallback if geocoder is not available
-            userSelections.ciudad = { codigo: null, nombre: null };
-            persistSelectedCityName('');
         }
     });
 
-    // Asegúrate de que el geocodificador esté importado correctamente en tu HTML
-    // <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-    // Asegúrate de que el geocodificador esté importado correctamente en tu HTML
-    // <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     geocoderControlInstance = L.Control.geocoder({
         placeholder: 'Ej: Buchardo 3232, Olavarría',
         errorMessage: 'No se encontró la dirección.',
         defaultMarkGeocode: false
     }).on('markgeocode', async function(e) {
-        console.log('Geocode event:', e);
         const locationDisplay = document.getElementById('location-display');
-
         if (e.geocode && e.geocode.center) {
-            userLocation.lat = e.geocode.center.lat;
-            userLocation.lng = e.geocode.center.lng;
-
-            if (marker) {
-                marker.setLatLng(userLocation);
-            } else {
-                marker = L.marker(userLocation).addTo(map);
-            }
+            userLocation = { lat: e.geocode.center.lat, lng: e.geocode.center.lng };
+            if (marker) marker.setLatLng(userLocation);
+            else marker = L.marker(userLocation).addTo(map);
             map.setView(userLocation, 13);
             userSelections.location = userLocation;
 
-            if (e.geocode.name) {
+            if (locationDisplay) {
+                locationDisplay.textContent = 'Buscando ciudad...';
+                locationDisplay.style.backgroundColor = '#e3f2fd';
+            }
+
+            const ciudadResult = await buscarCodigoCiudad(e.geocode.name);
+            if (ciudadResult) {
+                userSelections.ciudad = ciudadResult;
                 if (locationDisplay) {
-                    locationDisplay.textContent = 'Buscando ciudad...';
-                    locationDisplay.style.backgroundColor = '#e3f2fd'; // Blue for searching
+                    locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
+                    locationDisplay.style.backgroundColor = '#e9f5e9';
                 }
-
-                const ciudadResult = await buscarCodigoCiudad(e.geocode.name);
-
-                if (ciudadResult) {
-                    userSelections.ciudad = ciudadResult;
-                    if (locationDisplay) {
-                        locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
-                        locationDisplay.style.backgroundColor = '#e9f5e9'; // Green for success
-                    }
-                    await persistSelectedCityName(ciudadResult.nombre);
-                } else {
-                    userSelections.ciudad = { codigo: null, nombre: null };
-                    if (locationDisplay) {
-                        locationDisplay.textContent = 'No se pudo encontrar la ciudad en la base de datos.';
-                        locationDisplay.style.backgroundColor = '#fbe9e7'; // Red for failure
-                    }
-                    await persistSelectedCityName('');
-                }
+                await persistSelectedCityName(ciudadResult.nombre);
             } else {
-                console.warn('Geocoder did not return a name.');
                 userSelections.ciudad = { codigo: null, nombre: null };
                 if (locationDisplay) {
-                    locationDisplay.textContent = 'Dirección no válida.';
+                    locationDisplay.textContent = 'No se pudo encontrar la ciudad en la base de datos.';
                     locationDisplay.style.backgroundColor = '#fbe9e7';
                 }
                 await persistSelectedCityName('');
             }
         }
-    });
+    }).addTo(map);
 
-    geocoderControlInstance.addTo(map);
-
- codex/replace-report-url-in-calculador.js-yq8c7q
+    // Mueve el control del geocodificador al contenedor deseado.
     const geocoderContainer = document.getElementById('geocoder-container');
     if (geocoderContainer) {
         const geocoderElement = geocoderControlInstance.getContainer();
@@ -1869,45 +1788,10 @@ codex/replace-report-url-in-calculador.js-iv0085
         }
     }
 
-    setTimeout(() => {
-
-    const geocoderElement = geocoderControlInstance.getContainer();
-    const geocoderContainer = document.getElementById('geocoder-container');
-
-    if (geocoderContainer && geocoderElement) {
-        geocoderContainer.innerHTML = '';
-        geocoderContainer.appendChild(geocoderElement);
-    }
-
- codex/replace-report-url-in-calculador.js-iv0085
-    const refreshMapSize = () => {
-
-    setTimeout(() => {
- main
- main
-        try {
-            map.invalidateSize();
-        } catch (error) {
-            console.warn('No se pudo recalcular el tamaño del mapa después de inicializarlo:', error);
-        }
-codex/replace-report-url-in-calculador.js-yq8c7q
-    }, 200);
-
- codex/replace-report-url-in-calculador.js-iv0085
-    };
-
-    refreshMapSize();
-    map.whenReady(() => {
-        refreshMapSize();
-        setTimeout(refreshMapSize, 150);
+    // Llama a invalidateSize en el siguiente frame de animación para asegurar que el mapa se renderice correctamente.
+    requestAnimationFrame(() => {
+        map.invalidateSize();
     });
-
-    setTimeout(refreshMapSize, 300);
-
-    }, 0);
- main
-
- main
 }
 
 // --- Nueva función para buscar el código de la ciudad (refactorizada) ---
@@ -1969,69 +1853,29 @@ function showScreen(screenId) {
     if (targetElement) {
         if (screenId === 'map-screen') {
             if (mapScreen) {
- codex/replace-report-url-in-calculador.js-yq8c7q
-                mapScreen.style.display = 'block';
+                mapScreen.style.display = 'flex'; // Usar flex para alinear contenido
             }
 
-            if (map) {
-                setTimeout(() => {
-
-                mapScreen.style.display = 'flex';
-codex/replace-report-url-in-calculador.js-iv0085
-                // Fuerza un reflow para asegurar que Leaflet tenga dimensiones válidas
-                void mapScreen.offsetHeight;
-            }
-
-            const scheduleResize = () => {
-                if (!map) {
-                    initMap();
-                }
-
-            }
+            // Llama a invalidateSize usando requestAnimationFrame para asegurar que el DOM esté listo.
+            // Esto soluciona el problema del mapa que no se muestra si el contenedor estaba oculto.
             requestAnimationFrame(() => {
- main
                 if (map) {
-main
-                    try {
-                        map.invalidateSize();
-                    } catch (error) {
-                        console.warn('No se pudo recalcular el tamaño del mapa al mostrar la pantalla:', error);
-                    }
- codex/replace-report-url-in-calculador.js-yq8c7q
-                }, 100);
-            }
-
- codex/replace-report-url-in-calculador.js-iv0085
-                }
-            };
-
-            requestAnimationFrame(() => {
-                scheduleResize();
-                setTimeout(scheduleResize, 100);
-                setTimeout(scheduleResize, 350);
-
+                    map.invalidateSize(true);
                 } else {
+                    // Si el mapa no está inicializado, lo inicializamos aquí.
+                    // Esto puede suceder si la pantalla del mapa es la primera en mostrarse.
                     initMap();
                 }
- main
             });
-main
+
         } else if (screenId === 'data-form-screen') {
-            // Ensure dataFormScreen variable is the correct DOM element
-            if (dataFormScreen) dataFormScreen.style.display = 'block'; 
-            // Default to showing the first step of data-form-screen
+            if (dataFormScreen) dataFormScreen.style.display = 'block';
             if (dataMeteorologicosSection) dataMeteorologicosSection.style.display = 'block';
-        } else { 
-            // This case handles screenId being a sub-section like 'energia-section', 
-            // 'paneles-section', 'data-meteorologicos-section', etc.
-            // These sub-sections are children of the main 'data-form-screen' container.
-            
-            // First, ensure the main 'data-form-screen' container is visible.
+        } else {
             if (dataFormScreen) {
                 dataFormScreen.style.display = 'block';
             }
-            // Then, show the specific target sub-section.
-            targetElement.style.display = 'block'; 
+            targetElement.style.display = 'block';
         }
     } else {
         console.error(`Error: La pantalla con ID '${screenId}' no fue encontrada.`);
@@ -2717,31 +2561,9 @@ function setupNavigationButtons() {
                 const selectedUserType = typeof userSelections.userType === 'string'
                     ? userSelections.userType.toLowerCase()
                     : null;
-codex/replace-report-url-in-calculador.js-yq8c7q
                 // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
                 // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
-                window.location.href = 'generar_informe.html';
-
-codex/replace-report-url-in-calculador.js-iv0085
-                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
-                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
-                window.location.href = 'generar_informe.html';
-
-codex/replace-report-url-in-calculador.js-if90kv
-                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
-                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
-                window.location.href = 'generar_informe.html';
-
-codex/replace-report-url-in-calculador.js-uaonog
-                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
-                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
-                window.location.href = 'generar_informe.html';
-
-codex/replace-report-url-in-calculador.js-oxo1d5
-                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
-                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
-                window.location.href = 'generar_informe.html';
-
+                window.location.href = 'informe.html';
                 const isBasicUser = backendUserType === 'basico' || selectedUserType === 'basico';
 
                 if (isBasicUser) {
@@ -2841,20 +2663,31 @@ function setupSidebarNavigation() {
 
 // --- INIT principal (Se ejecuta al cargar el DOM) (EXISTENTE, MODIFICADO) ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // State is now in-memory, so we no longer load from localStorage on page start.
-    initMap(); // Inicializa el mapa con la ubicación por defecto.
+    try {
+        // Inicializa el mapa primero, ya que es la primera pantalla.
+        initMap();
 
-    await cargarElectrodomesticosDesdeBackend(); // Carga electrodomésticos y los renderiza, luego recalcula consumo.
-    setupNavigationButtons(); // Configura todos los botones de navegación y otros listeners.
-    setupSidebarNavigation();
+        // Intenta cargar los datos de electrodomésticos. Si falla, el catch lo manejará.
+        await cargarElectrodomesticosDesdeBackend();
 
-    // 6. Muestra la pantalla guardada o la inicial después de que todo esté cargado y listo
-    const currentScreenId = 'map-screen';
-    showScreen(currentScreenId);
+        // Configura los botones y la navegación. Esto se ejecutará incluso si la carga de datos falla.
+        setupNavigationButtons();
+        setupSidebarNavigation();
 
-    // Si la pantalla inicial es la de energía, nos aseguramos de que el consumo se muestre correctamente
-    if (currentScreenId === 'energia-section') {
-        calcularConsumo();
+        // Muestra la pantalla inicial.
+        showScreen('map-screen');
+
+    } catch (error) {
+        console.error("Error fatal durante la inicialización:", error);
+        // Opcional: Muestra un mensaje de error al usuario en la propia página.
+        const body = document.querySelector('body');
+        if (body) {
+            body.innerHTML = `<div style="text-align: center; padding: 50px; font-family: sans-serif;">
+                <h1>Error al cargar la aplicación</h1>
+                <p>No se pudieron cargar los datos necesarios para iniciar la calculadora. Por favor, intente recargar la página más tarde.</p>
+                <p><i>Detalle del error: ${error.message}</i></p>
+            </div>`;
+        }
     }
 
     // ********************************************************************************
