@@ -199,245 +199,90 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// --- Start: Inlined and adapted logic from reportTableHelper.js ---
+
 function renderBasicExcelTable(tableData) {
     const tbody = document.getElementById('basico_resultados_excel_body');
     if (!tbody) {
+        console.error("Contenedor de tabla para informe básico ('basico_resultados_excel_body') no encontrado.");
         return;
     }
-
-    if (window.BasicReportTableHelper && typeof window.BasicReportTableHelper.renderRows === 'function') {
-        window.BasicReportTableHelper.renderRows(tbody, tableData, { columnCount: 4 });
-        return;
-    }
-
-    // Fallback rendering in case the helper is not available for any reason.
     tbody.innerHTML = '';
+
+    const columnCount = 4; // We are aiming for a 4-column layout: Label, Value, Unit, Notes
 
     if (!Array.isArray(tableData) || tableData.length === 0) {
         const emptyRow = document.createElement('tr');
         const emptyCell = document.createElement('td');
-        emptyCell.colSpan = 4;
-        emptyCell.textContent = 'No se encontraron datos para mostrar el informe básico detallado.';
+        emptyCell.colSpan = columnCount;
+        emptyCell.textContent = 'No se encontraron datos para mostrar el informe.';
+        emptyCell.style.textAlign = 'center';
         emptyRow.appendChild(emptyCell);
         tbody.appendChild(emptyRow);
         return;
     }
 
+    // --- Helper functions ---
     const formatNumber = (value) => {
-        if (typeof value !== 'number' || !Number.isFinite(value)) {
-            return '';
-        }
-        if (Number.isInteger(value)) {
-            return value.toLocaleString('es-AR', { maximumFractionDigits: 0 });
-        }
-        const abs = Math.abs(value);
-        const fractionDigits = abs < 1 ? 3 : 2;
-        return value.toLocaleString('es-AR', {
-            minimumFractionDigits: fractionDigits,
-            maximumFractionDigits: fractionDigits,
-        });
+        if (typeof value !== 'number' || !Number.isFinite(value)) return '';
+        if (Number.isInteger(value)) return value.toLocaleString('es-AR');
+        return value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
-    const isUnit = (value) => typeof value === 'string' && /(%|US\$|U\$S|\$|d[oó]lares|tCO2|m2|kWh|W|años?|USD)/i.test(value);
- codex/add-usertype-check-and-report-rendering-8qnaoy
+    const isUnit = (value) => typeof value === 'string' && /(%|US\$|U\$S|\$|tCO2|m2|kWh|W|años?|USD)/i.test(value);
 
-    const applyRowClass = (rowElement, className) => {
-        if (!rowElement || !className) {
-            return;
-        }
-        className.split(/\s+/).forEach((cls) => {
-            if (cls) {
-                rowElement.classList.add(cls);
-            }
-        });
-    };
-
- main
-
-    tableData.forEach((row) => {
-        const rawCells = Array.isArray(row) ? row : [row];
-        const cleanedCells = rawCells.map((cell) => {
-            if (cell === null || cell === undefined) {
-                return null;
-            }
-            if (typeof cell === 'number') {
-                return Number.isFinite(cell) ? cell : null;
-            }
-            if (typeof cell === 'string') {
-                const trimmed = cell.trim();
-                return trimmed ? trimmed : null;
-            }
-            return null;
-        });
-
-        if (cleanedCells.every((cell) => cell === null)) {
- codex/add-usertype-check-and-report-rendering-8qnaoy
-            const spacerRow = document.createElement('tr');
-            applyRowClass(spacerRow, 'spacer-row');
-            for (let i = 0; i < 4; i += 1) {
-                const td = document.createElement('td');
-                td.innerHTML = '&nbsp;';
-                spacerRow.appendChild(td);
-            }
-            tbody.appendChild(spacerRow);
-
- main
-            return;
-        }
-
-        const label = typeof cleanedCells[0] === 'string' ? cleanedCells[0] : '';
-        const rest = cleanedCells.slice(1);
-        let value = '';
- codex/add-usertype-check-and-report-rendering-8qnaoy
-        let numericValue = null;
-
-main
-        let unit = typeof cleanedCells[2] === 'string' ? cleanedCells[2] : '';
-        const notes = [];
-
-        if (typeof cleanedCells[1] === 'number') {
-            value = formatNumber(cleanedCells[1]);
-codex/add-usertype-check-and-report-rendering-8qnaoy
-            numericValue = cleanedCells[1];
-
- main
-        } else if (typeof cleanedCells[1] === 'string') {
-            value = cleanedCells[1];
-        }
-
-        if (!value) {
-            const fallbackNumber = rest.find((cell) => typeof cell === 'number');
-            if (typeof fallbackNumber === 'number') {
-                value = formatNumber(fallbackNumber);
- codex/add-usertype-check-and-report-rendering-8qnaoy
-                numericValue = fallbackNumber;
- main
-            } else {
-                const fallbackText = rest.find((cell) => typeof cell === 'string' && !isUnit(cell));
-                if (fallbackText) {
-                    value = fallbackText;
-                }
-            }
-        }
-
-        if (!unit) {
-            const fallbackUnit = rest.find((cell) => typeof cell === 'string' && isUnit(cell));
-            if (fallbackUnit) {
-                unit = fallbackUnit;
-            }
-        }
-
-        rest.forEach((cell) => {
-            if (!cell) {
-                return;
-            }
-            if (typeof cell === 'string' && !isUnit(cell) && cell !== value) {
-                notes.push(cell);
-            }
-        });
-
-        const note = notes.join('\n');
+    // --- Row processing logic ---
+    tableData.forEach(rowData => {
         const tr = document.createElement('tr');
+        const cleanedCells = Array.isArray(rowData) ? rowData.map(c => (c === null || c === undefined) ? '' : c) : [];
 
-        const addFullRow = (className, text) => {
- codex/add-usertype-check-and-report-rendering-8qnaoy
-            applyRowClass(tr, className);
-
-            tr.classList.add(className);
- main
+        if (cleanedCells.every(cell => cell === '')) {
+            // It's a spacer row
             const td = document.createElement('td');
-            td.colSpan = 4;
-            td.textContent = text;
+            td.colSpan = columnCount;
+            td.innerHTML = '&nbsp;';
             tr.appendChild(td);
             tbody.appendChild(tr);
-        };
- codex/add-usertype-check-and-report-rendering-8qnaoy
+            return;
+        }
 
-        const normalizedLabel = (label || '').toLowerCase();
+        const label = cleanedCells[0] || '';
+        const normalizedLabel = label.toString().trim().toLowerCase();
 
+        // Check for headers or full-width rows
         if (normalizedLabel.includes('resultado del dimensionamiento') ||
             normalizedLabel.includes('datos técnicos') ||
             normalizedLabel.includes('resultados económicos') ||
             normalizedLabel.includes('contribución a la mitigación') ||
             normalizedLabel.startsWith('•')) {
-            const className = normalizedLabel.includes('resultado del dimensionamiento')
-                ? 'table-main-title'
-                : normalizedLabel.startsWith('•')
-                    ? 'subsection-header'
-                    : 'section-header';
-            addFullRow(className, label);
-            return;
-        }
-
-
-
-        const normalizedLabel = (label || '').toLowerCase();
-
-        if (normalizedLabel.includes('resultado del dimensionamiento') ||
-            normalizedLabel.includes('datos técnicos') ||
-            normalizedLabel.includes('resultados económicos') ||
-            normalizedLabel.includes('contribución a la mitigación') ||
-            normalizedLabel.startsWith('•')) {
-            const className = normalizedLabel.includes('resultado del dimensionamiento')
-                ? 'table-main-title'
-                : normalizedLabel.startsWith('•')
-                    ? 'subsection-header'
-                    : 'section-header';
-            addFullRow(className, label);
-            return;
-        }
-
- main
-        if (!label && note) {
-            addFullRow('note-row', note);
-            return;
-        }
-
-        if (!label && !note && !value && !unit) {
- codex/add-usertype-check-and-report-rendering-8qnaoy
-            addFullRow('spacer-row', '');
-            return;
-        }
-
-        const displayValue = value || (label ? 'N/A' : '');
-        const cells = [label || '', displayValue, unit || '', note || ''];
-
-            return;
-        }
-
-        const cells = [label || '', value || '', unit || '', note || ''];
- main
-
-        cells.forEach((cellValue, index) => {
             const td = document.createElement('td');
-            td.textContent = cellValue;
-            if (index === 3 && note) {
-                td.classList.add('note-cell');
+            td.textContent = label;
+            td.colSpan = columnCount;
+            if (normalizedLabel.startsWith('•')) {
+                td.style.fontWeight = 'bold';
+                td.style.paddingLeft = '20px';
+            } else {
+                td.style.fontWeight = 'bold';
+                td.style.backgroundColor = '#e5ecf6';
+                td.style.color = '#337ab7';
             }
             tr.appendChild(td);
-        });
+        } else {
+            // Standard data row (Label, Value, Unit, Notes)
+            const labelCell = document.createElement('td');
+            labelCell.textContent = label;
+            labelCell.colSpan = 2;
+            tr.appendChild(labelCell);
 
- codex/add-usertype-check-and-report-rendering-8qnaoy
-        const highlightRow = label && (
-            normalizedLabel.includes('saldo neto') ||
-            normalizedLabel.includes('inversión inicial') ||
-            normalizedLabel.includes('ahorro económico') ||
-            normalizedLabel.includes('ahorro anual')
-        );
+            const valueCell = document.createElement('td');
+            const value = typeof cleanedCells[1] === 'number' ? formatNumber(cleanedCells[1]) : cleanedCells[1] || '';
+            valueCell.textContent = value;
+            valueCell.style.textAlign = 'right';
+            tr.appendChild(valueCell);
 
-        if (highlightRow) {
-            tr.classList.add('highlight-row');
-        }
-
-        if (normalizedLabel.includes('efecto económico') || (numericValue !== null && Number.isFinite(numericValue) && numericValue < 0)) {
-            tr.classList.remove('highlight-row');
-            tr.classList.add('warning-row', 'negative-value');
-
-        if (label && (normalizedLabel.includes('saldo neto') || normalizedLabel.includes('inversión inicial') || normalizedLabel.includes('ahorro económico'))) {
-            tr.classList.add('highlight-row');
-        } else if (normalizedLabel.includes('efecto económico')) {
-            tr.classList.add('warning-row');
- main
+            const unitCell = document.createElement('td');
+            unitCell.textContent = cleanedCells[2] || '';
+            tr.appendChild(unitCell);
         }
 
         tbody.appendChild(tr);
