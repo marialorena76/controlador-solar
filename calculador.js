@@ -1756,8 +1756,10 @@ function initMap() {
 
     // Asegúrate de que el geocodificador esté importado correctamente en tu HTML
     // <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    // Asegúrate de que el geocodificador esté importado correctamente en tu HTML
+    // <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     geocoderControlInstance = L.Control.geocoder({
-        placeholder: 'Ej: Buchardo 3232, Olavarría', // Nuevo placeholder
+        placeholder: 'Ej: Buchardo 3232, Olavarría',
         errorMessage: 'No se encontró la dirección.',
         defaultMarkGeocode: false
     }).on('markgeocode', async function(e) {
@@ -1809,7 +1811,14 @@ function initMap() {
                 await persistSelectedCityName('');
             }
         }
-    }).addTo(map);
+    });
+
+    const geocoderContainer = document.getElementById('geocoder-container');
+    if (geocoderContainer) {
+        geocoderContainer.appendChild(geocoderControlInstance.onAdd(map));
+    } else {
+        geocoderControlInstance.addTo(map); // Fallback
+    }
 
 }
 
