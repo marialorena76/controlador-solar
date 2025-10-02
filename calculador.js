@@ -1677,11 +1677,49 @@ async function persistSelectedCityName(cityName) {
 function initMap() {
     console.log('--- initMap CALLED ---');
 
+ codex/replace-report-url-in-calculador.js-yq8c7q
+
+codex/replace-report-url-in-calculador.js-iv0085
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+        console.error('No se encontró el contenedor del mapa.');
+        return;
+    }
+
+    if (!mapContainer.style.height) {
+        mapContainer.style.height = '600px';
+    }
+    if (!mapContainer.style.minHeight) {
+        mapContainer.style.minHeight = '400px';
+    }
+
+main
+    if (geocoderControlInstance) {
+        try {
+            geocoderControlInstance.off('markgeocode');
+            geocoderControlInstance.remove();
+        } catch (error) {
+            console.warn('No se pudo desmontar el geocodificador existente:', error);
+        }
+        geocoderControlInstance = null;
+    }
+
+ main
     if (map) {
+        map.off();
         map.remove();
     }
 
+ codex/replace-report-url-in-calculador.js-yq8c7q
+
+    marker = null;
+
+codex/replace-report-url-in-calculador.js-iv0085
+    map = L.map(mapContainer).setView(userLocation, 13);
+
+ main
     map = L.map('map').setView(userLocation, 13);
+ main
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
@@ -1821,6 +1859,7 @@ function initMap() {
 
     geocoderControlInstance.addTo(map);
 
+ codex/replace-report-url-in-calculador.js-yq8c7q
     const geocoderContainer = document.getElementById('geocoder-container');
     if (geocoderContainer) {
         const geocoderElement = geocoderControlInstance.getContainer();
@@ -1831,12 +1870,44 @@ function initMap() {
     }
 
     setTimeout(() => {
+
+    const geocoderElement = geocoderControlInstance.getContainer();
+    const geocoderContainer = document.getElementById('geocoder-container');
+
+    if (geocoderContainer && geocoderElement) {
+        geocoderContainer.innerHTML = '';
+        geocoderContainer.appendChild(geocoderElement);
+    }
+
+ codex/replace-report-url-in-calculador.js-iv0085
+    const refreshMapSize = () => {
+
+    setTimeout(() => {
+ main
+ main
         try {
             map.invalidateSize();
         } catch (error) {
             console.warn('No se pudo recalcular el tamaño del mapa después de inicializarlo:', error);
         }
+codex/replace-report-url-in-calculador.js-yq8c7q
     }, 200);
+
+ codex/replace-report-url-in-calculador.js-iv0085
+    };
+
+    refreshMapSize();
+    map.whenReady(() => {
+        refreshMapSize();
+        setTimeout(refreshMapSize, 150);
+    });
+
+    setTimeout(refreshMapSize, 300);
+
+    }, 0);
+ main
+
+ main
 }
 
 // --- Nueva función para buscar el código de la ciudad (refactorizada) ---
@@ -1898,18 +1969,53 @@ function showScreen(screenId) {
     if (targetElement) {
         if (screenId === 'map-screen') {
             if (mapScreen) {
+ codex/replace-report-url-in-calculador.js-yq8c7q
                 mapScreen.style.display = 'block';
             }
 
             if (map) {
                 setTimeout(() => {
+
+                mapScreen.style.display = 'flex';
+codex/replace-report-url-in-calculador.js-iv0085
+                // Fuerza un reflow para asegurar que Leaflet tenga dimensiones válidas
+                void mapScreen.offsetHeight;
+            }
+
+            const scheduleResize = () => {
+                if (!map) {
+                    initMap();
+                }
+
+            }
+            requestAnimationFrame(() => {
+ main
+                if (map) {
+main
                     try {
                         map.invalidateSize();
                     } catch (error) {
                         console.warn('No se pudo recalcular el tamaño del mapa al mostrar la pantalla:', error);
                     }
+ codex/replace-report-url-in-calculador.js-yq8c7q
                 }, 100);
             }
+
+ codex/replace-report-url-in-calculador.js-iv0085
+                }
+            };
+
+            requestAnimationFrame(() => {
+                scheduleResize();
+                setTimeout(scheduleResize, 100);
+                setTimeout(scheduleResize, 350);
+
+                } else {
+                    initMap();
+                }
+ main
+            });
+main
         } else if (screenId === 'data-form-screen') {
             // Ensure dataFormScreen variable is the correct DOM element
             if (dataFormScreen) dataFormScreen.style.display = 'block'; 
@@ -2611,9 +2717,82 @@ function setupNavigationButtons() {
                 const selectedUserType = typeof userSelections.userType === 'string'
                     ? userSelections.userType.toLowerCase()
                     : null;
+codex/replace-report-url-in-calculador.js-yq8c7q
                 // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
                 // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
                 window.location.href = 'generar_informe.html';
+
+codex/replace-report-url-in-calculador.js-iv0085
+                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
+                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
+                window.location.href = 'generar_informe.html';
+
+codex/replace-report-url-in-calculador.js-if90kv
+                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
+                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
+                window.location.href = 'generar_informe.html';
+
+codex/replace-report-url-in-calculador.js-uaonog
+                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
+                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
+                window.location.href = 'generar_informe.html';
+
+codex/replace-report-url-in-calculador.js-oxo1d5
+                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
+                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
+                window.location.href = 'generar_informe.html';
+
+                const isBasicUser = backendUserType === 'basico' || selectedUserType === 'basico';
+
+                if (isBasicUser) {
+                    const resultadosContainer = document.getElementById('resultados-informe');
+                    const tableData = informeFinal?.basic_report?.excel_table || [];
+
+                    if (
+                        resultadosContainer &&
+                        window.BasicReportTableHelper &&
+                        typeof window.BasicReportTableHelper.renderTableInContainer === 'function'
+                    ) {
+                        resultadosContainer.innerHTML = '';
+                        resultadosContainer.classList.add('basic-report-summary-container');
+
+                        const helperOptions = {
+                            columnCount: 4,
+                            emptyMessage: 'No se encontraron datos para mostrar el informe básico detallado.',
+                        };
+
+                        const tableWrapper = document.createElement('div');
+                        tableWrapper.className = 'basic-report-table-wrapper';
+                        window.BasicReportTableHelper.renderTableInContainer(tableWrapper, tableData, helperOptions);
+                        resultadosContainer.appendChild(tableWrapper);
+
+                        const fullReportButton = document.createElement('button');
+                        fullReportButton.type = 'button';
+                        fullReportButton.textContent = 'Abrir informe completo';
+                        fullReportButton.className = 'basic-report-open-button';
+                        fullReportButton.addEventListener('click', () => {
+                            window.location.href = 'generar_informe.html';
+                        });
+                        resultadosContainer.appendChild(fullReportButton);
+
+                        if (mapScreen) mapScreen.style.display = 'none';
+                        if (dataFormScreen) dataFormScreen.style.display = 'none';
+                        resultadosContainer.style.display = 'block';
+
+                        resultadosContainer.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                        // Fallback if rendering fails: redirect to the full report page
+                        window.location.href = 'generar_informe.html';
+                    }
+                } else {
+                    // Expert user always redirects
+                    window.location.href = 'generar_informe.html';
+                }
+ main
+ main
+main
+main
+ main
             } catch (error) {
                 console.error('Error al generar el informe:', error);
                 alert('Hubo un error al generar el informe. Por favor, intente de nuevo. Detalle: ' + error.message);
