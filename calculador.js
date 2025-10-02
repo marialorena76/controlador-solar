@@ -1756,7 +1756,7 @@ function initMap() {
 
     // Asegúrate de que el geocodificador esté importado correctamente en tu HTML
     // <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-    geocoderControlInstance = L.Control.geocoder({
+    geocoderControlInstance = L.Control.Geocoder.nominatim({
         placeholder: 'Ej: Buchardo 3232, Olavarría', // Nuevo placeholder
         errorMessage: 'No se encontró la dirección.',
         defaultMarkGeocode: false
@@ -1921,16 +1921,25 @@ function updateStepIndicator(currentSectionId) {
 
 // Helper function to manage visibility of form sections within map-screen
 function showMapScreenFormSection(sectionIdToShow) {
-    if (userTypeSection) userTypeSection.style.display = 'none';
-    if (supplySection) supplySection.style.display = 'none';
-    if (incomeSection) incomeSection.style.display = 'none';
-    if (expertSection) expertSection.style.display = 'none';
+    // Get the main container for the form sections on the map screen
+    const container = document.querySelector('.form-sections-container');
+    if (!container) {
+        console.error("Container '.form-sections-container' not found.");
+        return;
+    }
 
+    // Hide all direct children that are form sections
+    const sections = container.querySelectorAll('.form-section');
+    sections.forEach(section => {
+        section.style.display = 'none';
+    });
+
+    // Now, show the specific section that was requested
     const sectionToShow = document.getElementById(sectionIdToShow);
     if (sectionToShow) {
         sectionToShow.style.display = 'block';
     } else {
-        console.error('Section with ID ' + sectionIdToShow + ' not found for showMapScreenFormSection.');
+        console.error(`Section with ID '${sectionIdToShow}' not found.`);
     }
 }
 
@@ -1968,7 +1977,7 @@ function setupNavigationButtons() {
             document.getElementById('data-form-screen').classList.remove('basic-user-mode');
 
             showMapScreenFormSection('supply-section');
-            updateStepIndicator('map-screen');
+            updateStepIndicator('supply-section');
         });
     }
 
