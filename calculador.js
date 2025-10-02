@@ -2571,6 +2571,11 @@ function setupNavigationButtons() {
                 console.log('Informe recibido del backend:', informeFinal);
 
                 localStorage.setItem('informeSolar', JSON.stringify(informeFinal));
+                try {
+                    localStorage.setItem('userSelections', JSON.stringify(payload));
+                } catch (storageError) {
+                    console.warn('No se pudo guardar userSelections en localStorage', storageError);
+                }
 
                 const backendUserType = typeof informeFinal.userType === 'string'
                     ? informeFinal.userType.toLowerCase()

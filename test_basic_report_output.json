@@ -28,7 +28,7 @@
   [
     "Ciudad seleccionada",
     "BUENOS AIRES, SANTIAGO DEL ESTERO",
-    null,
+    "",
     null,
     null,
     null,
@@ -41,7 +41,7 @@
   [
     "HSP anual estimado",
     5.520637495157617,
-    "(kWh/kWp·día)",
+    "(kWh/kWp\u00b7d\u00eda)",
     null,
     null,
     null,
@@ -65,7 +65,7 @@
     null
   ],
   [
-    "Datos técnicos del dimensionamiento",
+    "Datos t\u00e9cnicos del dimensionamiento",
     null,
     null,
     null,
@@ -78,7 +78,7 @@
     null
   ],
   [
-    "• Consumo y generación",
+    "\u2022 Consumo y generaci\u00f3n",
     null,
     null,
     null,
@@ -91,9 +91,9 @@
     null
   ],
   [
-    "Consumo anual de energía eléctrica",
+    "Consumo anual de energ\u00eda el\u00e9ctrica",
     5060,
-    "(kWh/año)",
+    "kWh/a\u00f1o",
     null,
     null,
     null,
@@ -104,9 +104,9 @@
     null
   ],
   [
-    "Generación anual de energía eléctrica",
-    5061.127808501278,
-    "(kWh/año)",
+    "Generaci\u00f3n anual de energ\u00eda el\u00e9ctrica",
+    5184.223526949391,
+    "kWh/a\u00f1o",
     null,
     null,
     null,
@@ -117,9 +117,9 @@
     null
   ],
   [
-    "Energía para autoconsumo",
-    4700.563904250639,
-    "(kWh/año)",
+    "Energ\u00eda para autoconsumo",
+    4762.111763474695,
+    "kWh/a\u00f1o",
     null,
     null,
     null,
@@ -130,9 +130,9 @@
     null
   ],
   [
-    "Energía inyectada a la red",
-    360.5639042506392,
-    "(kWh/año)",
+    "Energ\u00eda inyectada a la red",
+    422.11176347469575,
+    "kWh/a\u00f1o",
     null,
     null,
     null,
@@ -143,9 +143,9 @@
     null
   ],
   [
-    "Energía comprada a la red",
-    359.4360957493609,
-    "(kWh/año)",
+    "Energ\u00eda comprada a la red",
+    297.8882365253048,
+    "kWh/a\u00f1o",
     null,
     null,
     null,
@@ -157,7 +157,7 @@
   ],
   [
     "Cobertura del consumo con FV",
-    100.02228870555885,
+    102.45501041401958,
     "%",
     null,
     null,
@@ -169,8 +169,8 @@
     null
   ],
   [
-    "Autoconsumo de la generación FV",
-    92.87581902901182,
+    "Autoconsumo de la generaci\u00f3n FV",
+    91.85776305206724,
     "%",
     null,
     null,
@@ -195,7 +195,7 @@
     null
   ],
   [
-    "• Detalles de la instalación",
+    "\u2022 Detalles de la instalaci\u00f3n",
     null,
     null,
     null,
@@ -210,7 +210,7 @@
   [
     "Marca seleccionada",
     "TRINASOLAR",
-    null,
+    "",
     null,
     null,
     null,
@@ -223,7 +223,7 @@
   [
     "Modelo de panel",
     "TSM-510-NEG18R.28-VERTEX S+",
-    null,
+    "",
     null,
     null,
     null,
@@ -235,7 +235,7 @@
   ],
   [
     "Potencia de paneles sugerida",
-    510,
+    510.0,
     "W",
     null,
     null,
@@ -248,8 +248,8 @@
   ],
   [
     "Cantidad paneles necesarios",
-    2138,
-    null,
+    6,
+    "",
     null,
     null,
     null,
@@ -261,8 +261,8 @@
   ],
   [
     "Superficie necesaria",
-    4754.428812,
-    "m²",
+    13.342644,
+    "m\u00b2",
     null,
     null,
     null,
@@ -286,7 +286,7 @@
     null
   ],
   [
-    "• Inversor/es",
+    "\u2022 Inversor/es",
     null,
     null,
     null,
@@ -301,7 +301,7 @@
   [
     "Inversor/es sugerido/s",
     "GROWATT SPH 4000-6000TL BL-UP",
-    null,
+    "",
     null,
     null,
     null,
@@ -313,7 +313,7 @@
   ],
   [
     "Potencia inversor nominal",
-    4990,
+    4990.0,
     "W",
     null,
     null,
@@ -326,7 +326,20 @@
   ],
   [
     "Cantidad de inversores",
-    219,
+    1,
+    "",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    null,
+    null,
     null,
     null,
     null,
@@ -338,22 +351,9 @@
     null
   ],
   [
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null
-  ],
-  [
-    "Vida útil del proyecto (años)",
+    "Vida \u00fatil del proyecto (a\u00f1os)",
     25,
-    "años",
+    "a\u00f1os",
     null,
     null,
     null,
@@ -377,7 +377,7 @@
     null
   ],
   [
-    "Resultados económicos",
+    "Resultados econ\u00f3micos",
     null,
     null,
     null,
@@ -390,7 +390,7 @@
     null
   ],
   [
-    "Tarifa consumo de energía eléctrica",
+    "Tarifa consumo de energ\u00eda el\u00e9ctrica",
     107.7625,
     "Pesos argentinos/kWh",
     null,
@@ -403,7 +403,7 @@
     null
   ],
   [
-    "Tarifa inyección de energía eléctrica",
+    "Tarifa inyecci\u00f3n de energ\u00eda el\u00e9ctrica",
     40.5201,
     "Pesos argentinos/kWh",
     null,
@@ -416,7 +416,7 @@
     null
   ],
   [
-    "Gasto anual sin instalación FV",
+    "Gasto anual sin instalaci\u00f3n FV",
     545278.25,
     "Pesos argentinos",
     null,
@@ -429,8 +429,8 @@
     null
   ],
   [
-    "Costo anual después del proyecto",
-    16534221.454811566,
+    "Costo anual despu\u00e9s del proyecto",
+    61330.46622138715,
     "Pesos argentinos",
     null,
     null,
@@ -443,7 +443,7 @@
   ],
   [
     "Costo de mantenimiento anual",
-    16510097.808000002,
+    46333.296,
     "Pesos argentinos",
     null,
     null,
@@ -455,8 +455,8 @@
     null
   ],
   [
-    "Costo anual de energía comprada a la red",
-    38733.732268190506,
+    "Costo anual de energ\u00eda comprada a la red",
+    32101.18108855816,
     "Pesos argentinos",
     null,
     null,
@@ -468,8 +468,8 @@
     null
   ],
   [
-    "Ingreso anual por inyección a la red",
-    14610.085456626326,
+    "Ingreso anual por inyecci\u00f3n a la red",
+    17104.01086717102,
     "Pesos argentinos",
     null,
     null,
@@ -482,7 +482,7 @@
   ],
   [
     "Ahorro anual neto",
-    -15988943.204811566,
+    483947.78377861285,
     "Pesos argentinos",
     null,
     null,
@@ -494,8 +494,8 @@
     null
   ],
   [
-    "Inversión inicial estimada",
-    2296189754.057071,
+    "Inversi\u00f3n inicial estimada",
+    6443937.569851462,
     "Pesos argentinos",
     null,
     null,
@@ -508,6 +508,19 @@
   ],
   [
     "Payback estimado",
+    13.315357122906695,
+    "a\u00f1os",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    null,
     null,
     null,
     null,
@@ -520,20 +533,7 @@
     null
   ],
   [
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null
-  ],
-  [
-    "Contribución a la mitigación del cambio climático",
+    "Contribuci\u00f3n a la mitigaci\u00f3n del cambio clim\u00e1tico",
     null,
     null,
     null,
@@ -546,9 +546,9 @@
     null
   ],
   [
-    "Emisiones evitadas por año",
-    2.3574733331998954,
-    "tCO₂/año",
+    "Emisiones evitadas por a\u00f1o",
+    2.4148113188530265,
+    "tCO\u2082/a\u00f1o",
     null,
     null,
     null,
@@ -559,9 +559,9 @@
     null
   ],
   [
-    "Emisiones evitadas en la vida útil",
-    58.936833329997384,
-    "tCO₂",
+    "Emisiones evitadas en la vida \u00fatil",
+    60.370282971325665,
+    "tCO\u2082",
     null,
     null,
     null,

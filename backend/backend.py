@@ -137,11 +137,15 @@ def get_electrodomesticos_consumos():
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
 # --- Ruta para generar informe (EXISTENTE) ---
-@app.route('/api/generar_informe', methods=['POST'])
-def generar_informe():
-    print("--- NEW /api/generar_informe REQUEST ---")
+def _generate_report_response():
+    print(f"--- NEW {request.path} REQUEST ---")
     try:
-        user_data = request.json
+        incoming_payload = request.get_json(silent=True) or {}
+        if isinstance(incoming_payload, dict) and isinstance(incoming_payload.get('userSelections'), dict):
+            user_data = incoming_payload['userSelections']
+        else:
+            user_data = incoming_payload
+
         print(f"Received user_data: {json.dumps(user_data, indent=2)}")
 
         if not user_data:
@@ -149,18 +153,13 @@ def generar_informe():
             return jsonify({"error": "No se recibieron datos"}), 400
 
         print("Calling calculation engine...")
-        # El motor de cálculo accede al mismo archivo Excel que la ruta de
-        # actualización, por lo que ambas operaciones comparten el mismo lock
-        # para evitar condiciones de carrera. La sección crítica se mantiene al
-        # mínimo, limitándose a la llamada del motor.
         with excel_lock:
             resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
         print("Engine call successful.")
 
-        # Clean NaN values before returning the JSON response.
         resultados_calculo_clean = clean_nan_in_data(resultados_calculo)
 
-        if "error" in resultados_calculo_clean:
+        if isinstance(resultados_calculo_clean, dict) and "error" in resultados_calculo_clean:
             print(f"Engine returned an error: {resultados_calculo_clean['error']}")
             return jsonify(resultados_calculo_clean), 400
 
@@ -170,8 +169,18 @@ def generar_informe():
     except Exception as e:
         import traceback
         error_info = traceback.format_exc()
-        print(f"UNEXPECTED CRASH in /api/generar_informe: {e}\n{error_info}")
+        print(f"UNEXPECTED CRASH in {request.path}: {e}\n{error_info}")
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
+
+
+@app.route('/api/generar_informe', methods=['POST'])
+def generar_informe_api():
+    return _generate_report_response()
+
+
+@app.route('/generar_informe', methods=['POST'])
+def generar_informe_public():
+    return _generate_report_response()
 
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
 @app.route('/')
