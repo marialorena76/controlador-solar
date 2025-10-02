@@ -1677,6 +1677,21 @@ async function persistSelectedCityName(cityName) {
 function initMap() {
     console.log('--- initMap CALLED ---');
 
+codex/replace-report-url-in-calculador.js-iv0085
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+        console.error('No se encontró el contenedor del mapa.');
+        return;
+    }
+
+    if (!mapContainer.style.height) {
+        mapContainer.style.height = '600px';
+    }
+    if (!mapContainer.style.minHeight) {
+        mapContainer.style.minHeight = '400px';
+    }
+
+main
     if (geocoderControlInstance) {
         try {
             geocoderControlInstance.off('markgeocode');
@@ -1694,7 +1709,11 @@ function initMap() {
 
     marker = null;
 
+codex/replace-report-url-in-calculador.js-iv0085
+    map = L.map(mapContainer).setView(userLocation, 13);
+
     map = L.map('map').setView(userLocation, 13);
+ main
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
@@ -1842,13 +1861,29 @@ function initMap() {
         geocoderContainer.appendChild(geocoderElement);
     }
 
+ codex/replace-report-url-in-calculador.js-iv0085
+    const refreshMapSize = () => {
+
     setTimeout(() => {
+ main
         try {
             map.invalidateSize();
         } catch (error) {
             console.warn('No se pudo recalcular el tamaño del mapa después de inicializarlo:', error);
         }
+ codex/replace-report-url-in-calculador.js-iv0085
+    };
+
+    refreshMapSize();
+    map.whenReady(() => {
+        refreshMapSize();
+        setTimeout(refreshMapSize, 150);
+    });
+
+    setTimeout(refreshMapSize, 300);
+
     }, 0);
+ main
 
 }
 
@@ -1912,17 +1947,38 @@ function showScreen(screenId) {
         if (screenId === 'map-screen') {
             if (mapScreen) {
                 mapScreen.style.display = 'flex';
+codex/replace-report-url-in-calculador.js-iv0085
+                // Fuerza un reflow para asegurar que Leaflet tenga dimensiones válidas
+                void mapScreen.offsetHeight;
+            }
+
+            const scheduleResize = () => {
+                if (!map) {
+                    initMap();
+                }
+
             }
             requestAnimationFrame(() => {
+ main
                 if (map) {
                     try {
                         map.invalidateSize();
                     } catch (error) {
                         console.warn('No se pudo recalcular el tamaño del mapa al mostrar la pantalla:', error);
                     }
+ codex/replace-report-url-in-calculador.js-iv0085
+                }
+            };
+
+            requestAnimationFrame(() => {
+                scheduleResize();
+                setTimeout(scheduleResize, 100);
+                setTimeout(scheduleResize, 350);
+
                 } else {
                     initMap();
                 }
+ main
             });
         } else if (screenId === 'data-form-screen') {
             // Ensure dataFormScreen variable is the correct DOM element
@@ -2625,6 +2681,11 @@ function setupNavigationButtons() {
                 const selectedUserType = typeof userSelections.userType === 'string'
                     ? userSelections.userType.toLowerCase()
                     : null;
+codex/replace-report-url-in-calculador.js-iv0085
+                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
+                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
+                window.location.href = 'generar_informe.html';
+
 codex/replace-report-url-in-calculador.js-if90kv
                 // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
                 // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
@@ -2688,6 +2749,7 @@ codex/replace-report-url-in-calculador.js-oxo1d5
                 }
  main
  main
+main
 main
             } catch (error) {
                 console.error('Error al generar el informe:', error);
