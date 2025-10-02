@@ -26,28 +26,7 @@ test('POST /api/generar_informe incluye la tabla básica del Excel', async () =>
   expect(response.data.basic_report).toBeDefined();
   expect(Array.isArray(response.data.basic_report.excel_table)).toBe(true);
 
-  const expectedTableJson = execSync(`python - <<'PY'
-import pandas as pd
-import json
-import math
-from pathlib import Path
-
-excel_path = Path('backend') / 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx'
-df_resultados = pd.read_excel(excel_path, sheet_name='Resultados')
-subset = df_resultados.iloc[2:56, 1:12]
-table = subset.where(pd.notna(subset), None).values.tolist()
-
-def clean_nan(obj):
-    if isinstance(obj, list):
-        return [clean_nan(elem) for elem in obj]
-    if isinstance(obj, float) and math.isnan(obj):
-        return None
-    return obj
-
-print(json.dumps(clean_nan(table), ensure_ascii=False))
-PY
-`, { encoding: 'utf-8' });
-
-  const expectedTable = JSON.parse(expectedTableJson);
+  const expectedTablePath = path.join(__dirname, '..', 'test_basic_report_output.json');
+  const expectedTable = JSON.parse(fs.readFileSync(expectedTablePath, 'utf-8'));
   expect(response.data.basic_report.excel_table).toEqual(expectedTable);
 });
