@@ -1676,11 +1676,38 @@ async function persistSelectedCityName(cityName) {
 
 function initMap() {
     console.log('--- initMap CALLED ---');
-    // CORRECCIÓN: Si el mapa ya está inicializado, lo destruimos para evitar errores de doble inicialización
+
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+        console.error('No se encontró el contenedor del mapa.');
+        return;
+    }
+
+    if (!mapContainer.style.height) {
+        mapContainer.style.height = '600px';
+    }
+    if (!mapContainer.style.minHeight) {
+        mapContainer.style.minHeight = '400px';
+    }
+
+    if (geocoderControlInstance) {
+        try {
+            geocoderControlInstance.off('markgeocode');
+            geocoderControlInstance.remove();
+        } catch (error) {
+            console.warn('No se pudo desmontar el geocodificador existente:', error);
+        }
+        geocoderControlInstance = null;
+    }
+
     if (map) {
+        map.off();
         map.remove();
     }
-    map = L.map('map').setView(userLocation, 13);
+
+    marker = null;
+
+    map = L.map(mapContainer).setView(userLocation, 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
@@ -1702,42 +1729,47 @@ function initMap() {
                 const r = results[0];
                 const locationDisplay = document.getElementById('location-display');
 
-                if (r && r.name && locationDisplay) {
+                if (r && r.name) {
                     console.log('Reverse geocode result from click:', r);
                     const props = r.properties || {};
                     const address = props.address || {};
 
-                    // 1. Instant UI update with best-guess city name from geocoder
                     const immediateCityName = address.city || address.town || address.village || props.city || props.town || props.village;
-                    if (immediateCityName) {
-                        locationDisplay.textContent = `Ubicación: ${immediateCityName}`;
-                        locationDisplay.style.backgroundColor = '#e9f5e9'; // Optimistic green
-                    } else {
-                        locationDisplay.textContent = 'Identificando ubicación...';
-                        locationDisplay.style.backgroundColor = '#e3f2fd'; // Blue for searching
-                    }
-
-                    // 2. Call backend for definitive city data
-                    const ciudadResult = await buscarCodigoCiudad(r.name);
-
-                    // 3. Update UI and state with definitive data from backend
-                    if (ciudadResult) {
-                        userSelections.ciudad = ciudadResult;
-                        locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
-                        locationDisplay.style.backgroundColor = '#e9f5e9';
-                    } else {
-                        userSelections.ciudad = { codigo: null, nombre: null };
-                        // If we had an immediate name, keep it but show it's unconfirmed. Otherwise, show error.
+                    if (locationDisplay) {
                         if (immediateCityName) {
-                            locationDisplay.textContent = `Ubicación: ${immediateCityName} (No confirmada)`;
-                            locationDisplay.style.backgroundColor = '#fff9c4'; // Yellow for unconfirmed
+                            locationDisplay.textContent = `Ubicación: ${immediateCityName}`;
+                            locationDisplay.style.backgroundColor = '#e9f5e9';
                         } else {
-                            locationDisplay.textContent = 'No se pudo encontrar la ciudad en la base de datos.';
-                            locationDisplay.style.backgroundColor = '#fbe9e7'; // Red for failure
+                            locationDisplay.textContent = 'Identificando ubicación...';
+                            locationDisplay.style.backgroundColor = '#e3f2fd';
                         }
                     }
 
-                    await persistSelectedCityName(ciudadResult ? ciudadResult.nombre : '');
+                    const ciudadResult = await buscarCodigoCiudad(r.name);
+
+                    if (ciudadResult) {
+                        userSelections.ciudad = ciudadResult;
+                        if (locationDisplay) {
+                            locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
+                            locationDisplay.style.backgroundColor = '#e9f5e9';
+                        }
+                        await persistSelectedCityName(ciudadResult.nombre);
+                    } else {
+                        userSelections.ciudad = {
+                            codigo: null,
+                            nombre: immediateCityName || null
+                        };
+                        if (locationDisplay) {
+                            if (immediateCityName) {
+                                locationDisplay.textContent = `Ubicación: ${immediateCityName} (No confirmada)`;
+                                locationDisplay.style.backgroundColor = '#fff9c4';
+                            } else {
+                                locationDisplay.textContent = 'No se pudo encontrar la ciudad en la base de datos.';
+                                locationDisplay.style.backgroundColor = '#fbe9e7';
+                            }
+                        }
+                        await persistSelectedCityName(immediateCityName || '');
+                    }
                 } else {
                     if (locationDisplay) {
                         locationDisplay.textContent = 'No se pudo identificar la ubicación. Intente de nuevo.';
@@ -1813,12 +1845,31 @@ function initMap() {
         }
     });
 
+    geocoderControlInstance.addTo(map);
+
+    const geocoderElement = geocoderControlInstance.getContainer();
     const geocoderContainer = document.getElementById('geocoder-container');
-    if (geocoderContainer) {
-        geocoderContainer.appendChild(geocoderControlInstance.onAdd(map));
-    } else {
-        geocoderControlInstance.addTo(map); // Fallback
+
+    if (geocoderContainer && geocoderElement) {
+        geocoderContainer.innerHTML = '';
+        geocoderContainer.appendChild(geocoderElement);
     }
+
+    const refreshMapSize = () => {
+        try {
+            map.invalidateSize();
+        } catch (error) {
+            console.warn('No se pudo recalcular el tamaño del mapa después de inicializarlo:', error);
+        }
+    };
+
+    refreshMapSize();
+    map.whenReady(() => {
+        refreshMapSize();
+        setTimeout(refreshMapSize, 150);
+    });
+
+    setTimeout(refreshMapSize, 300);
 
 }
 
@@ -1880,8 +1931,30 @@ function showScreen(screenId) {
 
     if (targetElement) {
         if (screenId === 'map-screen') {
-            // Ensure mapScreen variable is the correct DOM element
-            if (mapScreen) mapScreen.style.display = 'block'; 
+            if (mapScreen) {
+                mapScreen.style.display = 'flex';
+                // Fuerza un reflow para asegurar que Leaflet tenga dimensiones válidas
+                void mapScreen.offsetHeight;
+            }
+
+            const scheduleResize = () => {
+                if (!map) {
+                    initMap();
+                }
+                if (map) {
+                    try {
+                        map.invalidateSize();
+                    } catch (error) {
+                        console.warn('No se pudo recalcular el tamaño del mapa al mostrar la pantalla:', error);
+                    }
+                }
+            };
+
+            requestAnimationFrame(() => {
+                scheduleResize();
+                setTimeout(scheduleResize, 100);
+                setTimeout(scheduleResize, 350);
+            });
         } else if (screenId === 'data-form-screen') {
             // Ensure dataFormScreen variable is the correct DOM element
             if (dataFormScreen) dataFormScreen.style.display = 'block'; 
@@ -2583,52 +2656,9 @@ function setupNavigationButtons() {
                 const selectedUserType = typeof userSelections.userType === 'string'
                     ? userSelections.userType.toLowerCase()
                     : null;
-                const isBasicUser = backendUserType === 'basico' || selectedUserType === 'basico';
-
-                if (isBasicUser) {
-                    const resultadosContainer = document.getElementById('resultados-informe');
-                    const tableData = informeFinal?.basic_report?.excel_table || [];
-
-                    if (
-                        resultadosContainer &&
-                        window.BasicReportTableHelper &&
-                        typeof window.BasicReportTableHelper.renderTableInContainer === 'function'
-                    ) {
-                        resultadosContainer.innerHTML = '';
-                        resultadosContainer.classList.add('basic-report-summary-container');
-
-                        const helperOptions = {
-                            columnCount: 4,
-                            emptyMessage: 'No se encontraron datos para mostrar el informe básico detallado.',
-                        };
-
-                        const tableWrapper = document.createElement('div');
-                        tableWrapper.className = 'basic-report-table-wrapper';
-                        window.BasicReportTableHelper.renderTableInContainer(tableWrapper, tableData, helperOptions);
-                        resultadosContainer.appendChild(tableWrapper);
-
-                        const fullReportButton = document.createElement('button');
-                        fullReportButton.type = 'button';
-                        fullReportButton.textContent = 'Abrir informe completo';
-                        fullReportButton.className = 'basic-report-open-button';
-                        fullReportButton.addEventListener('click', () => {
-                            window.location.href = 'informe.html';
-                        });
-                        resultadosContainer.appendChild(fullReportButton);
-
-                        if (mapScreen) mapScreen.style.display = 'none';
-                        if (dataFormScreen) dataFormScreen.style.display = 'none';
-                        resultadosContainer.style.display = 'block';
-
-                        resultadosContainer.scrollIntoView({ behavior: 'smooth' });
-                    } else {
-                        // Fallback if rendering fails: redirect to the full report page
-                        window.location.href = 'informe.html';
-                    }
-                } else {
-                    // Expert user always redirects
-                    window.location.href = 'informe.html';
-                }
+                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
+                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
+                window.location.href = 'generar_informe.html';
             } catch (error) {
                 console.error('Error al generar el informe:', error);
                 alert('Hubo un error al generar el informe. Por favor, intente de nuevo. Detalle: ' + error.message);
