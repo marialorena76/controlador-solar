@@ -2684,8 +2684,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Inicializa el mapa primero, ya que es la primera pantalla.
         initMap();
 
-        // Inicializa el nuevo buscador de ciudades (DESACTIVADO)
-        // initCitySearch();
+        // Inicializa el nuevo buscador de ciudades
+        initCitySearch();
 
         // Intenta cargar los datos de electrodomésticos. Si falla, el catch lo manejará.
         await cargarElectrodomesticosDesdeBackend();
