@@ -978,6 +978,44 @@ def get_suitable_inverters_api():
         return jsonify({"error": f"Error interno del servidor al buscar inversores: {str(e)}"}), 500
 
 
+# --- NUEVA RUTA: Para obtener la lista completa de ciudades ---
+@app.route('/api/ciudades', methods=['GET'])
+def get_ciudades():
+    """
+    Lee la lista de ciudades de la hoja 'Ciudades' y la devuelve como JSON.
+    """
+    try:
+        print("DEBUG: Solicitud a /api/ciudades. Leyendo lista de ciudades...")
+        df_ciudades = pd.read_excel(
+            EXCEL_FILE_PATH,
+            sheet_name='Ciudades',
+            usecols="A,B",
+            header=None,
+            skiprows=1,
+            nrows=1989,
+            names=['codigo', 'nombre'],
+            engine='openpyxl'
+        )
+
+        # Eliminar filas donde el nombre de la ciudad es NaN o vacío
+        df_ciudades.dropna(subset=['nombre'], inplace=True)
+
+        # Convertir el DataFrame a una lista de diccionarios
+        ciudades_lista = df_ciudades.to_dict(orient='records')
+
+        print(f"DEBUG: Se encontraron {len(ciudades_lista)} ciudades en el archivo Excel.")
+        return jsonify(ciudades_lista)
+
+    except FileNotFoundError:
+        print(f"ERROR en /api/ciudades: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
+    except Exception as e:
+        import traceback
+        print(f"ERROR GENERAL en /api/ciudades: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno del servidor al obtener la lista de ciudades: {str(e)}"}), 500
+
+
 # --- El endpoint temporal /api/verificar_celda ha sido eliminado. ---
 
 
