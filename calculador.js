@@ -1744,41 +1744,54 @@ function initMap() {
     geocoderControlInstance = L.Control.geocoder({
         placeholder: 'Ej: Buchardo 3232, Olavarría',
         errorMessage: 'No se encontró la dirección.',
-        defaultMarkGeocode: false
+        defaultMarkGeocode: true, // Habilitar el marcador por defecto para depuración
+        collapsed: false, // Asegurar que el control no esté colapsado
+        geocoder: new L.Control.Geocoder.Photon() // Cambiado a Photon para mayor fiabilidad
     }).on('markgeocode', async function(e) {
-        const locationDisplay = document.getElementById('location-display');
-        if (e.geocode && e.geocode.center) {
-            userLocation = { lat: e.geocode.center.lat, lng: e.geocode.center.lng };
-            if (marker) marker.setLatLng(userLocation);
-            else marker = L.marker(userLocation).addTo(map);
-            map.setView(userLocation, 13);
-            userSelections.location = userLocation;
+        try {
+            const locationDisplay = document.getElementById('location-display');
+            if (e.geocode && e.geocode.center) {
+                userLocation = { lat: e.geocode.center.lat, lng: e.geocode.center.lng };
+                // El marcador es manejado por defaultMarkGeocode, no es necesario manejarlo aquí
+                map.setView(userLocation, 13);
+                userSelections.location = userLocation;
 
-            if (locationDisplay) {
-                locationDisplay.textContent = 'Buscando ciudad...';
-                locationDisplay.style.backgroundColor = '#e3f2fd';
+                if (locationDisplay) {
+                    locationDisplay.textContent = 'Buscando ciudad...';
+                    locationDisplay.style.backgroundColor = '#e3f2fd';
+                }
+
+                const ciudadResult = await buscarCodigoCiudad(e.geocode.name);
+                if (ciudadResult) {
+                    userSelections.ciudad = ciudadResult;
+                    if (locationDisplay) {
+                        locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
+                        locationDisplay.style.backgroundColor = '#e9f5e9';
+                    }
+                    await persistSelectedCityName(ciudadResult.nombre);
+                } else {
+                    const ciudadParcial = extraerCiudadDeDireccion(e.geocode.name);
+                    userSelections.ciudad = { codigo: null, nombre: ciudadParcial };
+                    if (locationDisplay) {
+                        locationDisplay.textContent = ciudadParcial ? `Ubicación: ${ciudadParcial} (No confirmada)` : 'Ciudad no encontrada.';
+                        locationDisplay.style.backgroundColor = ciudadParcial ? '#fff9c4' : '#fbe9e7';
+                    }
+                    await persistSelectedCityName(ciudadParcial || '');
+                }
             }
-
-            const ciudadResult = await buscarCodigoCiudad(e.geocode.name);
-            if (ciudadResult) {
-                userSelections.ciudad = ciudadResult;
-                if (locationDisplay) {
-                    locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
-                    locationDisplay.style.backgroundColor = '#e9f5e9';
-                }
-                await persistSelectedCityName(ciudadResult.nombre);
-            } else {
-                userSelections.ciudad = { codigo: null, nombre: null };
-                if (locationDisplay) {
-                    locationDisplay.textContent = 'No se pudo encontrar la ciudad en la base de datos.';
-                    locationDisplay.style.backgroundColor = '#fbe9e7';
-                }
-                await persistSelectedCityName('');
+        } catch (error) {
+            console.error('Error en el handler de markgeocode:', error);
+            const locationDisplay = document.getElementById('location-display');
+            if(locationDisplay) {
+                locationDisplay.textContent = 'Error al procesar la ubicación.';
+                locationDisplay.style.backgroundColor = '#fbe9e7';
             }
         }
     }).addTo(map);
 
-    // Mueve el control del geocodificador al contenedor deseado.
+    // Se elimina temporalmente la lógica de mover el geocodificador para aislar el problema.
+    // El geocodificador aparecerá en su posición por defecto en el mapa.
+
     const geocoderContainer = document.getElementById('geocoder-container');
     if (geocoderContainer) {
         const geocoderElement = geocoderControlInstance.getContainer();
@@ -1787,6 +1800,7 @@ function initMap() {
             geocoderContainer.appendChild(geocoderElement);
         }
     }
+
 
     // Llama a invalidateSize en el siguiente frame de animación para asegurar que el mapa se renderice correctamente.
     requestAnimationFrame(() => {
@@ -2561,60 +2575,9 @@ function setupNavigationButtons() {
                 const selectedUserType = typeof userSelections.userType === 'string'
                     ? userSelections.userType.toLowerCase()
                     : null;
-                // Independientemente del tipo de usuario, redirigimos directamente al informe completo.
-                // Esto evita mostrar la pantalla intermedia sin datos que requería un clic adicional.
+                // Redirigir siempre a informe.html, que es la página de reporte correcta.
                 window.location.href = 'informe.html';
-                const isBasicUser = backendUserType === 'basico' || selectedUserType === 'basico';
 
-                if (isBasicUser) {
-                    const resultadosContainer = document.getElementById('resultados-informe');
-                    const tableData = informeFinal?.basic_report?.excel_table || [];
-
-                    if (
-                        resultadosContainer &&
-                        window.BasicReportTableHelper &&
-                        typeof window.BasicReportTableHelper.renderTableInContainer === 'function'
-                    ) {
-                        resultadosContainer.innerHTML = '';
-                        resultadosContainer.classList.add('basic-report-summary-container');
-
-                        const helperOptions = {
-                            columnCount: 4,
-                            emptyMessage: 'No se encontraron datos para mostrar el informe básico detallado.',
-                        };
-
-                        const tableWrapper = document.createElement('div');
-                        tableWrapper.className = 'basic-report-table-wrapper';
-                        window.BasicReportTableHelper.renderTableInContainer(tableWrapper, tableData, helperOptions);
-                        resultadosContainer.appendChild(tableWrapper);
-
-                        const fullReportButton = document.createElement('button');
-                        fullReportButton.type = 'button';
-                        fullReportButton.textContent = 'Abrir informe completo';
-                        fullReportButton.className = 'basic-report-open-button';
-                        fullReportButton.addEventListener('click', () => {
-                            window.location.href = 'generar_informe.html';
-                        });
-                        resultadosContainer.appendChild(fullReportButton);
-
-                        if (mapScreen) mapScreen.style.display = 'none';
-                        if (dataFormScreen) dataFormScreen.style.display = 'none';
-                        resultadosContainer.style.display = 'block';
-
-                        resultadosContainer.scrollIntoView({ behavior: 'smooth' });
-                    } else {
-                        // Fallback if rendering fails: redirect to the full report page
-                        window.location.href = 'generar_informe.html';
-                    }
-                } else {
-                    // Expert user always redirects
-                    window.location.href = 'generar_informe.html';
-                }
- main
- main
-main
-main
- main
             } catch (error) {
                 console.error('Error al generar el informe:', error);
                 alert('Hubo un error al generar el informe. Por favor, intente de nuevo. Detalle: ' + error.message);
