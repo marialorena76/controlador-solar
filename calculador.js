@@ -2682,7 +2682,7 @@ function setupSidebarNavigation() {
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         // Inicializa el mapa primero, ya que es la primera pantalla.
-        // initMap(); // Mapa deshabilitado para usar el buscador de ciudades
+        initMap();
 
         // Inicializa el nuevo buscador de ciudades
         initCitySearch();

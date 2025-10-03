@@ -3,7 +3,8 @@ from playwright.sync_api import Page, expect
 def test_initial_ui_state(page: Page):
     """
     This test verifies that the initial UI displays the city search input
-    and user type selection buttons, while the map is hidden.
+    and user type selection buttons, while the map is hidden. It also
+    checks that the datalist for cities is populated.
     """
     # 1. Arrange: Go to the application's home page.
     page.goto("http://127.0.0.1:8000")
@@ -22,6 +23,12 @@ def test_initial_ui_state(page: Page):
     # Verify that the map is hidden
     map_element = page.locator("#map")
     expect(map_element).to_be_hidden()
+
+    # Wait for the datalist to be populated and check for at least one option.
+    # This confirms the API call was successful.
+    city_options = page.locator("#ciudades-list option")
+    expect(city_options.count()).to_be_greater_than(0)
+    print(f"Found {city_options.count()} cities in the datalist.")
 
     # 3. Screenshot: Capture the final result for visual verification.
     page.screenshot(path="jules-scratch/verification/verification.png")
