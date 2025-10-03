@@ -786,6 +786,66 @@ function initFocoPolvoOptions() {
     });
 }
 
+
+// --- Nueva función para implementar el buscador de ciudades ---
+async function initCitySearch() {
+    const searchInput = document.getElementById('ciudad-search-input');
+    const dataList = document.getElementById('ciudades-list');
+    const locationDisplay = document.getElementById('location-display');
+
+    if (!searchInput || !dataList || !locationDisplay) {
+        console.error("No se encontraron los elementos para el buscador de ciudades.");
+        return;
+    }
+
+    try {
+        const response = await fetch(API_BASE + '/ciudades');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        const ciudades = await response.json();
+
+        // Guardar la lista para referencia en el evento
+        searchInput.ciudadesData = ciudades;
+
+        // Rellenar el datalist
+        ciudades.forEach(ciudad => {
+            const option = document.createElement('option');
+            option.value = ciudad.nombre;
+            dataList.appendChild(option);
+        });
+
+        // Añadir el event listener al evento 'change' para mayor fiabilidad
+        searchInput.addEventListener('change', async (e) => {
+            const selectedName = e.target.value.trim().toLowerCase();
+            // La propiedad 'ciudadesData' se adjuntó al elemento input anteriormente
+            const ciudadSeleccionada = searchInput.ciudadesData.find(c => c.nombre.trim().toLowerCase() === selectedName);
+
+            if (ciudadSeleccionada) {
+                console.log('Ciudad seleccionada desde el buscador:', ciudadSeleccionada);
+
+                // Actualizar el estado global
+                userSelections.ciudad = {
+                    codigo: ciudadSeleccionada.codigo,
+                    nombre: ciudadSeleccionada.nombre
+                };
+
+                // Actualizar la UI
+                locationDisplay.textContent = `Ubicación seleccionada: ${ciudadSeleccionada.nombre}`;
+                locationDisplay.style.backgroundColor = '#e9f5e9';
+
+                // Persistir el cambio en el backend (Excel)
+                await persistSelectedCityName(ciudadSeleccionada.nombre);
+            }
+        });
+
+    } catch (error) {
+        console.error("Error al cargar la lista de ciudades:", error);
+        // Opcional: mostrar un mensaje de error al usuario
+    }
+}
+
+
 async function fetchAndDisplayPanelModel() {
     console.log('[DEBUG] fetchAndDisplayPanelModel called. Fetching from the correct endpoint...');
     const modeloPanelInput = document.getElementById('modelo-panel-input');
@@ -2629,6 +2689,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         // Inicializa el mapa primero, ya que es la primera pantalla.
         initMap();
+
+        // Inicializa el nuevo buscador de ciudades
+        initCitySearch();
 
         // Intenta cargar los datos de electrodomésticos. Si falla, el catch lo manejará.
         await cargarElectrodomesticosDesdeBackend();
