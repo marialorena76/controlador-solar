@@ -984,8 +984,9 @@ def get_ciudades():
     """
     Lee la lista de ciudades de la hoja 'Ciudades' y la devuelve como JSON.
     """
+    print("DEBUG: /api/ciudades endpoint HIT")
     try:
-        print("DEBUG: Solicitud a /api/ciudades. Leyendo lista de ciudades...")
+        print(f"DEBUG: Attempting to read Excel file from: {EXCEL_FILE_PATH}")
         df_ciudades = pd.read_excel(
             EXCEL_FILE_PATH,
             sheet_name='Ciudades',
@@ -996,6 +997,7 @@ def get_ciudades():
             names=['codigo', 'nombre'],
             engine='openpyxl'
         )
+        print("DEBUG: Successfully read 'Ciudades' sheet with pandas.")
 
         # Eliminar filas donde el nombre de la ciudad es NaN o vacío
         df_ciudades.dropna(subset=['nombre'], inplace=True)
@@ -1003,17 +1005,18 @@ def get_ciudades():
         # Convertir el DataFrame a una lista de diccionarios
         ciudades_lista = df_ciudades.to_dict(orient='records')
 
-        print(f"DEBUG: Se encontraron {len(ciudades_lista)} ciudades en el archivo Excel.")
+        print(f"DEBUG: Found {len(ciudades_lista)} cities in the Excel file.")
         return jsonify(ciudades_lista)
 
     except FileNotFoundError:
-        print(f"ERROR en /api/ciudades: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        print(f"ERROR in /api/ciudades: Excel file not found at {EXCEL_FILE_PATH}")
         return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
     except Exception as e:
         import traceback
+        error_details = traceback.format_exc()
         print(f"ERROR GENERAL en /api/ciudades: {e}")
-        print(traceback.format_exc())
-        return jsonify({"error": f"Error interno del servidor al obtener la lista de ciudades: {str(e)}"}), 500
+        print(error_details)
+        return jsonify({"error": f"Error interno del servidor: {str(e)}", "details": error_details}), 500
 
 
 # --- El endpoint temporal /api/verificar_celda ha sido eliminado. ---
