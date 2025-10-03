@@ -1744,41 +1744,52 @@ function initMap() {
     geocoderControlInstance = L.Control.geocoder({
         placeholder: 'Ej: Buchardo 3232, Olavarría',
         errorMessage: 'No se encontró la dirección.',
-        defaultMarkGeocode: false
+        defaultMarkGeocode: true // Habilitar el marcador por defecto para depuración
     }).on('markgeocode', async function(e) {
-        const locationDisplay = document.getElementById('location-display');
-        if (e.geocode && e.geocode.center) {
-            userLocation = { lat: e.geocode.center.lat, lng: e.geocode.center.lng };
-            if (marker) marker.setLatLng(userLocation);
-            else marker = L.marker(userLocation).addTo(map);
-            map.setView(userLocation, 13);
-            userSelections.location = userLocation;
+        try {
+            const locationDisplay = document.getElementById('location-display');
+            if (e.geocode && e.geocode.center) {
+                userLocation = { lat: e.geocode.center.lat, lng: e.geocode.center.lng };
+                // El marcador es manejado por defaultMarkGeocode, no es necesario manejarlo aquí
+                map.setView(userLocation, 13);
+                userSelections.location = userLocation;
 
-            if (locationDisplay) {
-                locationDisplay.textContent = 'Buscando ciudad...';
-                locationDisplay.style.backgroundColor = '#e3f2fd';
+                if (locationDisplay) {
+                    locationDisplay.textContent = 'Buscando ciudad...';
+                    locationDisplay.style.backgroundColor = '#e3f2fd';
+                }
+
+                const ciudadResult = await buscarCodigoCiudad(e.geocode.name);
+                if (ciudadResult) {
+                    userSelections.ciudad = ciudadResult;
+                    if (locationDisplay) {
+                        locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
+                        locationDisplay.style.backgroundColor = '#e9f5e9';
+                    }
+                    await persistSelectedCityName(ciudadResult.nombre);
+                } else {
+                    const ciudadParcial = extraerCiudadDeDireccion(e.geocode.name);
+                    userSelections.ciudad = { codigo: null, nombre: ciudadParcial };
+                    if (locationDisplay) {
+                        locationDisplay.textContent = ciudadParcial ? `Ubicación: ${ciudadParcial} (No confirmada)` : 'Ciudad no encontrada.';
+                        locationDisplay.style.backgroundColor = ciudadParcial ? '#fff9c4' : '#fbe9e7';
+                    }
+                    await persistSelectedCityName(ciudadParcial || '');
+                }
             }
-
-            const ciudadResult = await buscarCodigoCiudad(e.geocode.name);
-            if (ciudadResult) {
-                userSelections.ciudad = ciudadResult;
-                if (locationDisplay) {
-                    locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
-                    locationDisplay.style.backgroundColor = '#e9f5e9';
-                }
-                await persistSelectedCityName(ciudadResult.nombre);
-            } else {
-                userSelections.ciudad = { codigo: null, nombre: null };
-                if (locationDisplay) {
-                    locationDisplay.textContent = 'No se pudo encontrar la ciudad en la base de datos.';
-                    locationDisplay.style.backgroundColor = '#fbe9e7';
-                }
-                await persistSelectedCityName('');
+        } catch (error) {
+            console.error('Error en el handler de markgeocode:', error);
+            const locationDisplay = document.getElementById('location-display');
+            if(locationDisplay) {
+                locationDisplay.textContent = 'Error al procesar la ubicación.';
+                locationDisplay.style.backgroundColor = '#fbe9e7';
             }
         }
     }).addTo(map);
 
-    // Mueve el control del geocodificador al contenedor deseado.
+    // Se elimina temporalmente la lógica de mover el geocodificador para aislar el problema.
+    // El geocodificador aparecerá en su posición por defecto en el mapa.
+    /*
     const geocoderContainer = document.getElementById('geocoder-container');
     if (geocoderContainer) {
         const geocoderElement = geocoderControlInstance.getContainer();
@@ -1787,6 +1798,7 @@ function initMap() {
             geocoderContainer.appendChild(geocoderElement);
         }
     }
+    */
 
     // Llama a invalidateSize en el siguiente frame de animación para asegurar que el mapa se renderice correctamente.
     requestAnimationFrame(() => {
