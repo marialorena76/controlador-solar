@@ -7,7 +7,14 @@ import json
 import math
 from threading import Lock
 from openpyxl import load_workbook
+from typing import Any, Dict
+
 from . import engine
+from calculation_engine import (
+    CalculationError,
+    InputValidationError,
+    build_report,
+)
 
 excel_lock = Lock()
 # Nota: este candado se reutiliza tanto para la escritura directa en el archivo
@@ -137,6 +144,11 @@ def get_electrodomesticos_consumos():
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
 # --- Ruta para generar informe (EXISTENTE) ---
+def _is_basic_payload(user_data: Dict[str, Any]) -> bool:
+    user_type = str(user_data.get("userType", "")).strip().lower()
+    return user_type == "basico"
+
+
 def _generate_report_response():
     print(f"--- NEW {request.path} REQUEST ---")
     try:
@@ -152,10 +164,22 @@ def _generate_report_response():
             print("ERROR: No user_data received.")
             return jsonify({"error": "No se recibieron datos"}), 400
 
-        print("Calling calculation engine...")
-        with excel_lock:
-            resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
-        print("Engine call successful.")
+        if _is_basic_payload(user_data):
+            print("Calling basic calculation engine...")
+            try:
+                resultados_calculo = build_report(user_data)
+            except InputValidationError as validation_error:
+                print(f"Validation error: {validation_error}")
+                return jsonify({"error": str(validation_error)}), 400
+            except CalculationError as calc_error:
+                print(f"Calculation error: {calc_error}")
+                return jsonify({"error": str(calc_error)}), 500
+            print("Basic engine call successful.")
+        else:
+            print("Calling calculation engine...")
+            with excel_lock:
+                resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
+            print("Engine call successful.")
 
         resultados_calculo_clean = clean_nan_in_data(resultados_calculo)
 
