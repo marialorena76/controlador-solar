@@ -652,16 +652,16 @@
                 <h2 style="text-align: center; font-family: var(--font-heading); font-size: 1.4rem; color: #555; margin-bottom: 1rem;">
                     ¿Dónde será la instalación?
                 </h2>
-                <p class="help-text">Marcá el punto en el mapa donde vas a realizar la instalación o ingresá tu dirección completa.</p>
+                <p class="help-text">Busca y selecciona tu ciudad en la lista para comenzar.</p>
                 <div class="form-group" id="ciudad-search-container" style="width: 100%; max-width: 700px; margin-bottom: 1rem;">
-                    <label for="ciudad-search-input" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">O busca tu ciudad en la lista:</label>
+                    <label for="ciudad-search-input" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Buscá tu ciudad:</label>
                     <input type="text" id="ciudad-search-input" list="ciudades-list" class="form-control" placeholder="Escribe el nombre de tu ciudad...">
                     <datalist id="ciudades-list">
                         <!-- Opciones se cargarán aquí -->
                     </datalist>
                 </div>
-                <div id="map"></div>
-                <div id="geocoder-container"></div>
+                <div id="map" style="display: none;"></div>
+                <div id="geocoder-container" style="display: none;"></div>
                 <div id="location-display" style="margin-top: 1rem; padding: 0.5rem 1rem; background-color: #e9f5e9; border-radius: 6px; border: 1px solid var(--color-secondary); text-align: center; font-weight: 500; color: #333;">
                     Ubicación no seleccionada
                 </div>

@@ -815,26 +815,28 @@ async function initCitySearch() {
             dataList.appendChild(option);
         });
 
-        // Usar el evento 'blur' que se dispara cuando el campo pierde el foco
-        searchInput.addEventListener('blur', async (e) => {
-            const selectedName = e.target.value.trim().toLowerCase();
-            const ciudadSeleccionada = searchInput.ciudadesData.find(c => c.nombre.trim().toLowerCase() === selectedName);
+        // Usar el evento 'change' que es más robusto para datalists
+        searchInput.addEventListener('change', async (e) => {
+            const selectedName = e.target.value.trim();
+            const ciudadSeleccionada = searchInput.ciudadesData.find(
+                c => c.nombre.trim().toLowerCase() === selectedName.toLowerCase()
+            );
 
             if (ciudadSeleccionada) {
                 console.log('Ciudad seleccionada desde el buscador:', ciudadSeleccionada);
-
-                // Actualizar el estado global
                 userSelections.ciudad = {
                     codigo: ciudadSeleccionada.codigo,
                     nombre: ciudadSeleccionada.nombre
                 };
-
-                // Actualizar la UI
                 locationDisplay.textContent = `Ubicación seleccionada: ${ciudadSeleccionada.nombre}`;
                 locationDisplay.style.backgroundColor = '#e9f5e9';
-
-                // Persistir el cambio en el backend (Excel)
                 await persistSelectedCityName(ciudadSeleccionada.nombre);
+            } else {
+                console.warn(`La ciudad '${selectedName}' no se encontró en la lista.`);
+                userSelections.ciudad = { codigo: null, nombre: null };
+                locationDisplay.textContent = 'Ciudad no válida. Por favor, seleccione una de la lista.';
+                locationDisplay.style.backgroundColor = '#fbe9e7';
+                await persistSelectedCityName('');
             }
         });
 
@@ -1728,6 +1730,66 @@ async function persistSelectedCityName(cityName) {
         return false;
     }
 }
+
+// --- Nueva función para implementar el buscador de ciudades ---
+async function initCitySearch() {
+    const searchInput = document.getElementById('ciudad-search-input');
+    const dataList = document.getElementById('ciudades-list');
+    const locationDisplay = document.getElementById('location-display');
+
+    if (!searchInput || !dataList || !locationDisplay) {
+        console.error("No se encontraron los elementos para el buscador de ciudades.");
+        return;
+    }
+
+    try {
+        const response = await fetch(API_BASE + '/ciudades');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        const ciudades = await response.json();
+
+        // Guardar la lista para referencia en el evento
+        searchInput.ciudadesData = ciudades;
+
+        // Rellenar el datalist
+        ciudades.forEach(ciudad => {
+            const option = document.createElement('option');
+            option.value = ciudad.nombre;
+            dataList.appendChild(option);
+        });
+
+        // Usar el evento 'change' que es más robusto para datalists
+        searchInput.addEventListener('change', async (e) => {
+            const selectedName = e.target.value.trim();
+            const ciudadSeleccionada = searchInput.ciudadesData.find(
+                c => c.nombre.trim().toLowerCase() === selectedName.toLowerCase()
+            );
+
+            if (ciudadSeleccionada) {
+                console.log('Ciudad seleccionada desde el buscador:', ciudadSeleccionada);
+                userSelections.ciudad = {
+                    codigo: ciudadSeleccionada.codigo,
+                    nombre: ciudadSeleccionada.nombre
+                };
+                locationDisplay.textContent = `Ubicación seleccionada: ${ciudadSeleccionada.nombre}`;
+                locationDisplay.style.backgroundColor = '#e9f5e9';
+                await persistSelectedCityName(ciudadSeleccionada.nombre);
+            } else {
+                console.warn(`La ciudad '${selectedName}' no se encontró en la lista.`);
+                userSelections.ciudad = { codigo: null, nombre: null };
+                locationDisplay.textContent = 'Ciudad no válida. Por favor, seleccione una de la lista.';
+                locationDisplay.style.backgroundColor = '#fbe9e7';
+                await persistSelectedCityName('');
+            }
+        });
+
+    } catch (error) {
+        console.error("Error al cargar la lista de ciudades:", error);
+        // Opcional: mostrar un mensaje de error al usuario
+    }
+}
+
 
 // --- Lógica del Mapa (EXISTENTE, CON PEQUEÑAS MEJORAS) ---
 
@@ -2681,8 +2743,8 @@ function setupSidebarNavigation() {
 // --- INIT principal (Se ejecuta al cargar el DOM) (EXISTENTE, MODIFICADO) ---
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Inicializa el mapa primero, ya que es la primera pantalla.
-        initMap();
+        // La inicialización del mapa se ha deshabilitado para priorizar el buscador de ciudades.
+        // initMap();
 
         // Inicializa el nuevo buscador de ciudades
         initCitySearch();
