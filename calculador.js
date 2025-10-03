@@ -3,14 +3,15 @@ const API_BASE = window.location.origin + "/api";
 
 console.log('🤖 calculador.js cargado - flujo de controlador ajustado y persistencia de datos');
 
-let map, marker, geocoderControlInstance;
-let userLocation = { lat: -34.6037, lng: -58.3816 }; // Buenos Aires por defecto
+let availableCities = [];
+let filteredCities = [];
+let selectedCity = null;
 
 // Objeto para almacenar todas las selecciones del usuario
 let userSelections = {
     userType: null,
-    location: userLocation,
-    ciudad: { codigo: null, nombre: null }, // Nueva propiedad para la ciudad
+    selectedCity: null,
+    ciudad: { codigo: null, nombre: null },
     installationType: null,
     incomeLevel: null,
     zonaInstalacionExpert: null, // Remains for now, though the element is gone
@@ -787,63 +788,200 @@ function initFocoPolvoOptions() {
 }
 
 
+function normalizeCityName(value) {
+    if (typeof value !== 'string') {
+        return '';
+    }
+    return value.trim().toLowerCase();
+}
+
+
 // --- Nueva función para implementar el buscador de ciudades ---
 async function initCitySearch() {
-    const searchInput = document.getElementById('ciudad-search-input');
-    const dataList = document.getElementById('ciudades-list');
-    const locationDisplay = document.getElementById('location-display');
+    const searchInput = document.getElementById('buscar-ciudad');
+    const cityListElement = document.getElementById('lista-ciudades');
+    const confirmButton = document.getElementById('confirmar-ciudad');
+    const loadingIndicator = document.getElementById('ciudades-loading');
+    const errorContainer = document.getElementById('ciudad-error');
+    const selectedDisplay = document.getElementById('ciudad-seleccionada');
 
-    if (!searchInput || !dataList || !locationDisplay) {
-        console.error("No se encontraron los elementos para el buscador de ciudades.");
+    if (!searchInput || !cityListElement || !confirmButton || !loadingIndicator || !errorContainer || !selectedDisplay) {
+        console.error('No se encontraron los elementos para el buscador de ciudades.');
         return;
     }
 
-    try {
-        const response = await fetch(API_BASE + '/ciudades');
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
+    const showLoading = (isLoading) => {
+        loadingIndicator.style.display = isLoading ? 'block' : 'none';
+    };
+
+    const showError = (message) => {
+        if (!message) {
+            errorContainer.textContent = '';
+            errorContainer.style.display = 'none';
+        } else {
+            errorContainer.textContent = message;
+            errorContainer.style.display = 'block';
         }
-        const ciudades = await response.json();
+    };
 
-        // Guardar la lista para referencia en el evento
-        searchInput.ciudadesData = ciudades;
+    const updateSelectionDisplay = (city, confirmed = false) => {
+        if (!city) {
+            selectedDisplay.textContent = '';
+            selectedDisplay.style.display = 'none';
+            return;
+        }
+        selectedDisplay.textContent = confirmed ? `Ciudad confirmada: ${city}` : `Ciudad seleccionada: ${city}`;
+        selectedDisplay.style.display = 'block';
+    };
 
-        // Rellenar el datalist
-        ciudades.forEach(ciudad => {
-            const option = document.createElement('option');
-            option.value = ciudad.nombre;
-            dataList.appendChild(option);
-        });
+    const applyCitySelection = (city) => {
+        if (city) {
+            selectedCity = city;
+            searchInput.value = city;
+            updateSelectionDisplay(city);
+        } else {
+            selectedCity = null;
+            updateSelectionDisplay(null);
+        }
 
-        // Usar el evento 'blur' que se dispara cuando el campo pierde el foco
-        searchInput.addEventListener('blur', async (e) => {
-            const selectedName = e.target.value.trim().toLowerCase();
-            const ciudadSeleccionada = searchInput.ciudadesData.find(c => c.nombre.trim().toLowerCase() === selectedName);
-
-            if (ciudadSeleccionada) {
-                console.log('Ciudad seleccionada desde el buscador:', ciudadSeleccionada);
-
-                // Actualizar el estado global
-                userSelections.ciudad = {
-                    codigo: ciudadSeleccionada.codigo,
-                    nombre: ciudadSeleccionada.nombre
-                };
-
-                // Actualizar la UI
-                locationDisplay.textContent = `Ubicación seleccionada: ${ciudadSeleccionada.nombre}`;
-                locationDisplay.style.backgroundColor = '#e9f5e9';
-
-                // Persistir el cambio en el backend (Excel)
-                await persistSelectedCityName(ciudadSeleccionada.nombre);
+        confirmButton.disabled = !city;
+        Array.from(cityListElement.children).forEach((item) => {
+            if (item instanceof HTMLElement) {
+                const itemCity = item.dataset.city || '';
+                item.classList.toggle('active', !!city && normalizeCityName(itemCity) === normalizeCityName(city));
             }
         });
+    };
 
-    } catch (error) {
-        console.error("Error al cargar la lista de ciudades:", error);
-        // Opcional: mostrar un mensaje de error al usuario
-    }
+    const renderCitySuggestions = (cities) => {
+        filteredCities = [...cities];
+        cityListElement.innerHTML = '';
+
+        if (!cities.length) {
+            const emptyItem = document.createElement('li');
+            emptyItem.textContent = 'No se encontraron coincidencias.';
+            emptyItem.classList.add('empty');
+            emptyItem.setAttribute('role', 'option');
+            cityListElement.appendChild(emptyItem);
+            return;
+        }
+
+        cities.forEach((city) => {
+            const item = document.createElement('li');
+            item.textContent = city;
+            item.dataset.city = city;
+            item.setAttribute('role', 'option');
+            if (selectedCity && normalizeCityName(selectedCity) === normalizeCityName(city)) {
+                item.classList.add('active');
+            }
+            item.addEventListener('click', () => {
+                applyCitySelection(city);
+            });
+            cityListElement.appendChild(item);
+        });
+    };
+
+    const fetchCities = async () => {
+        showLoading(true);
+        showError('');
+        confirmButton.disabled = true;
+        try {
+            const response = await fetch(`${API_BASE}/ciudades`);
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+            const data = await response.json();
+            const cities = Array.isArray(data.ciudades) ? data.ciudades : [];
+            availableCities = cities
+                .filter((city) => typeof city === 'string' && city.trim() !== '')
+                .filter((city, index, array) => index === array.findIndex((c) => normalizeCityName(c) === normalizeCityName(city)))
+                .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+            renderCitySuggestions(availableCities);
+        } catch (error) {
+            console.error('Error al cargar la lista de ciudades:', error);
+            availableCities = [];
+            renderCitySuggestions([]);
+            showError('No se pudo obtener la lista de ciudades. Intentá nuevamente más tarde.');
+        } finally {
+            showLoading(false);
+        }
+    };
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value;
+        const normalizedQuery = normalizeCityName(query);
+
+        if (selectedCity && normalizeCityName(selectedCity) !== normalizedQuery) {
+            selectedCity = null;
+            updateSelectionDisplay(null);
+            confirmButton.disabled = true;
+        }
+
+        const matches = normalizedQuery
+            ? availableCities.filter((city) => normalizeCityName(city).includes(normalizedQuery))
+            : availableCities;
+
+        renderCitySuggestions(matches);
+    });
+
+    searchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            const normalizedValue = normalizeCityName(searchInput.value);
+            if (!normalizedValue) {
+                return;
+            }
+
+            const exactMatch = availableCities.find((city) => normalizeCityName(city) === normalizedValue);
+            const cityToApply = exactMatch || (filteredCities.length === 1 ? filteredCities[0] : null);
+
+            if (cityToApply) {
+                applyCitySelection(cityToApply);
+                confirmButton.focus();
+            }
+        }
+    });
+
+    confirmButton.addEventListener('click', async () => {
+        if (!selectedCity) {
+            return;
+        }
+
+        const previousLabel = confirmButton.textContent;
+        confirmButton.textContent = 'Confirmando...';
+        confirmButton.disabled = true;
+        showError('');
+
+        try {
+            const response = await fetch(`${API_BASE}/seleccionar_ciudad`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ciudad: selectedCity })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || data.ok === false) {
+                const message = data && data.error ? data.error : `Error HTTP: ${response.status}`;
+                throw new Error(message);
+            }
+
+            userSelections.selectedCity = data.ciudad;
+            userSelections.ciudad = { codigo: null, nombre: data.ciudad };
+            updateSelectionDisplay(data.ciudad, true);
+
+            showMapScreenFormSection('user-type-section');
+            updateStepIndicator('user-type-section');
+        } catch (error) {
+            console.error('Error al confirmar la ciudad seleccionada:', error);
+            showError(error.message || 'No se pudo guardar la ciudad seleccionada.');
+        } finally {
+            confirmButton.textContent = previousLabel;
+            confirmButton.disabled = !selectedCity;
+        }
+    });
+
+    updateSelectionDisplay(null);
+    await fetchCities();
 }
-
 
 async function fetchAndDisplayPanelModel() {
     console.log('[DEBUG] fetchAndDisplayPanelModel called. Fetching from the correct endpoint...');
@@ -1688,219 +1826,6 @@ function calcularConsumo() {
 
 
 
-// Utilidad para extraer la ciudad de una dirección con formato
-// "calle número, ciudad". Devuelve null si no se encuentra una coma.
-function extraerCiudadDeDireccion(direccion) {
-    if (!direccion) return null;
-    const partes = direccion.split(',');
-    if (partes.length >= 2) {
-        return partes[1].trim();
-    }
-    return null;
-}
-
-async function persistSelectedCityName(cityName) {
-    const locationDisplay = document.getElementById('location-display');
-    try {
-        const response = await fetch(API_BASE + '/excel/update_cell', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ciudad: cityName || '' })
-        });
-
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok || data.success === false) {
-            const errorMessage = (data && data.error) ? data.error : `Error del servidor: ${response.status}`;
-            throw new Error(errorMessage);
-        }
-
-        return true;
-    } catch (error) {
-        console.error('Error al persistir la ciudad seleccionada:', error);
-        if (locationDisplay) {
-            const warningSuffix = ' (No se pudo guardar en el servidor)';
-            if (!locationDisplay.textContent.includes(warningSuffix.trim())) {
-                locationDisplay.textContent = `${locationDisplay.textContent}${warningSuffix}`;
-            }
-            locationDisplay.style.backgroundColor = '#fbe9e7';
-        }
-        return false;
-    }
-}
-
-// --- Lógica del Mapa (EXISTENTE, CON PEQUEÑAS MEJORAS) ---
-
-function initMap() {
-    try {
-        const mapContainer = document.getElementById('map');
-        if (!mapContainer) {
-            console.error('No se encontró el contenedor del mapa.');
-            return;
-        }
-
-        // Si el mapa ya existe, lo eliminamos para recrearlo.
-        if (map) {
-            map.off();
-            map.remove();
-        }
-        marker = null;
-
-        map = L.map(mapContainer).setView(userLocation, 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        marker = L.marker(userLocation).addTo(map);
-
-        map.on('click', function(e) {
-            userLocation.lat = e.latlng.lat;
-            userLocation.lng = e.latlng.lng;
-            marker.setLatLng(userLocation);
-            userSelections.location = userLocation;
-
-            if (geocoderControlInstance && geocoderControlInstance.options.geocoder) {
-                geocoderControlInstance.options.geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom()), async function(results) {
-                    const r = results[0];
-                    const locationDisplay = document.getElementById('location-display');
-
-                    if (r && r.name) {
-                        const props = r.properties || {};
-                        const address = props.address || {};
-                        const immediateCityName = address.city || address.town || address.village || props.city || props.town || props.village;
-
-                        if (locationDisplay) {
-                            locationDisplay.textContent = immediateCityName ? `Ubicación: ${immediateCityName}` : 'Identificando ubicación...';
-                            locationDisplay.style.backgroundColor = immediateCityName ? '#e9f5e9' : '#e3f2fd';
-                        }
-
-                        const ciudadResult = await buscarCodigoCiudad(r.name);
-                        if (ciudadResult) {
-                            userSelections.ciudad = ciudadResult;
-                            if (locationDisplay) locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
-                            await persistSelectedCityName(ciudadResult.nombre);
-                        } else {
-                            userSelections.ciudad = { codigo: null, nombre: immediateCityName || null };
-                            if (locationDisplay) {
-                                locationDisplay.textContent = immediateCityName ? `Ubicación: ${immediateCityName} (No confirmada)` : 'No se pudo encontrar la ciudad.';
-                                locationDisplay.style.backgroundColor = immediateCityName ? '#fff9c4' : '#fbe9e7';
-                            }
-                            await persistSelectedCityName(immediateCityName || '');
-                        }
-                    } else {
-                        if (locationDisplay) {
-                            locationDisplay.textContent = 'No se pudo identificar la ubicación.';
-                            locationDisplay.style.backgroundColor = '#fbe9e7';
-                        }
-                        userSelections.ciudad = { codigo: null, nombre: null };
-                        await persistSelectedCityName('');
-                    }
-                });
-            }
-        });
-
-        geocoderControlInstance = L.Control.geocoder({
-            placeholder: 'Ej: Buchardo 3232, Olavarría',
-            errorMessage: 'No se encontró la dirección.',
-            defaultMarkGeocode: true,
-            collapsed: false,
-            geocoder: new L.Control.Geocoder.Photon()
-        }).on('markgeocode', async function(e) {
-            try {
-                const locationDisplay = document.getElementById('location-display');
-                if (e.geocode && e.geocode.center) {
-                    userLocation = { lat: e.geocode.center.lat, lng: e.geocode.center.lng };
-                    map.setView(userLocation, 13);
-                    userSelections.location = userLocation;
-
-                    if (locationDisplay) {
-                        locationDisplay.textContent = 'Buscando ciudad...';
-                        locationDisplay.style.backgroundColor = '#e3f2fd';
-                    }
-
-                    const ciudadResult = await buscarCodigoCiudad(e.geocode.name);
-                    if (ciudadResult) {
-                        userSelections.ciudad = ciudadResult;
-                        if (locationDisplay) {
-                            locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
-                            locationDisplay.style.backgroundColor = '#e9f5e9';
-                        }
-                        await persistSelectedCityName(ciudadResult.nombre);
-                    } else {
-                        const ciudadParcial = extraerCiudadDeDireccion(e.geocode.name);
-                        userSelections.ciudad = { codigo: null, nombre: ciudadParcial };
-                        if (locationDisplay) {
-                            locationDisplay.textContent = ciudadParcial ? `Ubicación: ${ciudadParcial} (No confirmada)` : 'Ciudad no encontrada.';
-                            locationDisplay.style.backgroundColor = ciudadParcial ? '#fff9c4' : '#fbe9e7';
-                        }
-                        await persistSelectedCityName(ciudadParcial || '');
-                    }
-                }
-            } catch (error) {
-                console.error('Error en el handler de markgeocode:', error);
-                const locationDisplay = document.getElementById('location-display');
-                if(locationDisplay) {
-                    locationDisplay.textContent = 'Error al procesar la ubicación.';
-                    locationDisplay.style.backgroundColor = '#fbe9e7';
-                }
-            }
-        }).addTo(map);
-
-        const geocoderContainer = document.getElementById('geocoder-container');
-        if (geocoderContainer) {
-            const geocoderElement = geocoderControlInstance.getContainer();
-            if (geocoderElement) {
-                geocoderContainer.innerHTML = '';
-                geocoderContainer.appendChild(geocoderElement);
-            }
-        }
-
-        requestAnimationFrame(() => {
-            if (map) {
-                map.invalidateSize();
-            }
-        });
-    } catch (error) {
-        console.error("Error fatal al inicializar el mapa. El buscador de ciudades seguirá funcionando.", error);
-        const mapContainer = document.getElementById('map');
-        if (mapContainer) {
-            mapContainer.innerHTML = '<p style="text-align:center; padding: 20px;">El mapa no se pudo cargar. Por favor, utilice el buscador de ciudades.</p>';
-        }
-    }
-}
-
-// --- Nueva función para buscar el código de la ciudad (refactorizada) ---
-async function buscarCodigoCiudad(fullAddress) {
-    try {
-        const response = await fetch(API_BASE + '/buscar_ciudad', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ full_address: fullAddress }),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `Error del servidor: ${response.status}`);
-        }
-
-        const data = await response.json();
-        if (data.codigo_ciudad !== null && data.codigo_ciudad !== undefined) {
-            console.log(`Ciudad encontrada desde backend: ${data.nombre_ciudad}, Código: ${data.codigo_ciudad}`);
-            return {
-                codigo: data.codigo_ciudad,
-                nombre: data.nombre_ciudad
-            };
-        } else {
-            console.warn('Backend no encontró código para la dirección:', fullAddress);
-            return null; // Devuelve null si el backend no encuentra la ciudad
-        }
-    } catch (error) {
-        console.error('Error en la llamada a /buscar_ciudad:', error);
-        return null; // Devuelve null en caso de error de red o de servidor
-    }
-}
-
-
 // --- Lógica de la Navegación de Pantallas (EXISTENTE, VERIFICADA) ---
 
 function showScreen(screenId) {
@@ -1930,18 +1855,6 @@ function showScreen(screenId) {
             if (mapScreen) {
                 mapScreen.style.display = 'flex'; // Usar flex para alinear contenido
             }
-
-            // Llama a invalidateSize usando requestAnimationFrame para asegurar que el DOM esté listo.
-            // Esto soluciona el problema del mapa que no se muestra si el contenedor estaba oculto.
-            requestAnimationFrame(() => {
-                if (map) {
-                    map.invalidateSize(true);
-                } else {
-                    // Si el mapa no está inicializado, lo inicializamos aquí.
-                    // Esto puede suceder si la pantalla del mapa es la primera en mostrarse.
-                    initMap();
-                }
-            });
 
         } else if (screenId === 'data-form-screen') {
             if (dataFormScreen) dataFormScreen.style.display = 'block';
@@ -2579,11 +2492,11 @@ function setupNavigationButtons() {
 
             try {
                 // Create a clean payload object (DTO) to send to the backend.
-                // This prevents circular reference errors from complex objects (like the map)
+                // This prevents circular reference errors from complex objects
                 // and ensures only necessary data is sent.
                 const payload = {
                     userType: userSelections.userType,
-                    location: userSelections.location,
+                    selectedCity: userSelections.selectedCity,
                     ciudad: userSelections.ciudad,
                     installationType: userSelections.installationType,
                     incomeLevel: userSelections.incomeLevel,
@@ -2681,11 +2594,8 @@ function setupSidebarNavigation() {
 // --- INIT principal (Se ejecuta al cargar el DOM) (EXISTENTE, MODIFICADO) ---
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Inicializa el mapa primero, ya que es la primera pantalla.
-        initMap();
-
-        // Inicializa el nuevo buscador de ciudades
-        initCitySearch();
+        // Inicializa el buscador de ciudades en la pantalla principal.
+        await initCitySearch();
 
         // Intenta cargar los datos de electrodomésticos. Si falla, el catch lo manejará.
         await cargarElectrodomesticosDesdeBackend();
