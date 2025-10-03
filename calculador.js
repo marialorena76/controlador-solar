@@ -815,31 +815,26 @@ async function initCitySearch() {
             dataList.appendChild(option);
         });
 
-        // Usar el evento 'change' que es más robusto para datalists
-        searchInput.addEventListener('change', async (e) => {
-            const selectedName = e.target.value.trim();
-            const userTypeSection = document.getElementById('user-type-section');
-            const ciudadSeleccionada = searchInput.ciudadesData.find(
-                c => c.nombre.trim().toLowerCase() === selectedName.toLowerCase()
-            );
+        // Usar el evento 'blur' que se dispara cuando el campo pierde el foco
+        searchInput.addEventListener('blur', async (e) => {
+            const selectedName = e.target.value.trim().toLowerCase();
+            const ciudadSeleccionada = searchInput.ciudadesData.find(c => c.nombre.trim().toLowerCase() === selectedName);
 
             if (ciudadSeleccionada) {
                 console.log('Ciudad seleccionada desde el buscador:', ciudadSeleccionada);
+
+                // Actualizar el estado global
                 userSelections.ciudad = {
                     codigo: ciudadSeleccionada.codigo,
                     nombre: ciudadSeleccionada.nombre
                 };
+
+                // Actualizar la UI
                 locationDisplay.textContent = `Ubicación seleccionada: ${ciudadSeleccionada.nombre}`;
                 locationDisplay.style.backgroundColor = '#e9f5e9';
-                if (userTypeSection) userTypeSection.style.display = 'block'; // Show next step
+
+                // Persistir el cambio en el backend (Excel)
                 await persistSelectedCityName(ciudadSeleccionada.nombre);
-            } else {
-                console.warn(`La ciudad '${selectedName}' no se encontró en la lista.`);
-                userSelections.ciudad = { codigo: null, nombre: null };
-                locationDisplay.textContent = 'Ciudad no válida. Por favor, seleccione una de la lista.';
-                locationDisplay.style.backgroundColor = '#fbe9e7';
-                if (userTypeSection) userTypeSection.style.display = 'none'; // Hide next step
-                await persistSelectedCityName('');
             }
         });
 
@@ -847,6 +842,861 @@ async function initCitySearch() {
         console.error("Error al cargar la lista de ciudades:", error);
         // Opcional: mostrar un mensaje de error al usuario
     }
+}
+
+
+async function fetchAndDisplayPanelModel() {
+    console.log('[DEBUG] fetchAndDisplayPanelModel called. Fetching from the correct endpoint...');
+    const modeloPanelInput = document.getElementById('modelo-panel-input');
+    if (!modeloPanelInput) {
+        console.error("Elemento 'modelo-panel-input' no encontrado.");
+        return;
+    }
+
+    // Ensure we have the necessary data before making the call
+    const marca = userSelections.marcaPanel;
+    const potencia = userSelections.potenciaPanelDeseada;
+
+    if (!marca || !potencia) {
+        modeloPanelInput.value = 'Seleccione marca y potencia';
+        // Clear any previously fetched model name
+        if (userSelections.panelesSolares) {
+            userSelections.panelesSolares.modelo = null;
+
+        }
+        return;
+    }
+
+    modeloPanelInput.value = 'Buscando modelo...'; // Show loading state
+
+    try {
+        const response = await fetch(API_BASE + '/get_panel_model', { // Correct endpoint
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ // Send only the required data
+                marca: marca,
+                potencia: potencia
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: `Error del servidor: ${response.status}` }));
+            throw new Error(errorData.error || `Error del servidor: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('[DEBUG] Modelo de panel recibido:', data);
+
+        const modelName = data.model_name; // Correctly extract model name from the new response structure
+
+        if (modelName && modelName.trim() !== '' && !modelName.startsWith('VERIFIQUE')) {
+            modeloPanelInput.value = modelName;
+            if (userSelections.panelesSolares) {
+                userSelections.panelesSolares.modelo = modelName;
+                 // Save the found model
+            }
+        } else {
+            // Display the error/info message from the backend or a default one
+            modeloPanelInput.value = modelName || 'No hay modelo disponible';
+            if (userSelections.panelesSolares) {
+                userSelections.panelesSolares.modelo = null; // Clear stale model data
+
+            }
+        }
+
+    } catch (error) {
+        console.error('Error al obtener el modelo del panel:', error);
+        modeloPanelInput.value = 'Error al buscar modelo';
+        if (userSelections.panelesSolares) {
+            userSelections.panelesSolares.modelo = null; // Clear stale model data
+
+        }
+    }
+}
+
+function initPanelesSectionExpert() {
+    console.log('[DEBUG] initPanelesSectionExpert: Called.');
+    console.log('[DEBUG] panelMarcaSubform:', typeof panelMarcaSubform !== 'undefined' ? panelMarcaSubform : 'NOT DEFINED');
+    console.log('[DEBUG] panelPotenciaSubform:', typeof panelPotenciaSubform !== 'undefined' ? panelPotenciaSubform : 'NOT DEFINED');
+    console.log('[DEBUG] panelModeloSubform:', typeof panelModeloSubform !== 'undefined' ? panelModeloSubform : 'NOT DEFINED');
+    console.log('[DEBUG] panelModeloTemperaturaSubform:', typeof panelModeloTemperaturaSubform !== 'undefined' ? panelModeloTemperaturaSubform : 'NOT DEFINED');
+    // panelCantidadExpertSubform was removed, ensure it's not referenced.
+
+    if (!panelMarcaSubform || !panelPotenciaSubform || !panelModeloSubform) {
+        console.error("Uno o más contenedores de sub-formularios de Paneles no fueron encontrados en initPanelesSectionExpert. panelMarcaSubform:", panelMarcaSubform, "panelPotenciaSubform:", panelPotenciaSubform, "panelModeloSubform:", panelModeloSubform);
+        return;
+    }
+
+    // Hide all Paneles sub-form content wrappers first
+    panelMarcaSubform.style.display = 'none';
+    panelPotenciaSubform.style.display = 'none';
+    // panelCantidadExpertSubform was removed
+    panelModeloSubform.style.display = 'none';
+    // panelModeloTemperaturaSubform is part of the "Perdidas" section, so it should not be hidden here.
+    // panelModeloTemperaturaSubform.style.display = 'none';
+    console.log('[DEBUG] initPanelesSectionExpert: All panel sub-forms hidden.');
+
+    console.log('[DEBUG] initPanelesSectionExpert: Attempting to show panelMarcaSubform.');
+    panelMarcaSubform.style.display = 'block'; // Show the first sub-form
+
+    if (panelMarcaSubform) {
+        try {
+            console.log('[DEBUG] initPanelesSectionExpert: panelMarcaSubform display set to block. Computed style:', window.getComputedStyle(panelMarcaSubform).display);
+        } catch (e) {
+            console.error('[DEBUG] initPanelesSectionExpert: Error getting computed style for panelMarcaSubform', e);
+        }
+    }
+
+    console.log('[DEBUG] initPanelesSectionExpert: Calling initMarcaPanelOptions.');
+    if (typeof initMarcaPanelOptions === 'function') {
+        initMarcaPanelOptions();
+    } else {
+        console.error('[DEBUG] initPanelesSectionExpert: initMarcaPanelOptions function IS NOT DEFINED.');
+    }
+    console.log('[DEBUG] initPanelesSectionExpert: Returned from initMarcaPanelOptions call attempt.');
+
+    // Add this call
+    if (typeof initPotenciaPanelOptions === 'function') {
+        initPotenciaPanelOptions();
+    } else {
+        console.error('[DEBUG] initPanelesSectionExpert: initPotenciaPanelOptions function IS NOT DEFINED.');
+    }
+}
+
+// async function initModeloTemperaturaPanelOptions() { ... } // This was the duplicated incorrect one, remove it.
+
+async function initMarcaPanelOptions() {
+    const container = document.getElementById('marca-panel-options-container');
+    if (!container) {
+        console.error("Contenedor 'marca-panel-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = ''; // Clear previous content, including the debug placeholder
+
+    const selectElement = document.createElement('select');
+    selectElement.id = 'marca-panel-select';
+    selectElement.className = 'form-control';
+
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = 'Seleccione una marca...';
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    selectElement.appendChild(placeholderOption);
+
+    try {
+        const response = await fetch(API_BASE + '/marca_panel_options');
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        let data = await response.json(); // Expected: array of strings
+
+        const requiredBrands = ['AMERISOLAR', 'ASTRONERGY', 'TRINASOLAR', 'EGING'];
+        if (Array.isArray(data)) {
+            requiredBrands.forEach(brand => {
+                if (!data.includes(brand)) {
+                    data.push(brand);
+                }
+            });
+            data.sort(); // Optional: sort the list alphabetically
+        }
+
+        if (!Array.isArray(data)) {
+            console.error('[MARCA PANEL OPTIONS LOAD ERROR] Data not an array:', data);
+            container.innerHTML = '<p style="color:red;">Error: Formato de datos incorrecto.</p>';
+            return;
+        }
+        if (data.length === 0) {
+            console.log('[MARCA PANEL OPTIONS LOAD] No hay marcas de panel disponibles desde la API.');
+            // If API returns empty, "Genéricos" might need to be added manually if it's a fallback.
+            // For now, select will just have placeholder.
+        } else {
+            data.forEach(optionText => {
+                const optionElement = document.createElement('option');
+                optionElement.value = optionText;
+                optionElement.textContent = optionText;
+                // Note: dataset.descripcion is not strictly needed if value and textContent are the same string.
+                // optionElement.dataset.descripcion = optionText;
+                if (userSelections.marcaPanel === optionText) {
+                    optionElement.selected = true;
+                    placeholderOption.selected = false;
+                }
+                selectElement.appendChild(optionElement);
+            });
+        }
+
+        selectElement.addEventListener('change', (event) => {
+            console.log("[DEBUG] Marca panel listener fired.");
+            const selectedValue = event.target.value;
+            if (selectedValue && selectedValue !== '') {
+                userSelections.marcaPanel = selectedValue;
+            } else {
+                userSelections.marcaPanel = null;
+            }
+
+            console.log('Marca de panel seleccionada:', userSelections.marcaPanel);
+
+            // When brand changes, we must reset power and model, then update.
+            userSelections.potenciaPanelDeseada = null;
+
+
+            // Re-initialize potencia panel options, which will show the correct range
+            if (typeof initPotenciaPanelOptions === 'function') {
+                initPotenciaPanelOptions();
+            }
+            // Also trigger the model update (it will be blank until power is selected)
+            // updatePanelModel(); // This is now handled by the "Next" button logic.
+        });
+        container.appendChild(selectElement);
+
+    } catch (error) {
+        console.error('[MARCA PANEL OPTIONS LOAD ERROR] Fetch/process error:', error);
+        if (error.message) console.error('[MARCA PANEL OPTIONS LOAD ERROR] Message:', error.message);
+        alert('Error al cargar las marcas de panel. Revise consola e intente más tarde.');
+        container.innerHTML = '<p style="color:red;">Error al cargar opciones de marca. Verifique la conexión o contacte a soporte.</p>';
+    }
+}
+
+function initModeloPanelOptions() {
+    const inputElement = document.getElementById('modelo-panel-input');
+    if (!inputElement) {
+        console.error("Input 'modelo-panel-input' no encontrado.");
+        return;
+    }
+    // This function should only prepare the field.
+    // The actual model is now populated by updatePanelModel().
+    // We set it to the saved value, or empty if there's no saved value.
+    const savedModel = userSelections.panelesSolares?.modelo;
+    inputElement.value = savedModel || ''; // Show saved model or clear it
+}
+
+function initModeloTemperaturaPanelOptions() {
+    const container = document.getElementById('modelo-temperatura-select-container');
+    if (!container) {
+        console.error("Contenedor 'modelo-temperatura-select-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = '';
+    container.className = 'radio-group';
+
+    const opciones = ['Standard', 'Skoplaki', 'Koehl', 'Mattei', 'de Kurtz'];
+
+    opciones.forEach(opt => {
+        const label = document.createElement('label');
+        const radioInput = document.createElement('input');
+        radioInput.type = 'radio';
+        radioInput.name = 'modeloTemperaturaPanel';
+        radioInput.value = opt;
+
+        if (userSelections.modeloTemperaturaPanel === opt) {
+            radioInput.checked = true;
+        }
+
+        radioInput.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                userSelections.modeloTemperaturaPanel = e.target.value;
+            }
+        });
+
+        label.appendChild(radioInput);
+        label.appendChild(document.createTextNode(" " + opt));
+        container.appendChild(label);
+    });
+}
+
+function initPotenciaPanelOptions() {
+    const marcaSeleccionada = userSelections.marcaPanel;
+    const container = document.getElementById('potencia-panel-options-container');
+    const potenciaDeseadaInput = document.getElementById('potencia-panel-deseada-input');
+
+    if (!container) {
+        console.error("Contenedor 'potencia-panel-options-container' no encontrado.");
+        return;
+    }
+    // We now clear the container itself, not a sub-form div
+    container.innerHTML = '';
+
+    const powerRanges = {
+        'AMERISOLAR': { start: 270, end: 400, step: 5 },
+        'ASTRONERGY': { start: 585, end: 605, step: 5 },
+        'TRINASOLAR': { start: 430, end: 510, step: 5 },
+        'GENERICOS': { start: 280, end: 430, step: 5 },
+        'EGING': { start: 440, end: 550, step: 5 }
+    };
+
+    const range = powerRanges[marcaSeleccionada];
+
+    if (range) {
+        const selectElement = document.createElement('select');
+        selectElement.id = 'potencia-panel-select';
+        selectElement.className = 'form-control';
+
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.textContent = 'Seleccione una potencia...';
+        placeholderOption.disabled = true;
+        placeholderOption.selected = true;
+        selectElement.appendChild(placeholderOption);
+
+        for (let i = range.start; i <= range.end; i += range.step) {
+            const optionElement = document.createElement('option');
+            optionElement.value = i;
+            optionElement.textContent = `${i} W`;
+            if (userSelections.potenciaPanelDeseada === i) {
+                optionElement.selected = true;
+                placeholderOption.selected = false;
+            }
+            selectElement.appendChild(optionElement);
+        }
+
+        selectElement.addEventListener('change', async (event) => {
+            console.log("[DEBUG] Potencia panel listener fired.");
+            const value = parseInt(event.target.value, 10);
+            userSelections.potenciaPanelDeseada = isNaN(value) ? null : value;
+
+            // Fetch model immediately on power selection
+            await fetchAndDisplayPanelModel();
+        });
+
+        container.appendChild(selectElement);
+    } else {
+        // If no range (e.g., no brand selected), show the original free-text input
+        container.appendChild(potenciaDeseadaInput);
+    }
+}
+
+async function initInversorSection() {
+    console.log('[initInversorSection] called');
+    const container = document.getElementById('inversor-options-container');
+    if (!container) {
+        console.error("Contenedor 'inversor-options-container' no encontrado.");
+        return;
+    }
+    container.innerHTML = 'Cargando opciones de inversor adecuadas...';
+
+    try {
+        const response = await fetch(API_BASE + '/get_suitable_inverters', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userSelections),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: `Error HTTP: ${response.status}` }));
+            throw new Error(errorData.error || `Error HTTP: ${response.status}`);
+        }
+
+        const inverterOptions = await response.json();
+        container.innerHTML = ''; // Clear loading message
+
+        if (!Array.isArray(inverterOptions)) {
+             throw new Error("La respuesta del servidor para los inversores no es una lista válida.");
+        }
+
+        if (inverterOptions.length === 0) {
+            container.innerHTML = '<p style="color:orange; font-size:0.9em;">No se encontraron inversores adecuados para la potencia del sistema calculada. Puede continuar, pero la selección del inversor no estará disponible y el informe puede no ser preciso.</p>';
+            return;
+        }
+
+        const selectElement = document.createElement('select');
+        selectElement.id = 'inversor-select';
+        selectElement.className = 'form-control';
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Seleccione un modelo de inversor...';
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        selectElement.appendChild(placeholder);
+
+        inverterOptions.forEach(inverter => {
+            const option = document.createElement('option');
+            option.value = inverter.NOMBRE;
+            option.dataset.power = inverter['Pot nom CA [W]'];
+            option.textContent = `${inverter.NOMBRE} (${(inverter['Pot nom CA [W]']/1000).toFixed(2)} kW)`;
+
+            if (userSelections.inversor && userSelections.inversor.tipo === inverter.NOMBRE) {
+                option.selected = true;
+                placeholder.selected = false;
+            }
+            selectElement.appendChild(option);
+        });
+
+        selectElement.addEventListener('change', (e) => {
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            const model = selectedOption.value;
+            const power = parseFloat(selectedOption.dataset.power);
+
+            if (model) {
+                userSelections.inversor = {
+                    tipo: model,
+                    potenciaNominal: isNaN(power) ? 0 : power / 1000 // Store in kW
+                };
+            } else {
+                userSelections.inversor = { tipo: null, potenciaNominal: 0 };
+            }
+
+            console.log('Inversor seleccionado:', userSelections.inversor);
+        });
+
+        container.appendChild(selectElement);
+
+    } catch (error) {
+        console.error("Error al cargar opciones de inversor adecuadas:", error);
+        container.innerHTML = `<p style="color:red;">Error al cargar los modelos de inversor: ${error.message}</p>`;
+    }
+}
+
+// --- Funciones para Consumo y Electrodomésticos (NUEVO BLOQUE INTEGRADO) ---
+
+async function cargarElectrodomesticosDesdeBackend() {
+    try {
+        const response = await fetch(API_BASE + '/electrodomesticos');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        // El JSON generado tiene una clave raíz "categorias"
+        electrodomesticosCategorias = data.categorias;
+        console.log('Electrodomésticos cargados desde el backend:', electrodomesticosCategorias);
+        initElectrodomesticosSection(); // Inicializa la interfaz de electrodomésticos
+        calcularConsumo(); // Recalcula el consumo con los datos cargados y cantidades del usuario
+    } catch (error) {
+        console.error('No se pudo cargar los electrodomésticos desde el backend (/api/electrodomesticos):', error);
+        alert('Error crítico: No se pudo cargar la lista de electrodomésticos desde el servidor. Usando datos de respaldo.');
+        // Datos de respaldo en caso de falla para desarrollo/prueba
+        electrodomesticosCategorias = {
+            "Cocina": [
+                { name: "Heladera", consumo_diario_kwh: 1.5, watts: 100 },
+                { name: "Microondas", consumo_diario_kwh: 0.6, watts: 1200 },
+                { name: "Lavarropas", consumo_diario_kwh: 0.7, watts: 2000 }
+            ],
+            "Entretenimiento": [
+                { name: "Televisor", consumo_diario_kwh: 0.4, watts: 80 },
+                { name: "Computadora", consumo_diario_kwh: 1.2, watts: 200 }
+            ]
+        };
+        initElectrodomesticosSection();
+        calcularConsumo();
+    }
+}
+
+
+function initElectrodomesticosSection() {
+    // Dynamically set the title and description for the 'Energia' section based on user profile.
+    // NOTE: The selectors target the H1 and the P tags that are direct children of #energia-section.
+    // The P tag was added in a previous step to serve as a dynamic description area.
+    const energiaSectionTitle = document.querySelector('#energia-section > h1');
+    const energiaSectionDescription = document.querySelector('#energia-section > p');
+
+    let title = 'Consumo de Energía';
+    let description = 'A continuación ingrese los datos requeridos acerca de su consumo de energía eléctrica.';
+
+    if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
+        title = 'Ingrese su consumo de Energia';
+        description = ''; // Remove subtitle
+    }
+
+    if (energiaSectionTitle) energiaSectionTitle.innerHTML = title;
+    if (energiaSectionDescription) energiaSectionDescription.innerHTML = description;
+
+    const modoSeleccionContainer = document.getElementById('energia-modo-seleccion-container');
+    const listContainer = document.getElementById('electrodomesticos-list');
+    const summaryContainer = document.querySelector('#energia-section .energy-summary');
+    // Ensure totalConsumoMensualDisplay and totalConsumoAnualDisplay are accessible if needed here
+    // const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');
+    // const totalConsumoAnualDisplay = document.getElementById('totalConsumoAnual');
+
+
+    if (!listContainer || !modoSeleccionContainer) {
+        console.error("Elementos necesarios para energia-section no encontrados.");
+        return;
+    }
+
+    // Default states
+    modoSeleccionContainer.style.display = 'none';
+    listContainer.innerHTML = ''; // Clear previous content from list area
+    if (summaryContainer) summaryContainer.style.display = 'none';
+
+
+    if (userSelections.userType === 'experto') {
+        // --- START: Definition of handleExpertEnergyChoice (moved up) ---
+        const handleExpertEnergyChoice = (choice) => {
+            const consumoFacturaForm = document.getElementById('consumo-factura-section');
+            const electrodomesticosList = document.getElementById('electrodomesticos-list');
+
+            // Hide all possible content sections first
+            if (electrodomesticosList) electrodomesticosList.style.display = 'none';
+            if (consumoFacturaForm) consumoFacturaForm.style.display = 'none';
+            if (summaryContainer) summaryContainer.style.display = 'none';
+            // Clear the list container to prevent old data from showing
+            if (listContainer) listContainer.innerHTML = '';
+
+
+            if (choice === 'detalleHogar') {
+                if (summaryContainer) summaryContainer.style.display = 'flex';
+                if (electrodomesticosList) electrodomesticosList.style.display = 'block';
+                populateStandardApplianceList(listContainer);
+            } else if (choice === 'boletaMensual') {
+                if (consumoFacturaForm) consumoFacturaForm.style.display = 'block';
+            } else if (choice === 'detalleHogarHoras') {
+                if (electrodomesticosList) electrodomesticosList.style.display = 'block';
+                populateDetailedApplianceList(listContainer);
+            }
+        };
+        // --- END: Definition of handleExpertEnergyChoice ---
+
+        // --- START: NEW BLOCK for Comercial/PYME ---
+        if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
+            console.log('[DEBUG] Expert Comercial/PYME: Forcing to boletaMensual method.');
+            modoSeleccionContainer.style.display = 'none'; // Ensure choice screen is hidden
+            listContainer.innerHTML = ''; // Clear any potential list
+            if (summaryContainer) summaryContainer.style.display = 'none'; // Hide summary
+
+            userSelections.metodoIngresoConsumoEnergia = 'boletaMensual';
+
+
+            handleExpertEnergyChoice('boletaMensual'); // Call the now-defined function
+            return; // Exit function, as navigation will occur
+        }
+        // --- END: NEW BLOCK for Comercial/PYME ---
+
+        // --- START: Original logic for Expert Residencial (continues from SEARCH block) ---
+        // 1. Always show choice screen & reset content areas
+        //    (Note: modoSeleccionContainer.style.display = 'block' is here, which is fine for Residencial)
+        modoSeleccionContainer.style.display = 'block';
+        listContainer.innerHTML = '';
+        if (summaryContainer) summaryContainer.style.display = 'none';
+        if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = 'N/A';
+        if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = 'N/A';
+
+        // 2. Pre-check radio based on saved selection
+        if (userSelections.metodoIngresoConsumoEnergia) {
+            const currentRadio = document.querySelector(`input[name="metodoIngresoConsumo"][value="${userSelections.metodoIngresoConsumoEnergia}"]`);
+            if (currentRadio) {
+                currentRadio.checked = true;
+            }
+        } else {
+            // If no method was previously selected, explicitly uncheck all radio buttons
+            document.querySelectorAll('input[name="metodoIngresoConsumo"]').forEach(rb => rb.checked = false);
+        }
+
+        // 3. Ensure radio button 'change' listeners are active
+        //    (handleExpertEnergyChoice definition was moved up, so listeners will use it)
+        const radioButtons = document.querySelectorAll('input[name="metodoIngresoConsumo"]');
+        radioButtons.forEach(radio => {
+            if (!radio.dataset.listenerAttached) {
+                radio.addEventListener('change', (event) => {
+                    userSelections.metodoIngresoConsumoEnergia = event.target.value;
+
+                    handleExpertEnergyChoice(event.target.value);
+                });
+                radio.dataset.listenerAttached = 'true';
+            }
+        });
+
+    } else { // Basic user
+    // Default states for basic user flow within energia-section
+    modoSeleccionContainer.style.display = 'none';
+    listContainer.innerHTML = ''; // Clear appliance list content to be safe
+    listContainer.style.display = 'none'; // Hide appliance list by default
+    if (consumoFacturaSection) consumoFacturaSection.style.display = 'none'; // Hide bill form by default
+
+
+        if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
+        console.log('[DEBUG] Basic Comercial/PYME: showing average consumption form.');
+        userSelections.metodoIngresoConsumoEnergia = 'promedioMensual'; // New method
+
+        const consumoPromedioSection = document.getElementById('consumo-promedio-section');
+        if(consumoPromedioSection) consumoPromedioSection.style.display = 'block';
+        if (summaryContainer) summaryContainer.style.display = 'flex';
+
+    } else { // Basic Residencial
+        console.log('[DEBUG] Basic Residencial: showing appliance list.');
+
+        // START: Add help text for basic residential user
+        const helpTextId = 'basic-residential-help-text';
+        const existingHelpText = document.getElementById(helpTextId);
+        if (existingHelpText) {
+            existingHelpText.remove();
+        }
+
+        // The user requested to remove this text.
+        // const helpText = document.createElement('p');
+        // helpText.id = helpTextId;
+        // helpText.className = 'form-description';
+        // helpText.textContent = 'Ingresa la cantidad de electrodomésticos de cada tipo que tenés en tu casa.';
+
+        // // Insert the help text before the appliance list container
+        // if (listContainer) {
+        //     listContainer.before(helpText);
+        // }
+        // END: Add help text
+
+        // listContainer.style.display = 'block'; // <<< THIS WAS THE BUG. REMOVED.
+        if (summaryContainer) summaryContainer.style.display = 'flex'; // Show summary
+
+        // NEW: Apply grid styles for the 3-column layout
+        listContainer.style.display = 'grid';
+        listContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        listContainer.style.gap = '1rem';
+
+        populateStandardApplianceList(listContainer); // Populate it with appliances
+        // consumoFacturaSection is already hidden by default state above
+        }
+    }
+
+    // Add event listener for the average consumption input
+    const consumoPromedioInput = document.getElementById('consumo-promedio-mes');
+    if(consumoPromedioInput) {
+        consumoPromedioInput.addEventListener('input', (e) => {
+            const monthlyValue = parseFloat(e.target.value) || 0;
+            const annualValue = monthlyValue * 12;
+            if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = monthlyValue.toFixed(2);
+            if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = annualValue.toFixed(2);
+        });
+    }
+}
+
+// Helper function for the standard appliance list population
+function populateStandardApplianceList(listContainerElement) {
+    if (!listContainerElement) return;
+    listContainerElement.innerHTML = '';
+
+    Object.keys(electrodomesticosCategorias).forEach(categoria => {
+        const categoryWrapper = document.createElement('div');
+        categoryWrapper.className = 'acordeon-categoria-wrapper';
+
+        const titleH2 = document.createElement('h2');
+        titleH2.className = 'acordeon-titulo';
+        titleH2.textContent = categoria;
+
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'acordeon-icono';
+        iconSpan.innerHTML = '&#9660;';
+        titleH2.appendChild(iconSpan);
+
+        const itemsDiv = document.createElement('div');
+        itemsDiv.className = 'acordeon-items';
+        itemsDiv.style.display = 'none';
+
+        electrodomesticosCategorias[categoria].forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'electrodomestico-row';
+            const name = document.createElement('span');
+            name.textContent = item.name;
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.min = '0';
+            input.value = userSelections.electrodomesticos[item.name]?.cantidad || 0;
+            input.id = `cant-${item.name.replace(/\s+/g, '-')}`;
+            input.className = 'electrodomestico-input';
+            input.addEventListener('change', (e) => {
+                const itemName = item.name;
+                if (!userSelections.electrodomesticos[itemName]) {
+                    userSelections.electrodomesticos[itemName] = { cantidad: 0, horasVerano: null, horasInvierno: null };
+                }
+                userSelections.electrodomesticos[itemName].cantidad = parseInt(e.target.value) || 0;
+                calcularConsumo();
+
+            });
+            const consumoDiario = item.consumo_diario_kwh || 0;
+            const consumoLabel = document.createElement('span');
+            consumoLabel.textContent = `${parseFloat(consumoDiario.toFixed(3))} kWh/día`;
+            row.appendChild(name);
+            row.appendChild(consumoLabel);
+            row.appendChild(input);
+            itemsDiv.appendChild(row);
+        });
+
+        categoryWrapper.appendChild(titleH2);
+        categoryWrapper.appendChild(itemsDiv);
+        listContainerElement.appendChild(categoryWrapper);
+    });
+    initAccordionEventListeners(); // Add this call
+    calcularConsumo(); // Initial calculation after populating
+}
+
+function populateDetailedApplianceList(listContainerElement) {
+    if (!listContainerElement) {
+        console.error("Target container for detailed appliance list not provided.");
+        return;
+    }
+    listContainerElement.innerHTML = ''; // Clear previous content
+
+    Object.keys(electrodomesticosCategorias).forEach(categoria => {
+        const categoryWrapper = document.createElement('div');
+        categoryWrapper.className = 'acordeon-categoria-wrapper';
+
+        const titleH2 = document.createElement('h2');
+        titleH2.className = 'acordeon-titulo';
+        titleH2.textContent = categoria;
+
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'acordeon-icono';
+        iconSpan.innerHTML = '&#9660;';
+        titleH2.appendChild(iconSpan);
+
+        const itemsDiv = document.createElement('div');
+        itemsDiv.className = 'acordeon-items';
+        itemsDiv.style.display = 'none';
+
+        electrodomesticosCategorias[categoria].forEach(item => {
+            const itemName = item.name;
+            const applianceData = userSelections.electrodomesticos[itemName] || { cantidad: 0, horasVerano: null, horasInvierno: null };
+
+            const row = document.createElement('div');
+            row.className = 'electrodomestico-row electrodomestico-detailed-inputs';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = itemName;
+            nameSpan.style.flexBasis = '30%';
+
+            const wattsSpan = document.createElement('span');
+            wattsSpan.textContent = `(${item.watts || 0} W)`;
+            wattsSpan.style.fontSize = '0.8em';
+            wattsSpan.style.flexBasis = '15%';
+
+            const cantidadInput = document.createElement('input');
+            cantidadInput.type = 'number';
+            cantidadInput.min = '0';
+            cantidadInput.value = applianceData.cantidad || 0;
+            cantidadInput.id = `cant-detailed-${itemName.replace(/\s+/g, '-')}`;
+            cantidadInput.className = 'electrodomestico-input';
+            cantidadInput.style.maxWidth = '60px';
+            cantidadInput.addEventListener('input', (e) => {
+                if (!userSelections.electrodomesticos[itemName]) {
+                    userSelections.electrodomesticos[itemName] = { cantidad: 0, horasVerano: null, horasInvierno: null };
+                }
+                userSelections.electrodomesticos[itemName].cantidad = parseInt(e.target.value) || 0;
+                // TODO: Deferred - Trigger specific consumption calculation for this mode if/when implemented
+
+            });
+
+            const horasVeranoInput = document.createElement('input');
+            horasVeranoInput.type = 'number';
+            horasVeranoInput.min = '0';
+            horasVeranoInput.placeholder = 'Hs. Verano/mes';
+            horasVeranoInput.value = applianceData.horasVerano || '';
+            horasVeranoInput.id = `horas-verano-${itemName.replace(/\s+/g, '-')}`;
+            horasVeranoInput.className = 'electrodomestico-input';
+            horasVeranoInput.style.maxWidth = '100px';
+            horasVeranoInput.addEventListener('input', (e) => {
+                if (!userSelections.electrodomesticos[itemName]) {
+                    userSelections.electrodomesticos[itemName] = { cantidad: 0, horasVerano: null, horasInvierno: null };
+                }
+                const val = parseFloat(e.target.value);
+                userSelections.electrodomesticos[itemName].horasVerano = isNaN(val) ? null : val;
+                // TODO: Deferred - Trigger specific consumption calculation
+
+            });
+
+            const horasInviernoInput = document.createElement('input');
+            horasInviernoInput.type = 'number';
+            horasInviernoInput.min = '0';
+            horasInviernoInput.placeholder = 'Hs. Invierno/mes';
+            horasInviernoInput.value = applianceData.horasInvierno || '';
+            horasInviernoInput.id = `horas-invierno-${itemName.replace(/\s+/g, '-')}`;
+            horasInviernoInput.className = 'electrodomestico-input';
+            horasInviernoInput.style.maxWidth = '100px';
+            horasInviernoInput.addEventListener('input', (e) => {
+                if (!userSelections.electrodomesticos[itemName]) {
+                    userSelections.electrodomesticos[itemName] = { cantidad: 0, horasVerano: null, horasInvierno: null };
+                }
+                const val = parseFloat(e.target.value);
+                userSelections.electrodomesticos[itemName].horasInvierno = isNaN(val) ? null : val;
+                // TODO: Deferred - Trigger specific consumption calculation
+
+            });
+
+            row.appendChild(nameSpan);
+            row.appendChild(wattsSpan);
+            row.appendChild(cantidadInput);
+            row.appendChild(horasVeranoInput);
+            row.appendChild(horasInviernoInput);
+            itemsDiv.appendChild(row);
+        });
+
+        categoryWrapper.appendChild(titleH2);
+        categoryWrapper.appendChild(itemsDiv);
+        listContainerElement.appendChild(categoryWrapper);
+    });
+    initAccordionEventListeners(); // Add this call
+
+    const summaryContainer = document.querySelector('#energia-section .energy-summary');
+    if (summaryContainer) {
+        const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');
+        const totalConsumoAnualDisplay = document.getElementById('totalConsumoAnual');
+        if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = 'N/A (modo detallado)';
+        if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = 'N/A (modo detallado)';
+        summaryContainer.style.display = 'flex';
+    }
+}
+
+function initAccordionEventListeners() {
+    const accordionTitles = document.querySelectorAll('.acordeon-titulo');
+
+    accordionTitles.forEach(title => {
+        // Check if a listener is already attached to avoid duplicates if called multiple times
+        if (title.dataset.accordionListenerAttached === 'true') {
+            return;
+        }
+        title.dataset.accordionListenerAttached = 'true';
+
+        title.addEventListener('click', () => {
+            const itemsDiv = title.nextElementSibling;
+            const iconSpan = title.querySelector('.acordeon-icono');
+
+            if (itemsDiv && itemsDiv.classList.contains('acordeon-items')) {
+                if (itemsDiv.style.display === 'none' || itemsDiv.style.display === '') {
+                    itemsDiv.style.display = 'block';
+                    title.classList.add('open'); // Add this line
+                    if (iconSpan) iconSpan.innerHTML = '&#9650;'; // Up arrow ▲
+                } else {
+                    itemsDiv.style.display = 'none';
+                    title.classList.remove('open'); // Add this line
+                    if (iconSpan) iconSpan.innerHTML = '&#9660;'; // Down arrow ▼
+                }
+            } else {
+                console.warn('Accordion items div not found or is not the next sibling for:', title);
+            }
+        });
+    });
+}
+
+function calcularConsumo() {
+    let totalDiario = 0;
+    for (const categoria in electrodomesticosCategorias) {
+        if (electrodomesticosCategorias.hasOwnProperty(categoria)) {
+            electrodomesticosCategorias[categoria].forEach(item => {
+                const cant = userSelections.electrodomesticos[item.name]?.cantidad || 0;
+                // Ajusta esta lógica si tu backend solo da 'consumo_diario'
+                const consumoDiarioItem = item.consumo_diario_kwh || 0;
+                totalDiario += consumoDiarioItem * cant;
+            });
+        }
+    }
+    userSelections.totalMonthlyConsumption = totalDiario * 30;
+    userSelections.totalAnnualConsumption = totalDiario * 365;
+    if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = userSelections.totalMonthlyConsumption.toFixed(2);
+    if (totalConsumoAnualDisplay) totalConsumoAnualDisplay.value = userSelections.totalAnnualConsumption.toFixed(2);
+}
+
+
+
+// Utilidad para extraer la ciudad de una dirección con formato
+// "calle número, ciudad". Devuelve null si no se encuentra una coma.
+function extraerCiudadDeDireccion(direccion) {
+    if (!direccion) return null;
+    const partes = direccion.split(',');
+    if (partes.length >= 2) {
+        return partes[1].trim();
+    }
+    return null;
 }
 
 async function persistSelectedCityName(cityName) {
@@ -1831,8 +2681,8 @@ function setupSidebarNavigation() {
 // --- INIT principal (Se ejecuta al cargar el DOM) (EXISTENTE, MODIFICADO) ---
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // La inicialización del mapa se ha deshabilitado para priorizar el buscador de ciudades.
-        // initMap();
+        // Inicializa el mapa primero, ya que es la primera pantalla.
+        initMap();
 
         // Inicializa el nuevo buscador de ciudades
         initCitySearch();
