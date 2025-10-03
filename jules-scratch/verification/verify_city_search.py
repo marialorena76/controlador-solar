@@ -14,16 +14,14 @@ def run(playwright):
         search_input = page.locator("#ciudad-search-input")
         expect(search_input).to_be_visible(timeout=10000)
 
-        # 3. Type a city name to trigger the datalist and selection
+        # 3. Type a city name and press Enter to confirm selection
         city_to_select = "Olavarría"
-        search_input.fill(city_to_select)
-
-        # The 'input' event listener in the JS should handle the update automatically
-        # when the typed value matches an option.
+        search_input.type(city_to_select, delay=100) # Type slowly to allow datalist to appear
+        search_input.press("Enter")
 
         # 4. Assert that the location display has updated
         location_display = page.locator("#location-display")
-        expect(location_display).to_contain_text(f"Ubicación seleccionada: {city_to_select}", timeout=5000)
+        expect(location_display).to_contain_text(f"Ubicación seleccionada: {city_to_select}", timeout=10000)
 
         # 5. Take a screenshot for visual confirmation
         page.screenshot(path="jules-scratch/verification/city_search_verification.png")

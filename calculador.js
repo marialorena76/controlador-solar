@@ -815,10 +815,9 @@ async function initCitySearch() {
             dataList.appendChild(option);
         });
 
-        // Añadir el event listener al evento 'change' para mayor fiabilidad
-        searchInput.addEventListener('change', async (e) => {
+        // Usar el evento 'blur' que se dispara cuando el campo pierde el foco
+        searchInput.addEventListener('blur', async (e) => {
             const selectedName = e.target.value.trim().toLowerCase();
-            // La propiedad 'ciudadesData' se adjuntó al elemento input anteriormente
             const ciudadSeleccionada = searchInput.ciudadesData.find(c => c.nombre.trim().toLowerCase() === selectedName);
 
             if (ciudadSeleccionada) {
@@ -1733,139 +1732,141 @@ async function persistSelectedCityName(cityName) {
 // --- Lógica del Mapa (EXISTENTE, CON PEQUEÑAS MEJORAS) ---
 
 function initMap() {
-    console.log('--- initMap CALLED ---');
-    const mapContainer = document.getElementById('map');
-    if (!mapContainer) {
-        console.error('No se encontró el contenedor del mapa.');
-        return;
-    }
+    try {
+        const mapContainer = document.getElementById('map');
+        if (!mapContainer) {
+            console.error('No se encontró el contenedor del mapa.');
+            return;
+        }
 
-    // Si el mapa ya existe, lo eliminamos para recrearlo.
-    // Esto previene errores de Leaflet si la función se llama más de una vez.
-    if (map) {
-        map.off();
-        map.remove();
-    }
-    marker = null; // Reset marker reference
+        // Si el mapa ya existe, lo eliminamos para recrearlo.
+        if (map) {
+            map.off();
+            map.remove();
+        }
+        marker = null;
 
-    map = L.map(mapContainer).setView(userLocation, 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
+        map = L.map(mapContainer).setView(userLocation, 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
 
-    marker = L.marker(userLocation).addTo(map);
+        marker = L.marker(userLocation).addTo(map);
 
-    map.on('click', function(e) {
-        userLocation.lat = e.latlng.lat;
-        userLocation.lng = e.latlng.lng;
-        marker.setLatLng(userLocation);
-        userSelections.location = userLocation;
+        map.on('click', function(e) {
+            userLocation.lat = e.latlng.lat;
+            userLocation.lng = e.latlng.lng;
+            marker.setLatLng(userLocation);
+            userSelections.location = userLocation;
 
-        if (geocoderControlInstance && geocoderControlInstance.options.geocoder) {
-            geocoderControlInstance.options.geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom()), async function(results) {
-                const r = results[0];
+            if (geocoderControlInstance && geocoderControlInstance.options.geocoder) {
+                geocoderControlInstance.options.geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom()), async function(results) {
+                    const r = results[0];
+                    const locationDisplay = document.getElementById('location-display');
+
+                    if (r && r.name) {
+                        const props = r.properties || {};
+                        const address = props.address || {};
+                        const immediateCityName = address.city || address.town || address.village || props.city || props.town || props.village;
+
+                        if (locationDisplay) {
+                            locationDisplay.textContent = immediateCityName ? `Ubicación: ${immediateCityName}` : 'Identificando ubicación...';
+                            locationDisplay.style.backgroundColor = immediateCityName ? '#e9f5e9' : '#e3f2fd';
+                        }
+
+                        const ciudadResult = await buscarCodigoCiudad(r.name);
+                        if (ciudadResult) {
+                            userSelections.ciudad = ciudadResult;
+                            if (locationDisplay) locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
+                            await persistSelectedCityName(ciudadResult.nombre);
+                        } else {
+                            userSelections.ciudad = { codigo: null, nombre: immediateCityName || null };
+                            if (locationDisplay) {
+                                locationDisplay.textContent = immediateCityName ? `Ubicación: ${immediateCityName} (No confirmada)` : 'No se pudo encontrar la ciudad.';
+                                locationDisplay.style.backgroundColor = immediateCityName ? '#fff9c4' : '#fbe9e7';
+                            }
+                            await persistSelectedCityName(immediateCityName || '');
+                        }
+                    } else {
+                        if (locationDisplay) {
+                            locationDisplay.textContent = 'No se pudo identificar la ubicación.';
+                            locationDisplay.style.backgroundColor = '#fbe9e7';
+                        }
+                        userSelections.ciudad = { codigo: null, nombre: null };
+                        await persistSelectedCityName('');
+                    }
+                });
+            }
+        });
+
+        geocoderControlInstance = L.Control.geocoder({
+            placeholder: 'Ej: Buchardo 3232, Olavarría',
+            errorMessage: 'No se encontró la dirección.',
+            defaultMarkGeocode: true,
+            collapsed: false,
+            geocoder: new L.Control.Geocoder.Photon()
+        }).on('markgeocode', async function(e) {
+            try {
                 const locationDisplay = document.getElementById('location-display');
-
-                if (r && r.name) {
-                    const props = r.properties || {};
-                    const address = props.address || {};
-                    const immediateCityName = address.city || address.town || address.village || props.city || props.town || props.village;
+                if (e.geocode && e.geocode.center) {
+                    userLocation = { lat: e.geocode.center.lat, lng: e.geocode.center.lng };
+                    map.setView(userLocation, 13);
+                    userSelections.location = userLocation;
 
                     if (locationDisplay) {
-                        locationDisplay.textContent = immediateCityName ? `Ubicación: ${immediateCityName}` : 'Identificando ubicación...';
-                        locationDisplay.style.backgroundColor = immediateCityName ? '#e9f5e9' : '#e3f2fd';
+                        locationDisplay.textContent = 'Buscando ciudad...';
+                        locationDisplay.style.backgroundColor = '#e3f2fd';
                     }
 
-                    const ciudadResult = await buscarCodigoCiudad(r.name);
+                    const ciudadResult = await buscarCodigoCiudad(e.geocode.name);
                     if (ciudadResult) {
                         userSelections.ciudad = ciudadResult;
-                        if (locationDisplay) locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
+                        if (locationDisplay) {
+                            locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
+                            locationDisplay.style.backgroundColor = '#e9f5e9';
+                        }
                         await persistSelectedCityName(ciudadResult.nombre);
                     } else {
-                        userSelections.ciudad = { codigo: null, nombre: immediateCityName || null };
+                        const ciudadParcial = extraerCiudadDeDireccion(e.geocode.name);
+                        userSelections.ciudad = { codigo: null, nombre: ciudadParcial };
                         if (locationDisplay) {
-                            locationDisplay.textContent = immediateCityName ? `Ubicación: ${immediateCityName} (No confirmada)` : 'No se pudo encontrar la ciudad.';
-                            locationDisplay.style.backgroundColor = immediateCityName ? '#fff9c4' : '#fbe9e7';
+                            locationDisplay.textContent = ciudadParcial ? `Ubicación: ${ciudadParcial} (No confirmada)` : 'Ciudad no encontrada.';
+                            locationDisplay.style.backgroundColor = ciudadParcial ? '#fff9c4' : '#fbe9e7';
                         }
-                        await persistSelectedCityName(immediateCityName || '');
+                        await persistSelectedCityName(ciudadParcial || '');
                     }
-                } else {
-                    if (locationDisplay) {
-                        locationDisplay.textContent = 'No se pudo identificar la ubicación.';
-                        locationDisplay.style.backgroundColor = '#fbe9e7';
-                    }
-                    userSelections.ciudad = { codigo: null, nombre: null };
-                    await persistSelectedCityName('');
                 }
-            });
-        }
-    });
-
-    geocoderControlInstance = L.Control.geocoder({
-        placeholder: 'Ej: Buchardo 3232, Olavarría',
-        errorMessage: 'No se encontró la dirección.',
-        defaultMarkGeocode: true, // Habilitar el marcador por defecto para depuración
-        collapsed: false, // Asegurar que el control no esté colapsado
-        geocoder: new L.Control.Geocoder.Photon() // Cambiado a Photon para mayor fiabilidad
-    }).on('markgeocode', async function(e) {
-        try {
-            const locationDisplay = document.getElementById('location-display');
-            if (e.geocode && e.geocode.center) {
-                userLocation = { lat: e.geocode.center.lat, lng: e.geocode.center.lng };
-                // El marcador es manejado por defaultMarkGeocode, no es necesario manejarlo aquí
-                map.setView(userLocation, 13);
-                userSelections.location = userLocation;
-
-                if (locationDisplay) {
-                    locationDisplay.textContent = 'Buscando ciudad...';
-                    locationDisplay.style.backgroundColor = '#e3f2fd';
-                }
-
-                const ciudadResult = await buscarCodigoCiudad(e.geocode.name);
-                if (ciudadResult) {
-                    userSelections.ciudad = ciudadResult;
-                    if (locationDisplay) {
-                        locationDisplay.textContent = `Ubicación seleccionada: ${ciudadResult.nombre}`;
-                        locationDisplay.style.backgroundColor = '#e9f5e9';
-                    }
-                    await persistSelectedCityName(ciudadResult.nombre);
-                } else {
-                    const ciudadParcial = extraerCiudadDeDireccion(e.geocode.name);
-                    userSelections.ciudad = { codigo: null, nombre: ciudadParcial };
-                    if (locationDisplay) {
-                        locationDisplay.textContent = ciudadParcial ? `Ubicación: ${ciudadParcial} (No confirmada)` : 'Ciudad no encontrada.';
-                        locationDisplay.style.backgroundColor = ciudadParcial ? '#fff9c4' : '#fbe9e7';
-                    }
-                    await persistSelectedCityName(ciudadParcial || '');
+            } catch (error) {
+                console.error('Error en el handler de markgeocode:', error);
+                const locationDisplay = document.getElementById('location-display');
+                if(locationDisplay) {
+                    locationDisplay.textContent = 'Error al procesar la ubicación.';
+                    locationDisplay.style.backgroundColor = '#fbe9e7';
                 }
             }
-        } catch (error) {
-            console.error('Error en el handler de markgeocode:', error);
-            const locationDisplay = document.getElementById('location-display');
-            if(locationDisplay) {
-                locationDisplay.textContent = 'Error al procesar la ubicación.';
-                locationDisplay.style.backgroundColor = '#fbe9e7';
+        }).addTo(map);
+
+        const geocoderContainer = document.getElementById('geocoder-container');
+        if (geocoderContainer) {
+            const geocoderElement = geocoderControlInstance.getContainer();
+            if (geocoderElement) {
+                geocoderContainer.innerHTML = '';
+                geocoderContainer.appendChild(geocoderElement);
             }
         }
-    }).addTo(map);
 
-    // Se elimina temporalmente la lógica de mover el geocodificador para aislar el problema.
-    // El geocodificador aparecerá en su posición por defecto en el mapa.
-
-    const geocoderContainer = document.getElementById('geocoder-container');
-    if (geocoderContainer) {
-        const geocoderElement = geocoderControlInstance.getContainer();
-        if (geocoderElement) {
-            geocoderContainer.innerHTML = '';
-            geocoderContainer.appendChild(geocoderElement);
+        requestAnimationFrame(() => {
+            if (map) {
+                map.invalidateSize();
+            }
+        });
+    } catch (error) {
+        console.error("Error fatal al inicializar el mapa. El buscador de ciudades seguirá funcionando.", error);
+        const mapContainer = document.getElementById('map');
+        if (mapContainer) {
+            mapContainer.innerHTML = '<p style="text-align:center; padding: 20px;">El mapa no se pudo cargar. Por favor, utilice el buscador de ciudades.</p>';
         }
     }
-
-
-    // Llama a invalidateSize en el siguiente frame de animación para asegurar que el mapa se renderice correctamente.
-    requestAnimationFrame(() => {
-        map.invalidateSize();
-    });
 }
 
 // --- Nueva función para buscar el código de la ciudad (refactorizada) ---
@@ -2629,15 +2630,8 @@ function setupNavigationButtons() {
                     console.warn('No se pudo guardar userSelections en localStorage', storageError);
                 }
 
-                const backendUserType = typeof informeFinal.userType === 'string'
-                    ? informeFinal.userType.toLowerCase()
-                    : null;
-                const selectedUserType = typeof userSelections.userType === 'string'
-                    ? userSelections.userType.toLowerCase()
-                    : null;
                 // Redirigir siempre a informe.html, que es la página de reporte correcta.
                 window.location.href = 'informe.html';
-
             } catch (error) {
                 console.error('Error al generar el informe:', error);
                 alert('Hubo un error al generar el informe. Por favor, intente de nuevo. Detalle: ' + error.message);
