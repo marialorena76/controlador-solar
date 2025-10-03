@@ -979,11 +979,6 @@ def get_suitable_inverters_api():
 
 
 # --- NUEVA RUTA: Para obtener la lista completa de ciudades ---
-@app.route('/api/test', methods=['GET'])
-def test_endpoint():
-    """A simple endpoint to confirm the server is running."""
-    return jsonify({"message": "Server is up and running!"})
-
 @app.route('/api/ciudades', methods=['GET'])
 def get_ciudades():
     """
