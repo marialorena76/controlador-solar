@@ -46,60 +46,74 @@ DEFAULT_EXCEL_FILENAME = 'Calculador Solar - web 06-24_con ayuda - modificacione
 EXCEL_PATH = os.path.join(SCRIPT_DIR, DEFAULT_EXCEL_FILENAME)
 CONSUMOS_JSON_PATH = os.path.join(PROJECT_ROOT, 'consumos_electrodomesticos.json')
 
+# --- City Data Caching ---
+CITIES_CACHE: List[str] = []
+CITIES_CACHE_NORMALIZED: Dict[str, str] = {}
 
 def read_cities_from_excel(path: str) -> List[str]:
+    """
+    Reads a list of cities from the 'Ciudades' sheet in the given Excel file.
+    It deduplicates and cleans the city names.
+    """
+    print(f"Reading cities from Excel file: {path}")
     if not os.path.exists(path):
         raise FileNotFoundError(f'Archivo Excel no encontrado: {path}')
- codex/replace-map-with-city-search-feature-gbr9zh
 
-    # Usamos read_only=True para evitar cargar el libro completo en memoria, pero
-    # iteramos por filas con values_only=True para no volver a parsear el archivo
-    # en cada acceso a una celda.
-
-main
-    workbook = load_workbook(path, data_only=True, read_only=True)
+    # Using pandas for potentially faster reading of a single column
     try:
+        df = pd.read_excel(path, sheet_name='Ciudades', usecols="A", header=0, engine='openpyxl')
+        # Drop rows where the city name is NaN or empty, convert to string, and strip whitespace
+        cities_series = df.iloc[:, 0].dropna().astype(str).str.strip()
+        # Filter out any empty strings that might remain
+        cities_series = cities_series[cities_series != '']
+
+        # Deduplicate while preserving order
+        seen = set()
+        unique_cities = [city for city in cities_series if not (city.lower() in seen or seen.add(city.lower()))]
+
+        print(f"Successfully read {len(unique_cities)} unique cities from Excel.")
+        return unique_cities
+    except Exception as e:
+        print(f"Error reading cities with pandas, falling back to openpyxl. Error: {e}")
+        # Fallback to original openpyxl implementation if pandas fails
+        workbook = load_workbook(path, data_only=True, read_only=True)
         try:
             worksheet = workbook['Ciudades']
-        except KeyError as exc:
-            raise KeyError("Hoja 'Ciudades' no encontrada en el Excel.") from exc
-codex/replace-map-with-city-search-feature-gbr9zh
-
-        ciudades: List[str] = []
-        vistos = set()
-
-        for (valor,) in worksheet.iter_rows(min_row=2, max_col=1, values_only=True):
-            if valor is None:
-                break
-
-            ciudad = str(valor).strip()
-            if not ciudad:
-                break
-
-
-        ciudades: List[str] = []
-        vistos = set()
-        fila = 2
-        while True:
-            valor = worksheet.cell(row=fila, column=1).value
-            if valor is None:
-                break
-            ciudad = str(valor).strip()
-            if not ciudad:
-                break
- main
-            clave = ciudad.casefold()
-            if clave not in vistos:
-                vistos.add(clave)
-                ciudades.append(ciudad)
-codex/replace-map-with-city-search-feature-gbr9zh
+            ciudades: List[str] = []
+            vistos = set()
+            for row in worksheet.iter_rows(min_row=2, max_col=1, values_only=True):
+                valor = row[0]
+                if valor is None:
+                    continue
+                ciudad = str(valor).strip()
+                if not ciudad:
+                    continue
+                clave = ciudad.casefold()
+                if clave not in vistos:
+                    vistos.add(clave)
+                    ciudades.append(ciudad)
+            return ciudades
+        finally:
+            workbook.close()
 
 
-            fila += 1
- main
-        return ciudades
-    finally:
-        workbook.close()
+def load_cities_into_cache():
+    """
+    Loads city data from the Excel file into the global cache variables.
+    This function is called once at server startup.
+    """
+    global CITIES_CACHE, CITIES_CACHE_NORMALIZED
+    try:
+        print("Attempting to load cities into cache...")
+        CITIES_CACHE = read_cities_from_excel(EXCEL_PATH)
+        CITIES_CACHE_NORMALIZED = {c.casefold(): c for c in CITIES_CACHE}
+        print(f"Successfully cached {len(CITIES_CACHE)} cities.")
+    except Exception as e:
+        print(f"CRITICAL ERROR: Could not load cities into cache at startup: {e}")
+        # In a production environment, you might want to exit or handle this more gracefully.
+        # For this context, we'll let the server start but endpoints will fail.
+        CITIES_CACHE = []
+        CITIES_CACHE_NORMALIZED = {}
 
 
 def write_city_to_input_sheet(path: str, city: str) -> None:
@@ -1054,24 +1068,15 @@ def get_suitable_inverters_api():
         return jsonify({"error": f"Error interno del servidor al buscar inversores: {str(e)}"}), 500
 
 
-# --- NUEVA RUTA: Para obtener la lista completa de ciudades ---
+# --- NUEVA RUTA: Para obtener la lista completa de ciudades (Usa Cache) ---
 @app.route('/api/ciudades', methods=['GET'])
 def get_ciudades():
     """
-    Obtiene la lista de ciudades desde la hoja 'Ciudades' del Excel de configuración.
+    Obtiene la lista de ciudades desde la cache en memoria.
     """
-    try:
-        with excel_lock:
-            ciudades = read_cities_from_excel(EXCEL_PATH)
-    except FileNotFoundError:
-        return jsonify({'error': 'Archivo Excel de configuración no encontrado.'}), 404
-    except KeyError as exc:
-        return jsonify({'error': str(exc)}), 500
-    except Exception as exc:
-        return jsonify({'error': f'Error interno del servidor: {exc}'}), 500
-codex/replace-map-with-city-search-feature-gbr9zh
-
-    return jsonify({'ciudades': ciudades})
+    if not CITIES_CACHE:
+        return jsonify({'error': 'La lista de ciudades no está disponible o no pudo ser cargada.'}), 503
+    return jsonify({'ciudades': CITIES_CACHE})
 
 
 @app.route('/api/seleccionar_ciudad', methods=['POST'])
@@ -1081,55 +1086,26 @@ def seleccionar_ciudad():
     ciudad_ingresada = '' if raw_city is None else str(raw_city).strip()
 
     if not ciudad_ingresada:
-        return jsonify({'ok': False, 'error': 'Ciudad inválida'}), 400
+        return jsonify({'ok': False, 'error': 'La ciudad proporcionada está vacía.'}), 400
 
-
-
-    return jsonify({'ciudades': ciudades})
-
-
-@app.route('/api/seleccionar_ciudad', methods=['POST'])
-def seleccionar_ciudad():
-    payload = request.get_json(silent=True) or {}
-    raw_city = payload.get('ciudad', '')
-    ciudad_ingresada = '' if raw_city is None else str(raw_city).strip()
-
-    if not ciudad_ingresada:
-        return jsonify({'ok': False, 'error': 'Ciudad inválida'}), 400
- main
-    try:
-        with excel_lock:
-            ciudades_disponibles = read_cities_from_excel(EXCEL_PATH)
-    except FileNotFoundError:
-        return jsonify({'ok': False, 'error': 'Archivo Excel de configuración no encontrado.'}), 500
-    except KeyError as exc:
-        return jsonify({'ok': False, 'error': str(exc)}), 500
-    except Exception as exc:
-        return jsonify({'ok': False, 'error': f'Error interno del servidor: {exc}'}), 500
-
-    ciudades_normalizadas = {c.casefold(): c for c in ciudades_disponibles}
+    # Validar contra la cache
     ciudad_normalizada = ciudad_ingresada.casefold()
+    if ciudad_normalizada not in CITIES_CACHE_NORMALIZED:
+        print(f"Validation failed: '{ciudad_ingresada}' not in cached cities.")
+        return jsonify({'ok': False, 'error': 'La ciudad seleccionada no es válida.'}), 400
 
-    if ciudad_normalizada not in ciudades_normalizadas:
-        return jsonify({'ok': False, 'error': 'Ciudad inválida'}), 400
+    ciudad_final = CITIES_CACHE_NORMALIZED[ciudad_normalizada]
 
-    ciudad_final = ciudades_normalizadas[ciudad_normalizada]
-
-    try:
-        with excel_lock:
-            write_city_to_input_sheet(EXCEL_PATH, ciudad_final)
-    except ValueError as exc:
-        return jsonify({'ok': False, 'error': str(exc)}), 400
-    except FileNotFoundError:
-        return jsonify({'ok': False, 'error': 'Archivo Excel de configuración no encontrado.'}), 500
-    except Exception as exc:
-        return jsonify({'ok': False, 'error': f'Detalle del error al escribir B7: {exc}'}), 500
-
+    # La escritura en el Excel se difiere hasta la generación del informe.
+    # Aquí solo validamos y devolvemos éxito.
+    print(f"City '{ciudad_final}' validated successfully. Deferring Excel write.")
     return jsonify({'ok': True, 'ciudad': ciudad_final})
 
 
-# --- El endpoint temporal /api/verificar_celda ha sido eliminado. ---
-
-
+# --- Inicialización de la Aplicación ---
 if __name__ == '__main__':
+    load_cities_into_cache()
     app.run(debug=True)
+else:
+    # This block runs when the app is started by a WSGI server like Gunicorn
+    load_cities_into_cache()
