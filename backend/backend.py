@@ -50,12 +50,33 @@ CONSUMOS_JSON_PATH = os.path.join(PROJECT_ROOT, 'consumos_electrodomesticos.json
 def read_cities_from_excel(path: str) -> List[str]:
     if not os.path.exists(path):
         raise FileNotFoundError(f'Archivo Excel no encontrado: {path}')
+ codex/replace-map-with-city-search-feature-gbr9zh
+
+    # Usamos read_only=True para evitar cargar el libro completo en memoria, pero
+    # iteramos por filas con values_only=True para no volver a parsear el archivo
+    # en cada acceso a una celda.
+
+main
     workbook = load_workbook(path, data_only=True, read_only=True)
     try:
         try:
             worksheet = workbook['Ciudades']
         except KeyError as exc:
             raise KeyError("Hoja 'Ciudades' no encontrada en el Excel.") from exc
+codex/replace-map-with-city-search-feature-gbr9zh
+
+        ciudades: List[str] = []
+        vistos = set()
+
+        for (valor,) in worksheet.iter_rows(min_row=2, max_col=1, values_only=True):
+            if valor is None:
+                break
+
+            ciudad = str(valor).strip()
+            if not ciudad:
+                break
+
+
         ciudades: List[str] = []
         vistos = set()
         fila = 2
@@ -66,11 +87,16 @@ def read_cities_from_excel(path: str) -> List[str]:
             ciudad = str(valor).strip()
             if not ciudad:
                 break
+ main
             clave = ciudad.casefold()
             if clave not in vistos:
                 vistos.add(clave)
                 ciudades.append(ciudad)
+codex/replace-map-with-city-search-feature-gbr9zh
+
+
             fila += 1
+ main
         return ciudades
     finally:
         workbook.close()
@@ -1043,6 +1069,7 @@ def get_ciudades():
         return jsonify({'error': str(exc)}), 500
     except Exception as exc:
         return jsonify({'error': f'Error interno del servidor: {exc}'}), 500
+codex/replace-map-with-city-search-feature-gbr9zh
 
     return jsonify({'ciudades': ciudades})
 
@@ -1056,6 +1083,20 @@ def seleccionar_ciudad():
     if not ciudad_ingresada:
         return jsonify({'ok': False, 'error': 'Ciudad inválida'}), 400
 
+
+
+    return jsonify({'ciudades': ciudades})
+
+
+@app.route('/api/seleccionar_ciudad', methods=['POST'])
+def seleccionar_ciudad():
+    payload = request.get_json(silent=True) or {}
+    raw_city = payload.get('ciudad', '')
+    ciudad_ingresada = '' if raw_city is None else str(raw_city).strip()
+
+    if not ciudad_ingresada:
+        return jsonify({'ok': False, 'error': 'Ciudad inválida'}), 400
+ main
     try:
         with excel_lock:
             ciudades_disponibles = read_cities_from_excel(EXCEL_PATH)
