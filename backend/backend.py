@@ -7,7 +7,14 @@ import json
 import math
 from threading import Lock
 from openpyxl import load_workbook
+from typing import Any, Dict, List
+
 from . import engine
+from calculation_engine import (
+    CalculationError,
+    InputValidationError,
+    build_report,
+)
 
 excel_lock = Lock()
 # Nota: este candado se reutiliza tanto para la escritura directa en el archivo
@@ -36,8 +43,95 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 
 DEFAULT_EXCEL_FILENAME = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx'
-EXCEL_FILE_PATH = os.path.join(SCRIPT_DIR, DEFAULT_EXCEL_FILENAME)
+EXCEL_PATH = os.path.join(SCRIPT_DIR, DEFAULT_EXCEL_FILENAME)
 CONSUMOS_JSON_PATH = os.path.join(PROJECT_ROOT, 'consumos_electrodomesticos.json')
+
+# --- City Data Caching ---
+CITIES_CACHE: List[str] = []
+CITIES_CACHE_NORMALIZED: Dict[str, str] = {}
+
+def read_cities_from_excel(path: str) -> List[str]:
+    """
+    Reads a list of cities from the 'Ciudades' sheet in the given Excel file.
+    It deduplicates and cleans the city names.
+    """
+    print(f"Reading cities from Excel file: {path}")
+    if not os.path.exists(path):
+        raise FileNotFoundError(f'Archivo Excel no encontrado: {path}')
+
+    # Using pandas for potentially faster reading of a single column
+    try:
+        df = pd.read_excel(path, sheet_name='Ciudades', usecols="A", header=0, engine='openpyxl')
+        # Drop rows where the city name is NaN or empty, convert to string, and strip whitespace
+        cities_series = df.iloc[:, 0].dropna().astype(str).str.strip()
+        # Filter out any empty strings that might remain
+        cities_series = cities_series[cities_series != '']
+
+        # Deduplicate while preserving order
+        seen = set()
+        unique_cities = [city for city in cities_series if not (city.lower() in seen or seen.add(city.lower()))]
+
+        print(f"Successfully read {len(unique_cities)} unique cities from Excel.")
+        return unique_cities
+    except Exception as e:
+        print(f"Error reading cities with pandas, falling back to openpyxl. Error: {e}")
+        # Fallback to original openpyxl implementation if pandas fails
+        workbook = load_workbook(path, data_only=True, read_only=True)
+        try:
+            worksheet = workbook['Ciudades']
+            ciudades: List[str] = []
+            vistos = set()
+            for row in worksheet.iter_rows(min_row=2, max_col=1, values_only=True):
+                valor = row[0]
+                if valor is None:
+                    continue
+                ciudad = str(valor).strip()
+                if not ciudad:
+                    continue
+                clave = ciudad.casefold()
+                if clave not in vistos:
+                    vistos.add(clave)
+                    ciudades.append(ciudad)
+            return ciudades
+        finally:
+            workbook.close()
+
+
+def load_cities_into_cache():
+    """
+    Loads city data from the Excel file into the global cache variables.
+    This function is called once at server startup.
+    """
+    global CITIES_CACHE, CITIES_CACHE_NORMALIZED
+    try:
+        print("Attempting to load cities into cache...")
+        CITIES_CACHE = read_cities_from_excel(EXCEL_PATH)
+        CITIES_CACHE_NORMALIZED = {c.casefold(): c for c in CITIES_CACHE}
+        print(f"Successfully cached {len(CITIES_CACHE)} cities.")
+    except Exception as e:
+        print(f"CRITICAL ERROR: Could not load cities into cache at startup: {e}")
+        # In a production environment, you might want to exit or handle this more gracefully.
+        # For this context, we'll let the server start but endpoints will fail.
+        CITIES_CACHE = []
+        CITIES_CACHE_NORMALIZED = {}
+
+
+def write_city_to_input_sheet(path: str, city: str) -> None:
+    if not os.path.exists(path):
+        raise FileNotFoundError(f'Archivo Excel no encontrado: {path}')
+    workbook = load_workbook(path)
+    try:
+        worksheet = None
+        for sheet_name in ("Datos de Entrada", "ingreso_de_datos"):
+            if sheet_name in workbook.sheetnames:
+                worksheet = workbook[sheet_name]
+                break
+        if worksheet is None:
+            raise ValueError("No se encontraron las hojas 'Datos de Entrada' ni 'ingreso_de_datos'.")
+        worksheet['B7'].value = city
+        workbook.save(path)
+    finally:
+        workbook.close()
 
 
 app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path='')
@@ -53,16 +147,16 @@ def update_excel_cell():
         # Manejar valores None o que no sean strings convirtiéndolos explícitamente
         city_name = '' if raw_city_name is None else str(raw_city_name)
 
-        if not os.path.exists(EXCEL_FILE_PATH):
+        if not os.path.exists(EXCEL_PATH):
             return jsonify({"success": False, "error": "Archivo Excel de configuración no encontrado."}), 404
 
         with excel_lock:
             workbook = None
             try:
-                workbook = load_workbook(EXCEL_FILE_PATH)
+                workbook = load_workbook(EXCEL_PATH)
                 worksheet = workbook['Datos de Entrada']
                 worksheet['B7'] = city_name
-                workbook.save(EXCEL_FILE_PATH)
+                workbook.save(EXCEL_PATH)
             except KeyError:
                 return jsonify({"success": False, "error": "Hoja 'Datos de Entrada' no encontrada en el Excel."}), 500
             except (OSError, IOError) as save_error:
@@ -137,30 +231,46 @@ def get_electrodomesticos_consumos():
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
 # --- Ruta para generar informe (EXISTENTE) ---
-@app.route('/api/generar_informe', methods=['POST'])
-def generar_informe():
-    print("--- NEW /api/generar_informe REQUEST ---")
+def _is_basic_payload(user_data: Dict[str, Any]) -> bool:
+    user_type = str(user_data.get("userType", "")).strip().lower()
+    return user_type == "basico"
+
+
+def _generate_report_response():
+    print(f"--- NEW {request.path} REQUEST ---")
     try:
-        user_data = request.json
+        incoming_payload = request.get_json(silent=True) or {}
+        if isinstance(incoming_payload, dict) and isinstance(incoming_payload.get('userSelections'), dict):
+            user_data = incoming_payload['userSelections']
+        else:
+            user_data = incoming_payload
+
         print(f"Received user_data: {json.dumps(user_data, indent=2)}")
 
         if not user_data:
             print("ERROR: No user_data received.")
             return jsonify({"error": "No se recibieron datos"}), 400
 
-        print("Calling calculation engine...")
-        # El motor de cálculo accede al mismo archivo Excel que la ruta de
-        # actualización, por lo que ambas operaciones comparten el mismo lock
-        # para evitar condiciones de carrera. La sección crítica se mantiene al
-        # mínimo, limitándose a la llamada del motor.
-        with excel_lock:
-            resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
-        print("Engine call successful.")
+        if _is_basic_payload(user_data):
+            print("Calling basic calculation engine...")
+            try:
+                resultados_calculo = build_report(user_data)
+            except InputValidationError as validation_error:
+                print(f"Validation error: {validation_error}")
+                return jsonify({"error": str(validation_error)}), 400
+            except CalculationError as calc_error:
+                print(f"Calculation error: {calc_error}")
+                return jsonify({"error": str(calc_error)}), 500
+            print("Basic engine call successful.")
+        else:
+            print("Calling calculation engine...")
+            with excel_lock:
+                resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_PATH)
+            print("Engine call successful.")
 
-        # Clean NaN values before returning the JSON response.
         resultados_calculo_clean = clean_nan_in_data(resultados_calculo)
 
-        if "error" in resultados_calculo_clean:
+        if isinstance(resultados_calculo_clean, dict) and "error" in resultados_calculo_clean:
             print(f"Engine returned an error: {resultados_calculo_clean['error']}")
             return jsonify(resultados_calculo_clean), 400
 
@@ -170,13 +280,26 @@ def generar_informe():
     except Exception as e:
         import traceback
         error_info = traceback.format_exc()
-        print(f"UNEXPECTED CRASH in /api/generar_informe: {e}\n{error_info}")
+        print(f"UNEXPECTED CRASH in {request.path}: {e}\n{error_info}")
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
+
+
+@app.route('/api/generar_informe', methods=['POST'])
+def generar_informe_api():
+    return _generate_report_response()
+
+
+@app.route('/generar_informe', methods=['POST'])
+def generar_informe_public():
+    return _generate_report_response()
 
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
 @app.route('/')
 def serve_index_html():
-    return send_from_directory(PROJECT_ROOT, 'index.html')
+    target_file = 'calculador.html'
+    if not os.path.exists(os.path.join(PROJECT_ROOT, target_file)):
+        target_file = 'index.html'
+    return send_from_directory(PROJECT_ROOT, target_file)
 
 @app.route('/<path:path>')
 def serve_static_files(path):
@@ -187,10 +310,10 @@ def serve_static_files(path):
 @app.route('/api/superficie_options', methods=['GET'])
 def get_superficie_options():
     try:
-        print(f"DEBUG: Solicitud a /api/superficie_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
+        print(f"DEBUG: Solicitud a /api/superficie_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_PATH}")
         # Usamos decimal=',' por si los números en la hoja 'Tablas' usan coma decimal.
         # Si esta parte específica de la hoja usa punto decimal, se puede omitir.
-        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
+        df_tablas = pd.read_excel(EXCEL_PATH, sheet_name='Tablas', engine='openpyxl')
         print("DEBUG: Hoja 'Tablas' leída para opciones de superficie.")
 
         # Column M (descripción) es índice 12, Column N (valor) es índice 13
@@ -241,7 +364,7 @@ def get_superficie_options():
         return jsonify(superficie_options_lista)
 
     except FileNotFoundError:
-        print(f"ERROR en /api/superficie_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        print(f"ERROR en /api/superficie_options: Archivo Excel no encontrado: {EXCEL_PATH}")
         return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
     except KeyError as e:
         # Esto podría ocurrir si 'Tablas' no existe, o si las columnas M/N no existen (aunque ya chequeamos índices).
@@ -262,8 +385,8 @@ def get_superficie_options():
 @app.route('/api/rugosidad_options', methods=['GET'])
 def get_rugosidad_options():
     try:
-        print(f"DEBUG: Solicitud a /api/rugosidad_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
-        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
+        print(f"DEBUG: Solicitud a /api/rugosidad_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_PATH}")
+        df_tablas = pd.read_excel(EXCEL_PATH, sheet_name='Tablas', engine='openpyxl')
         print("DEBUG: Hoja 'Tablas' leída para opciones de rugosidad.")
 
         col_desc_idx = 12  # Columna M
@@ -312,7 +435,7 @@ def get_rugosidad_options():
         return jsonify(rugosidad_options_lista)
 
     except FileNotFoundError:
-        print(f"ERROR en /api/rugosidad_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        print(f"ERROR en /api/rugosidad_options: Archivo Excel no encontrado: {EXCEL_PATH}")
         return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
     except KeyError as e:
         print(f"ERROR en /api/rugosidad_options: Hoja 'Tablas' o columnas M/N no encontradas? Error: {e}")
@@ -331,8 +454,8 @@ def get_rugosidad_options():
 @app.route('/api/rotacion_options', methods=['GET'])
 def get_rotacion_options():
     try:
-        print(f"DEBUG: Solicitud a /api/rotacion_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
-        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
+        print(f"DEBUG: Solicitud a /api/rotacion_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_PATH}")
+        df_tablas = pd.read_excel(EXCEL_PATH, sheet_name='Tablas', engine='openpyxl')
         print("DEBUG: Hoja 'Tablas' leída para opciones de rotación.")
 
         col_desc_idx = 15  # Columna P
@@ -379,7 +502,7 @@ def get_rotacion_options():
         return jsonify(rotacion_options_lista)
 
     except FileNotFoundError:
-        print(f"ERROR en /api/rotacion_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        print(f"ERROR en /api/rotacion_options: Archivo Excel no encontrado: {EXCEL_PATH}")
         return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
     except KeyError as e:
         print(f"ERROR en /api/rotacion_options: Hoja 'Tablas' o columnas P/Q no encontradas? Error: {e}")
@@ -398,9 +521,9 @@ def get_rotacion_options():
 @app.route('/api/metodo_calculo_options', methods=['GET'])
 def get_metodo_calculo_options():
     try:
-        print(f"DEBUG: Solicitud a /api/metodo_calculo_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
+        print(f"DEBUG: Solicitud a /api/metodo_calculo_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_PATH}")
         # decimal=',' might not be strictly necessary if column I is purely text, but harmless.
-        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
+        df_tablas = pd.read_excel(EXCEL_PATH, sheet_name='Tablas', engine='openpyxl')
         print("DEBUG: Hoja 'Tablas' leída para opciones de método de cálculo.")
 
         col_idx = 8  # Columna I
@@ -445,7 +568,7 @@ def get_metodo_calculo_options():
         return jsonify(metodo_options_lista)
 
     except FileNotFoundError:
-        print(f"ERROR en /api/metodo_calculo_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        print(f"ERROR en /api/metodo_calculo_options: Archivo Excel no encontrado: {EXCEL_PATH}")
         return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
     except KeyError as e:
         print(f"ERROR en /api/metodo_calculo_options: Hoja 'Tablas' o columna I no encontrada? Error: {e}")
@@ -464,8 +587,8 @@ def get_metodo_calculo_options():
 @app.route('/api/modelo_metodo_options', methods=['GET'])
 def get_modelo_metodo_options():
     try:
-        print(f"DEBUG: Solicitud a /api/modelo_metodo_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
-        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
+        print(f"DEBUG: Solicitud a /api/modelo_metodo_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_PATH}")
+        df_tablas = pd.read_excel(EXCEL_PATH, sheet_name='Tablas', engine='openpyxl')
         print("DEBUG: Hoja 'Tablas' leída para opciones de modelo del método.")
 
         col_idx = 8  # Columna I
@@ -498,7 +621,7 @@ def get_modelo_metodo_options():
         return jsonify(modelo_options_lista)
 
     except FileNotFoundError:
-        print(f"ERROR en /api/modelo_metodo_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        print(f"ERROR en /api/modelo_metodo_options: Archivo Excel no encontrado: {EXCEL_PATH}")
         return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
     except KeyError as e:
         print(f"ERROR en /api/modelo_metodo_options: Hoja 'Tablas' o columna I no encontrada? Error: {e}")
@@ -517,8 +640,8 @@ def get_modelo_metodo_options():
 @app.route('/api/marca_panel_options', methods=['GET'])
 def get_marca_panel_options():
     try:
-        print(f"DEBUG: Solicitud a /api/marca_panel_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
-        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
+        print(f"DEBUG: Solicitud a /api/marca_panel_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_PATH}")
+        df_tablas = pd.read_excel(EXCEL_PATH, sheet_name='Tablas', engine='openpyxl')
         print("DEBUG: Hoja 'Tablas' leída para opciones de marca de panel.")
 
         col_idx = 8  # Columna I
@@ -551,7 +674,7 @@ def get_marca_panel_options():
         return jsonify(options_lista)
 
     except FileNotFoundError:
-        print(f"ERROR en /api/marca_panel_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        print(f"ERROR en /api/marca_panel_options: Archivo Excel no encontrado: {EXCEL_PATH}")
         return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
     except KeyError as e:
         print(f"ERROR en /api/marca_panel_options: Hoja 'Tablas' o columna I no encontrada? Error: {e}")
@@ -569,8 +692,8 @@ def get_marca_panel_options():
 @app.route('/api/modelo_temperatura_panel_options', methods=['GET'])
 def get_modelo_temperatura_panel_options():
     try:
-        print(f"DEBUG: Solicitud a /api/modelo_temperatura_panel_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
-        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
+        print(f"DEBUG: Solicitud a /api/modelo_temperatura_panel_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_PATH}")
+        df_tablas = pd.read_excel(EXCEL_PATH, sheet_name='Tablas', engine='openpyxl')
         print("DEBUG: Hoja 'Tablas' leída para opciones de modelo temperatura panel.")
 
         col_idx = 8  # Columna I
@@ -603,7 +726,7 @@ def get_modelo_temperatura_panel_options():
         return jsonify(options_lista)
 
     except FileNotFoundError:
-        print(f"ERROR en /api/modelo_temperatura_panel_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        print(f"ERROR en /api/modelo_temperatura_panel_options: Archivo Excel no encontrado: {EXCEL_PATH}")
         return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
     except KeyError as e:
         print(f"ERROR en /api/modelo_temperatura_panel_options: Hoja 'Tablas' o columna I no encontrada? Error: {e}")
@@ -646,7 +769,7 @@ def get_modelo_temperatura_panel_valor():
                 return ""
             return strings[int(v.text)] if cell.get("t") == "s" else v.text
 
-        with zipfile.ZipFile(EXCEL_FILE_PATH) as zf:
+        with zipfile.ZipFile(EXCEL_PATH) as zf:
             strings = parse_shared_strings(zf)
             datos = read_sheet(zf, "xl/worksheets/sheet3.xml")  # Datos de Entrada
             paneles = read_sheet(zf, "xl/worksheets/sheet14.xml")  # Paneles comerciales
@@ -683,8 +806,8 @@ def get_modelo_temperatura_panel_valor():
 @app.route('/api/frecuencia_lluvias_options', methods=['GET'])
 def get_frecuencia_lluvias_options():
     try:
-        print(f"DEBUG: Solicitud a /api/frecuencia_lluvias_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_FILE_PATH}")
-        df_tablas = pd.read_excel(EXCEL_FILE_PATH, sheet_name='Tablas', engine='openpyxl')
+        print(f"DEBUG: Solicitud a /api/frecuencia_lluvias_options. Leyendo de HOJA 'Tablas' desde: {EXCEL_PATH}")
+        df_tablas = pd.read_excel(EXCEL_PATH, sheet_name='Tablas', engine='openpyxl')
         print("DEBUG: Hoja 'Tablas' leída para opciones de frecuencia de lluvias.")
 
         col_data_idx = 12  # Column M
@@ -716,7 +839,7 @@ def get_frecuencia_lluvias_options():
         return jsonify(options_lista)
 
     except FileNotFoundError:
-        print(f"ERROR en /api/frecuencia_lluvias_options: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        print(f"ERROR en /api/frecuencia_lluvias_options: Archivo Excel no encontrado: {EXCEL_PATH}")
         return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
     except KeyError as e:
         print(f"ERROR en /api/frecuencia_lluvias_options: Hoja 'Tablas' o columna M no encontrada? Error: {e}")
@@ -763,7 +886,7 @@ def buscar_ciudad():
         print(f"DEBUG: Solicitud a /api/buscar_ciudad para la dirección: '{full_address}'")
 
         df_ciudades = pd.read_excel(
-            EXCEL_FILE_PATH,
+            EXCEL_PATH,
             sheet_name='Ciudades',
             usecols="A,B",
             header=None,
@@ -804,7 +927,7 @@ def buscar_ciudad():
         return jsonify({"codigo_ciudad": None, "message": f"No se pudo encontrar una ciudad válida en la dirección proporcionada."}), 200
 
     except FileNotFoundError:
-        print(f"ERROR en /api/buscar_ciudad: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        print(f"ERROR en /api/buscar_ciudad: Archivo Excel no encontrado: {EXCEL_PATH}")
         return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 500
     except KeyError as e:
         print(f"ERROR en /api/buscar_ciudad: Hoja 'Ciudades' o columnas A/B no encontradas? Error: {e}")
@@ -825,13 +948,13 @@ def get_modelo_panel():
     Lee y devuelve el valor de la celda C83 de la hoja 'Datos de Entrada'.
     """
     try:
-        print(f"DEBUG: Solicitud a /api/get_modelo_panel. Leyendo celda C83 de 'Datos de Entrada' desde: {EXCEL_FILE_PATH}")
+        print(f"DEBUG: Solicitud a /api/get_modelo_panel. Leyendo celda C83 de 'Datos de Entrada' desde: {EXCEL_PATH}")
 
         # Usar openpyxl es más eficiente para una sola celda.
         import openpyxl
 
         # data_only=True para obtener el valor calculado si es una fórmula
-        workbook = openpyxl.load_workbook(EXCEL_FILE_PATH, data_only=True)
+        workbook = openpyxl.load_workbook(EXCEL_PATH, data_only=True)
         sheet = workbook['Datos de Entrada']
         valor_celda = sheet['C83'].value
 
@@ -840,7 +963,7 @@ def get_modelo_panel():
         return jsonify({"valor": valor_celda if valor_celda is not None else ""})
 
     except FileNotFoundError:
-        print(f"ERROR en /api/get_modelo_panel: Archivo Excel no encontrado: {EXCEL_FILE_PATH}")
+        print(f"ERROR en /api/get_modelo_panel: Archivo Excel no encontrado: {EXCEL_PATH}")
         return jsonify({"error": "Archivo Excel de configuración no encontrado."}), 404
     except KeyError:
         # Esto podría ocurrir si 'Datos de Entrada' no existe.
@@ -868,7 +991,7 @@ def get_panel_model_api():
 
     try:
         print(f"DEBUG: API call to /api/get_panel_model. Marca: {marca}, Potencia: {potencia}")
-        model_name = engine.get_panel_model_name(marca, potencia, EXCEL_FILE_PATH)
+        model_name = engine.get_panel_model_name(marca, potencia, EXCEL_PATH)
 
         if isinstance(model_name, dict) and "error" in model_name:
             return jsonify(model_name), 500
@@ -945,8 +1068,44 @@ def get_suitable_inverters_api():
         return jsonify({"error": f"Error interno del servidor al buscar inversores: {str(e)}"}), 500
 
 
-# --- El endpoint temporal /api/verificar_celda ha sido eliminado. ---
+# --- NUEVA RUTA: Para obtener la lista completa de ciudades (Usa Cache) ---
+@app.route('/api/ciudades', methods=['GET'])
+def get_ciudades():
+    """
+    Obtiene la lista de ciudades desde la cache en memoria.
+    """
+    if not CITIES_CACHE:
+        return jsonify({'error': 'La lista de ciudades no está disponible o no pudo ser cargada.'}), 503
+    return jsonify({'ciudades': CITIES_CACHE})
 
 
+@app.route('/api/seleccionar_ciudad', methods=['POST'])
+def seleccionar_ciudad():
+    payload = request.get_json(silent=True) or {}
+    raw_city = payload.get('ciudad', '')
+    ciudad_ingresada = '' if raw_city is None else str(raw_city).strip()
+
+    if not ciudad_ingresada:
+        return jsonify({'ok': False, 'error': 'La ciudad proporcionada está vacía.'}), 400
+
+    # Validar contra la cache
+    ciudad_normalizada = ciudad_ingresada.casefold()
+    if ciudad_normalizada not in CITIES_CACHE_NORMALIZED:
+        print(f"Validation failed: '{ciudad_ingresada}' not in cached cities.")
+        return jsonify({'ok': False, 'error': 'La ciudad seleccionada no es válida.'}), 400
+
+    ciudad_final = CITIES_CACHE_NORMALIZED[ciudad_normalizada]
+
+    # La escritura en el Excel se difiere hasta la generación del informe.
+    # Aquí solo validamos y devolvemos éxito.
+    print(f"City '{ciudad_final}' validated successfully. Deferring Excel write.")
+    return jsonify({'ok': True, 'ciudad': ciudad_final})
+
+
+# --- Inicialización de la Aplicación ---
 if __name__ == '__main__':
+    load_cities_into_cache()
     app.run(debug=True)
+else:
+    # This block runs when the app is started by a WSGI server like Gunicorn
+    load_cities_into_cache()

@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Informe del Controlador Solar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Dosis:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC1RvZ1p1q+G2MrBl8yRbQAJ6Digw1VE3DybZ0fjQX+0Gooy2cuglRez2oJ6XwLWsO7GHapFzKg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <style>
+    :root {
+      --color-tertiary: #5884D6;
+      --bg-light: #f3f4f6;
+      --text-dark: #374151;
+      --card-bg: #ffffff;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Dosis', sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    header {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 2rem 2.5rem;
+      box-shadow: 0 20px 40px rgba(88, 132, 214, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    header h1 {
+      font-family: 'Bebas Neue', cursive;
+      font-size: clamp(2.5rem, 4vw, 3.5rem);
+      letter-spacing: 1px;
+      margin: 0;
+      color: var(--color-tertiary);
+    }
+
+    header p {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0.02em;
+    }
+
+    .meta-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    .meta-info span {
+      font-weight: 500;
+    }
+
+    main {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    section {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 1.75rem;
+      box-shadow: 0 20px 40px rgba(88, 132, 214, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    section h2 {
+      font-family: 'Bebas Neue', cursive;
+      letter-spacing: 1px;
+      font-size: clamp(1.75rem, 3vw, 2.25rem);
+      color: var(--color-tertiary);
+      margin: 0;
+    }
+
+    .info-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      background: rgba(88, 132, 214, 0.06);
+      border: 1px solid rgba(88, 132, 214, 0.14);
+      min-height: 84px;
+    }
+
+    .info-item label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--text-dark);
+    }
+
+    .info-item span {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    .highlight {
+      padding: 1rem;
+      background: rgba(88, 132, 214, 0.1);
+      border-left: 4px solid var(--color-tertiary);
+      border-radius: 12px;
+      font-size: 1.05rem;
+      line-height: 1.5;
+    }
+
+    .actions {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: flex-end;
+    }
+
+    .actions button {
+      border: none;
+      background: var(--color-tertiary);
+      color: #fff;
+      font-family: 'Dosis', sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 0.85rem 1.75rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 10px 20px rgba(88, 132, 214, 0.25);
+    }
+
+    .actions button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 30px rgba(88, 132, 214, 0.35);
+    }
+
+    .actions button:active {
+      transform: translateY(0);
+      box-shadow: 0 8px 14px rgba(88, 132, 214, 0.25);
+    }
+
+    .loader {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 20px 40px rgba(88, 132, 214, 0.12);
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .loader.active {
+      display: flex;
+    }
+
+    .loader .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--color-tertiary);
+      animation: pulse 0.9s infinite ease-in-out alternate;
+    }
+
+    .loader .dot:nth-child(2) {
+      animation-delay: 0.15s;
+    }
+
+    .loader .dot:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    @keyframes pulse {
+      from { transform: scale(0.8); opacity: 0.6; }
+      to { transform: scale(1.2); opacity: 1; }
+    }
+
+    .error-box {
+      display: none;
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+    }
+
+    .error-box.active {
+      display: block;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 1rem;
+      }
+
+      header, section {
+        padding: 1.5rem;
+      }
+
+      .info-item span {
+        font-size: 1.1rem;
+      }
+
+      .actions {
+        justify-content: center;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff !important;
+        color: #000 !important;
+        padding: 0;
+      }
+
+      #app {
+        max-width: none;
+      }
+
+      header, section {
+        box-shadow: none !important;
+        border-radius: 0;
+        padding: 1.5rem 1.75rem;
+        page-break-inside: avoid;
+      }
+
+      header {
+        border-bottom: 2px solid #000;
+      }
+
+      section + section {
+        margin-top: 1rem;
+      }
+
+      .actions {
+        display: none !important;
+      }
+
+      .loader, .error-box {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="loader" class="loader" role="status" aria-live="polite">
+      <span>Cargando informe</span>
+      <span class="dot" aria-hidden="true"></span>
+      <span class="dot" aria-hidden="true"></span>
+      <span class="dot" aria-hidden="true"></span>
+    </div>
+    <div id="error-box" class="error-box" role="alert">
+      No fue posible obtener la información más reciente. Se muestra la última versión disponible.
+    </div>
+    <div id="solar-report">
+      <header>
+        <h1>Informe del Controlador Solar</h1>
+        <p id="report-date" aria-live="polite"></p>
+        <div class="meta-info">
+          <div><span>Instalación fotovoltaica</span></div>
+        </div>
+      </header>
+      <main>
+        <section aria-labelledby="energia-title">
+          <h2 id="energia-title">Energía</h2>
+          <div class="info-grid">
+            <div class="info-item">
+              <label for="consumo-anual">Consumo anual de energía eléctrica (kWh)</label>
+              <span id="consumo-anual">-</span>
+            </div>
+            <div class="info-item">
+              <label for="generacion-anual">Generación anual de energía eléctrica (kWh)</label>
+              <span id="generacion-anual">-</span>
+            </div>
+            <div class="info-item">
+              <label for="autoconsumo">Energía para autoconsumo (kWh)</label>
+              <span id="autoconsumo">-</span>
+            </div>
+            <div class="info-item">
+              <label for="inyectada-red">Energía inyectada a la red (kWh)</label>
+              <span id="inyectada-red">-</span>
+            </div>
+            <div class="info-item">
+              <label for="porcentaje-cobertura">% de cobertura con la instalación FV</label>
+              <span id="porcentaje-cobertura">-</span>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="equipos-title">
+          <h2 id="equipos-title">Equipos</h2>
+          <div class="info-grid">
+            <div class="info-item">
+              <label for="marca">Marca seleccionada</label>
+              <span id="marca">-</span>
+            </div>
+            <div class="info-item">
+              <label for="potencia-paneles">Potencia de paneles sugerida (W)</label>
+              <span id="potencia-paneles">-</span>
+            </div>
+            <div class="info-item">
+              <label for="modelo-panel">Modelo de panel</label>
+              <span id="modelo-panel">-</span>
+            </div>
+            <div class="info-item">
+              <label for="cantidad-paneles">Cantidad de paneles</label>
+              <span id="cantidad-paneles">-</span>
+            </div>
+            <div class="info-item">
+              <label for="superficie">Superficie necesaria (m²)</label>
+              <span id="superficie">-</span>
+            </div>
+            <div class="info-item">
+              <label for="inversor-sugerido">Inversor/es sugerido/s</label>
+              <span id="inversor-sugerido">-</span>
+            </div>
+            <div class="info-item">
+              <label for="potencia-inversor">Potencia del/los inversor/es (kW)</label>
+              <span id="potencia-inversor">-</span>
+            </div>
+            <div class="info-item">
+              <label for="modelo-inversor">Modelo de inversor</label>
+              <span id="modelo-inversor">-</span>
+            </div>
+            <div class="info-item">
+              <label for="cantidad-inversores">Cantidad de inversores</label>
+              <span id="cantidad-inversores">-</span>
+            </div>
+            <div class="info-item">
+              <label for="vida-util">Vida útil del proyecto (años)</label>
+              <span id="vida-util">-</span>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="economia-title">
+          <h2 id="economia-title">Economía</h2>
+          <div class="info-grid">
+            <div class="info-item">
+              <label for="tarifa-consumo">Tarifa consumo (moneda/kWh)</label>
+              <span id="tarifa-consumo">-</span>
+            </div>
+            <div class="info-item">
+              <label for="tarifa-inyeccion">Tarifa inyección (moneda/kWh)</label>
+              <span id="tarifa-inyeccion">-</span>
+            </div>
+            <div class="info-item">
+              <label for="costo-actual">Costo actual anual de energía con FV (moneda/año)</label>
+              <span id="costo-actual">-</span>
+            </div>
+            <div class="info-item">
+              <label for="costo-futuro">Costo futuro anual de energía con FV (moneda/año)</label>
+              <span id="costo-futuro">-</span>
+            </div>
+            <div class="info-item">
+              <label for="mantenimiento">Costo de mantenimiento anual (moneda)</label>
+              <span id="mantenimiento">-</span>
+            </div>
+            <div class="info-item">
+              <label for="ingreso-red">Ingreso por energía inyectada (moneda/año)</label>
+              <span id="ingreso-red">-</span>
+            </div>
+            <div class="info-item">
+              <label for="saldo-neto">Saldo neto anual a favor (moneda/año)</label>
+              <span id="saldo-neto">-</span>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="otros-title">
+          <h2 id="otros-title">Otros</h2>
+          <div class="info-grid">
+            <div class="info-item">
+              <label for="emisiones">Emisiones evitadas (tCO₂e)</label>
+              <span id="emisiones">-</span>
+            </div>
+            <div class="info-item">
+              <label for="moneda">Moneda</label>
+              <span id="moneda">-</span>
+            </div>
+          </div>
+          <div class="highlight" id="resumen-economico">-</div>
+        </section>
+      </main>
+      <div class="actions">
+        <button type="button" id="btn-pdf">Descargar PDF</button>
+        <button type="button" id="btn-print">Imprimir</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function fmt(n) {
+      if (n === null || n === undefined || n === "") return "-";
+      const numeric = Number(n);
+      if (Number.isNaN(numeric)) return n;
+      const i = Math.round(numeric);
+      return i.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    function currencyPrefix(moneda) {
+      if (!moneda) return "";
+      const normalized = moneda.toLowerCase();
+      if (normalized.includes("dólar")) return "USD ";
+      if (normalized.includes("peso")) return "ARS ";
+      return moneda.trim() + " ";
+    }
+
+    function populateReport(data) {
+      const currency = data.moneda || "";
+      const currencyLabel = currencyPrefix(currency);
+      const mappings = {
+        "consumo-anual": { value: data.consumo_anual, formatter: fmt },
+        "generacion-anual": { value: data.generacion_anual, formatter: fmt },
+        "autoconsumo": { value: data.autoconsumo, formatter: fmt },
+        "inyectada-red": { value: data.inyectada_red, formatter: fmt },
+        "porcentaje-cobertura": { value: data.porcentaje_cobertura, formatter: (v) => {
+          const val = fmt(v);
+          return val === "-" ? "-" : `${val} %`;
+        } },
+        "marca": { value: data.marca },
+        "potencia-paneles": { value: data.potencia_paneles_sugerida, formatter: fmt },
+        "modelo-panel": { value: data.modelo_panel },
+        "cantidad-paneles": { value: data.cantidad_paneles, formatter: fmt },
+        "superficie": { value: data.superficie_necesaria, formatter: fmt },
+        "inversor-sugerido": { value: data.inversor_sugerido },
+        "potencia-inversor": { value: data.potencia_inversor, formatter: fmt },
+        "modelo-inversor": { value: data.modelo_inversor },
+        "cantidad-inversores": { value: data.cantidad_inversores, formatter: fmt },
+        "vida-util": { value: data.vida_util, formatter: fmt },
+        "tarifa-consumo": { value: data.tarifa_consumo, formatter: (v) => {
+          const val = fmt(v);
+          return val === "-" ? "-" : `${currencyLabel}${val}`;
+        } },
+        "tarifa-inyeccion": { value: data.tarifa_inyeccion, formatter: (v) => {
+          const val = fmt(v);
+          return val === "-" ? "-" : `${currencyLabel}${val}`;
+        } },
+        "costo-actual": { value: data.costo_actual_anual, formatter: (v) => {
+          const val = fmt(v);
+          return val === "-" ? "-" : `${currencyLabel}${val}`;
+        } },
+        "costo-futuro": { value: data.costo_futuro_anual, formatter: (v) => {
+          const val = fmt(v);
+          return val === "-" ? "-" : `${currencyLabel}${val}`;
+        } },
+        "mantenimiento": { value: data.costo_mantenimiento_anual, formatter: (v) => {
+          const val = fmt(v);
+          return val === "-" ? "-" : `${currencyLabel}${val}`;
+        } },
+        "ingreso-red": { value: data.ingreso_red, formatter: (v) => {
+          const val = fmt(v);
+          return val === "-" ? "-" : `${currencyLabel}${val}`;
+        } },
+        "saldo-neto": { value: data.saldo_neto_anual, formatter: (v) => {
+          const val = fmt(v);
+          return val === "-" ? "-" : `${currencyLabel}${val}`;
+        } },
+        "emisiones": { value: data.emisiones, formatter: fmt },
+        "moneda": { value: currency },
+        "resumen-economico": { value: data.resumen_economico }
+      };
+
+      Object.entries(mappings).forEach(([id, config]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const formatter = config.formatter || ((v) => (v === null || v === undefined || v === "" ? "-" : v));
+        const result = formatter(config.value);
+        el.textContent = result === undefined || result === null || result === "" ? "-" : result;
+      });
+    }
+
+    async function fetchReport() {
+      const loader = document.getElementById('loader');
+      const errorBox = document.getElementById('error-box');
+      loader.classList.add('active');
+      errorBox.classList.remove('active');
+
+      const storedInforme = (() => {
+        try {
+          const raw = localStorage.getItem('informeSolar');
+          return raw ? JSON.parse(raw) : null;
+        } catch (error) {
+          console.error('No se pudo leer informeSolar de localStorage', error);
+          return null;
+        }
+      })();
+
+      const userSelections = (() => {
+        try {
+          const raw = localStorage.getItem('userSelections');
+          return raw ? JSON.parse(raw) : null;
+        } catch (error) {
+          console.warn('No se pudo leer userSelections de localStorage', error);
+          return null;
+        }
+      })();
+
+codex/generate-generar_informe.html-with-solar-report-ccoub5
+      const payload = userSelections && typeof userSelections === 'object' ? userSelections : {};
+
+      try {
+        const response = await fetch('/api/generar_informe', {
+
+      const payload = userSelections ? { userSelections } : {};
+
+      try {
+        const response = await fetch('/generar_informe', {
+ main
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}`);
+        }
+
+        const data = await response.json();
+        populateReport(data);
+        if (data) {
+          try {
+            localStorage.setItem('informeSolar', JSON.stringify(data));
+          } catch (error) {
+            console.warn('No se pudo guardar informeSolar en localStorage', error);
+          }
+        }
+      } catch (error) {
+        console.error('Fallo al obtener el informe', error);
+        if (storedInforme) {
+          errorBox.textContent = 'No fue posible obtener la información más reciente. Se muestra la última versión disponible almacenada.';
+          errorBox.classList.add('active');
+          populateReport(storedInforme);
+        } else {
+          errorBox.textContent = 'No fue posible obtener la información del informe. Revise su conexión e intente nuevamente.';
+          errorBox.classList.add('active');
+        }
+      } finally {
+        loader.classList.remove('active');
+      }
+    }
+
+    function setReportDate() {
+      const dateElement = document.getElementById('report-date');
+      const formatter = new Intl.DateTimeFormat('es-AR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      dateElement.textContent = `Generado el ${formatter.format(new Date())}`;
+    }
+
+    function setupActions() {
+      const pdfButton = document.getElementById('btn-pdf');
+      const printButton = document.getElementById('btn-print');
+      const report = document.getElementById('solar-report');
+
+      pdfButton.addEventListener('click', () => {
+        const opt = {
+          margin: 10,
+          filename: 'Informe-Controlador-Solar.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(report).save();
+      });
+
+      printButton.addEventListener('click', () => {
+        window.print();
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setReportDate();
+      setupActions();
+      fetchReport();
+    });
+  </script>
+</body>
+</html>

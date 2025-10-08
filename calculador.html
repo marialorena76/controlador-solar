@@ -681,7 +681,7 @@
                     Seleccioná tu ciudad
                 </h2>
                 <p class="help-text">Elegí la localidad donde instalarás los paneles para continuar con el asistente.</p>
-                <div class="city-selection-card" role="region" aria-labelledby="buscar-ciudad-label">
+            <div class="city-selection-card" role="region" aria-labelledby="buscar-ciudad-label" id="city-selection-section">
                     <div class="city-search-wrapper">
                         <label id="buscar-ciudad-label" for="buscar-ciudad">Buscá tu ciudad:</label>
                         <input id="buscar-ciudad" type="text" class="city-search-input" placeholder="Escribí el nombre de tu ciudad..." autocomplete="off" aria-autocomplete="list" aria-controls="lista-ciudades">
@@ -692,8 +692,8 @@
                     <div id="ciudad-seleccionada" class="selected-city-display" aria-live="polite"></div>
                     <button id="confirmar-ciudad" class="confirm-city-button" type="button" disabled>Confirmar ciudad</button>
                 </div>
-            </div>
-            <div class="form-sections-container">
+
+            <!-- Initial wizard sections moved inside map-area for simpler flow control -->
                 <div class="form-section" id="user-type-section" style="display:none;">
                     <h2>¿Cuál es tu nivel de conocimiento?</h2>
                     <p class="help-text" style="text-align: left;">Seleccioná Básico o Avanzado según tu nivel de conocimiento y experiencia en energía solar.</p>
@@ -723,6 +723,9 @@
                     <button class="selection-button" id="income-low-button">BAJO</button>
                 </div>
             </div>
+        <div class="form-sections-container" style="display: none;">
+            <!-- This container is now empty and hidden to simplify the initial wizard flow -->
+        </div>
         </div>
     </div>
 
