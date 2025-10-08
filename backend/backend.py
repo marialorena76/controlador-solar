@@ -8,6 +8,9 @@ import math
 from threading import Lock
 from openpyxl import load_workbook
 from typing import Any, Dict, List
+from flask import request
+from openpyxl import load_workbook
+
 
 from . import engine
 from calculation_engine import (
@@ -1101,6 +1104,34 @@ def seleccionar_ciudad():
     print(f"City '{ciudad_final}' validated successfully. Deferring Excel write.")
     return jsonify({'ok': True, 'ciudad': ciudad_final})
 
+# --- Guardar ciudad en Datos de Entrada!B7 ---
+def _get_ws_for_input(wb):
+    if "Datos de Entrada" in wb.sheetnames:
+        return wb["Datos de Entrada"]
+    if "ingreso_de_datos" in wb.sheetnames:
+        return wb["ingreso_de_datos"]
+    raise ValueError("No existe hoja 'Datos de Entrada' ni 'ingreso_de_datos'.")
+
+def write_city_to_b7(path: str, city: str):
+    wb = load_workbook(path)
+    ws = _get_ws_for_input(wb)
+    ws["B7"].value = city
+    # espejo opcional para compatibilidad
+    if "ingreso_de_datos" in wb.sheetnames:
+        wb["ingreso_de_datos"]["B7"].value = city
+    wb.save(path)
+
+@app.post("/api/seleccionar_ubicacion")
+def seleccionar_ubicacion():
+    payload = request.get_json(force=True, silent=True) or {}
+    city = (payload.get("city") or "").strip()
+    if not city:
+        return jsonify({"ok": False, "error": "city requerido"}), 400
+    try:
+        write_city_to_b7(EXCEL_PATH, city)
+        return jsonify({"ok": True, "city": city})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 # --- Inicialización de la Aplicación ---
 if __name__ == '__main__':
