@@ -66,9 +66,23 @@ test('setupNavigationButtons attaches listeners', () => {
   context.potenciaPanelDeseadaInput = createElement('potencia-panel-deseada-input');
 
   vm.createContext(context);
+
+  // Mock the global variables that cacheDOMElements would create
+  context.confirmar_ubicacion_mapa = createElement('confirmar-ubicacion-mapa');
+  context.basic_user_button = basicBtn;
+  context.expert_user_button = createElement('expert-user-button');
+  context.residential_button = residentialBtn;
+  context.commercial_button = createElement('commercial-button');
+  context.pyme_button = createElement('pyme-button');
+  context.income_high_button = createElement('income-high-button');
+  context.income_low_button = createElement('income-low-button');
+  context.income_medium_button = createElement('income-medium-button');
+  context.finalizar_calculo = createElement('finalizar-calculo');
+
   vm.runInContext(fnCode, context);
   context.setupNavigationButtons();
 
   expect(basicBtn.addEventListener).toHaveBeenCalledWith('click', expect.any(Function));
   expect(residentialBtn.addEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+  expect(context.confirmar_ubicacion_mapa.addEventListener).toHaveBeenCalledWith('click', expect.any(Function));
 });
