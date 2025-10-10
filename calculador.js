@@ -1,5 +1,7 @@
 // ---- PRODUCCIÓN: base de API relativa al dominio ----
 const API_BASE = window.location.origin + "/api";
+ feature/map-location-selector
+console.log('🤖 calculador.js cargado - v3');
 
 co
 let geocoderService = null;
@@ -9,11 +11,17 @@ let selectedAddress = null;
 let availableCities = [];
 let filteredCities = [];
 
+ main
 
 // Objeto para almacenar todas las selecciones del usuario
 let userSelections = {
     userType: null,
-    selectedCity: null,
+    location: {
+        city: null,
+        address: null,
+        lat: null,
+        lng: null,
+    },
     ciudad: { codigo: null, nombre: null },
     installationType: null,
     incomeLevel: null,
@@ -63,224 +71,182 @@ let userSelections = {
     }
 };
 
-let electrodomesticosCategorias = {};
-
-const sectionInfoMap = {
-    'user-type-section': { generalCategory: 'Configuración Inicial', specificName: 'Nivel de Conocimiento', sidebarId: null },
-    'supply-section': { generalCategory: 'Configuración Inicial', specificName: 'Tipo de Instalación', sidebarId: null },
-    'income-section': { generalCategory: 'Configuración Inicial', specificName: 'Nivel de Ingreso', sidebarId: null },
-    'data-meteorologicos-section': { generalCategory: 'Datos', specificName: 'Zona de Instalación', sidebarId: 'sidebar-datos' },
-    'superficie-section': { generalCategory: 'Datos', specificName: 'Superficie Circundante', sidebarId: 'sidebar-datos' },
-    'rugosidad-section': { generalCategory: 'Datos', specificName: 'Rugosidad Superficie', sidebarId: 'sidebar-datos' },
-    'rotacion-section': { generalCategory: 'Datos', specificName: 'Rotación Instalación', sidebarId: 'sidebar-datos' },
-    'altura-instalacion-section': { generalCategory: 'Datos', specificName: 'Altura Instalación', sidebarId: 'sidebar-datos' },
-    'metodo-calculo-section': { generalCategory: 'Datos', specificName: 'Método Cálculo Radiación', sidebarId: 'sidebar-datos' },
-    'modelo-metodo-section': { generalCategory: 'Datos', specificName: 'Modelo Método Radiación', sidebarId: 'sidebar-datos' },
-    'energia-section': { generalCategory: 'Energía', specificName: 'Consumo de Energía', sidebarId: 'sidebar-energia' },
-    'energia-modo-seleccion': { generalCategory: 'Energía', specificName: 'Selección Método Consumo', sidebarId: 'sidebar-energia'},
-    'consumo-factura-section': { generalCategory: 'Energía', specificName: 'Consumo por Factura', sidebarId: 'sidebar-energia' },
-    'paneles-section': { generalCategory: 'Paneles', specificName: 'Paneles Solares', sidebarId: 'sidebar-paneles' },
-    'panel-marca-subform': { generalCategory: 'Paneles', specificName: 'Marca Panel', sidebarId: 'sidebar-paneles' },
-    'panel-potencia-subform': { generalCategory: 'Paneles', specificName: 'Potencia Panel', sidebarId: 'sidebar-paneles' },
-    'panel-modelo-subform': { generalCategory: 'Paneles', specificName: 'Modelo Panel', sidebarId: 'sidebar-paneles' },
-    'panel-modelo-temperatura-subform': { generalCategory: 'Paneles', specificName: 'Modelo Temperatura Panel', sidebarId: 'sidebar-paneles' },
-    'inversor-section': { generalCategory: 'Inversor', specificName: 'Selección de Inversor', sidebarId: 'sidebar-inversor' },
-    'perdidas-section': { generalCategory: 'Pérdidas', specificName: 'Registro de Pérdidas', sidebarId: 'sidebar-perdidas' },
-    'frecuencia-lluvias-subform-content': { generalCategory: 'Pérdidas', specificName: 'Frecuencia Lluvias', sidebarId: 'sidebar-perdidas' },
-    'foco-polvo-subform-content': { generalCategory: 'Pérdidas', specificName: 'Foco de Polvo', sidebarId: 'sidebar-perdidas' },
-    'analisis-economico-section': { generalCategory: 'Análisis Económico', specificName: 'Análisis Económico', sidebarId: 'sidebar-analisis-economico' }
-};
-
-// --- DOM Element Cache ---
-const dom = {};
+let map, geocoder, marker;
+let selectedLocationData = {};
 
 function cacheDOMElements() {
-    const elementIds = [
-        'map-screen', 'data-form-screen', 'data-meteorologicos-section',
-        'energia-section', 'paneles-section', 'inversor-section', 'perdidas-section',
-        'analisis-economico-section', 'step-indicator-text', 'totalConsumoMensual',
-        'totalConsumoAnual', 'user-type-section', 'supply-section', 'income-section',
-        'superficie-section', 'rugosidad-section', 'rotacion-section',
-        'altura-instalacion-section', 'metodo-calculo-section', 'modelo-metodo-section',
-        'frecuencia-lluvias-subform-content', 'foco-polvo-subform-content',
-        'panel-marca-subform', 'marca-panel-options-container', 'panel-potencia-subform',
-        'potencia-panel-deseada-input', 'panel-modelo-subform', 'modelo-panel-options-container',
-        'panel-modelo-temperatura-subform', 'modelo-temperatura-select', 'buscar-ciudad',
-        'lista-ciudades', 'confirmar-ciudad', 'ciudades-loading', 'ciudad-error', 'ciudad-seleccionada',
-        'consumo-factura-section', 'basic-user-button', 'expert-user-button', 'residential-button',
-        'commercial-button', 'pyme-button', 'income-high-button', 'income-low-button', 'income-medium-button',
-        'moneda', 'tipo-panel', 'cantidad-paneles-input', 'tipo-inversor', 'potencia-inversor-input',
-        'eficiencia-panel-input', 'eficiencia-inversor-input', 'factor-perdidas-input',
-        'altura-instalacion-input', 'back-to-map-from-zona', 'next-to-energia',
-        'back-to-data-meteorologicos-from-superficie', 'next-to-energia-from-superficie',
-        'back-to-superficie-from-rugosidad', 'next-to-rotacion-from-rugosidad',
-        'back-to-rugosidad-from-rotacion', 'next-to-paneles-from-rotacion',
-        'back-to-rotacion-from-altura', 'next-to-metodo-calculo-from-altura',
-        'back-to-altura-from-metodo', 'next-to-paneles-from-modelo',
-        'next-to-inversor-from-panels', 'back-to-data-meteorologicos',
-        'next-to-paneles', 'back-to-energia', 'next-to-perdidas', 'back-to-paneles',
-        'back-to-inversor-from-perdidas', 'next-to-frecuencia-lluvias-from-modelo-temperatura',
-        'back-to-modelo-temperatura-from-frecuencia-lluvias',
-        'next-to-foco-polvo-from-frecuencia', 'back-to-frecuencia-lluvias-from-foco-polvo',
-        'next-to-analisis-from-foco-polvo', 'back-from-panel-marca', 'finalizar-calculo'
+    // Cache all relevant DOM elements for faster access
+    const ids = [
+        'map-screen', 'data-form-screen', 'map-container-section', 'map', 'geocoder-container',
+        'address-display', 'lat-display', 'lng-display', 'map-error', 'map-loading', 'confirmar-ubicacion-mapa',
+        'user-type-section', 'supply-section', 'income-section', 'data-meteorologicos-section', 'energia-section', 'paneles-section',
+        'inversor-section', 'perdidas-section', 'analisis-economico-section', 'finalizar-calculo'
     ];
-    elementIds.forEach(id => dom[id] = document.getElementById(id));
-    dom.backToPerdidasFromAnalisisBtn = document.querySelector('#analisis-economico-section .back-button');
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            window[id.replace(/-/g, '_')] = el;
+        } else {
+            console.warn(`Element with ID '${id}' not found.`);
+        }
+    });
 }
 
-
-function normalizeCityName(value) {
-    if (typeof value !== 'string') return '';
-    return value.trim().toLowerCase();
+function showMapScreenFormSection(sectionIdToShow) {
+    ['map-container-section', 'user-type-section', 'supply-section', 'income-section'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    const sectionToShow = document.getElementById(sectionIdToShow);
+    if (sectionToShow) {
+        sectionToShow.style.display = 'block';
+    }
 }
 
-async function initCitySearch() {
-    console.log("initCitySearch: Starting");
-    if (!dom['buscar-ciudad'] || !dom['lista-ciudades'] || !dom['confirmar-ciudad'] || !dom['ciudades-loading'] || !dom['ciudad-error'] || !dom['ciudad-seleccionada']) {
-        console.error('City search elements not found.');
-        return;
+function showScreen(screenId) {
+    ['map-screen', 'data-form-screen'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    const targetScreen = document.getElementById(screenId);
+    if (targetScreen) {
+        targetScreen.style.display = screenId === 'map-screen' ? 'flex' : 'block';
+    }
+}
+
+function normalizeCityName(properties) {
+    if (!properties || !properties.address) return null;
+    const addr = properties.address;
+    return addr.city || addr.town || addr.village || addr.county || addr.state || 'Ubicación sin nombre';
+}
+
+function updateLocationInfo(latlng, addressName, properties) {
+    selectedLocationData = {
+        city: normalizeCityName(properties),
+        address: addressName,
+        lat: latlng.lat,
+        lng: latlng.lng,
+    };
+
+    address_display.textContent = selectedLocationData.address;
+    lat_display.textContent = selectedLocationData.lat.toFixed(4);
+    lng_display.textContent = selectedLocationData.lng.toFixed(4);
+
+    if (marker) {
+        marker.setLatLng(latlng);
+    } else {
+        marker = L.marker(latlng, { draggable: true }).addTo(map);
+        marker.on('dragend', function(event) {
+            const newLatLng = event.target.getLatLng();
+            map_loading.style.display = 'block';
+            geocoder.options.geocoder.reverse(newLatLng, map.options.crs.scale(map.getZoom()), (results) => {
+                map_loading.style.display = 'none';
+                if (results && results.length > 0) {
+                    updateLocationInfo(newLatLng, results[0].name, results[0].properties);
+                }
+            });
+        });
     }
 
-    const showLoading = (isLoading) => dom['ciudades-loading'].style.display = isLoading ? 'block' : 'none';
-    const showError = (message) => {
-        dom['ciudad-error'].textContent = message || '';
-        dom['ciudad-error'].style.display = message ? 'block' : 'none';
-    };
-    const updateSelectionDisplay = (city, confirmed = false) => {
-        if (!city) {
-            dom['ciudad-seleccionada'].textContent = '';
-            dom['ciudad-seleccionada'].style.display = 'none';
-            return;
-        }
-        dom['ciudad-seleccionada'].textContent = confirmed ? `Ciudad confirmada: ${city}` : `Ciudad seleccionada: ${city}`;
-        dom['ciudad-seleccionada'].style.display = 'block';
-    };
+    map.setView(latlng, 15);
+    confirmar_ubicacion_mapa.disabled = !selectedLocationData.city;
+    map_error.style.display = 'none';
+}
 
-    const applyCitySelection = (city) => {
-        selectedCity = city;
-        dom['buscar-ciudad'].value = city || '';
-        updateSelectionDisplay(city);
-        dom['confirmar-ciudad'].disabled = !city;
-        Array.from(dom['lista-ciudades'].children).forEach(item => {
-            if (item instanceof HTMLElement) {
-                item.classList.toggle('active', !!city && normalizeCityName(item.dataset.city || '') === normalizeCityName(city));
+async function initMap() {
+    try {
+        map = L.map('map').setView([-34.6037, -58.3816], 10); // Center on Buenos Aires
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        geocoder = L.Control.geocoder({
+            defaultMarkGeocode: false,
+            geocoder: L.Control.Geocoder.nominatim(),
+            placeholder: 'Buscar domicilio o ciudad...',
+            collapsed: false,
+        }).addTo(map);
+
+        geocoder.on('markgeocode', function(e) {
+            try {
+                console.log('markgeocode event triggered:', e);
+                const { center, name, properties } = e.geocode;
+                updateLocationInfo(center, name, properties);
+            } catch (error) {
+                console.error('Error in markgeocode handler:', error);
+                map_error.textContent = 'Error al procesar la dirección.';
+                map_error.style.display = 'block';
             }
         });
-    };
 
-    const renderCitySuggestions = (cities) => {
-        filteredCities = [...cities];
-        dom['lista-ciudades'].innerHTML = '';
-        if (!cities.length) {
-            const emptyItem = document.createElement('li');
-            emptyItem.textContent = 'No se encontraron coincidencias.';
-            emptyItem.classList.add('empty');
-            dom['lista-ciudades'].appendChild(emptyItem);
-            return;
-        }
-        cities.forEach(city => {
-            const item = document.createElement('li');
-            item.textContent = city;
-            item.dataset.city = city;
-            item.setAttribute('role', 'option');
-            if (selectedCity && normalizeCityName(selectedCity) === normalizeCityName(city)) {
-                item.classList.add('active');
+        map.on('click', function(e) {
+            try {
+                console.log('Map clicked:', e.latlng);
+                map_loading.style.display = 'block';
+                geocoder.options.geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom()), (results) => {
+                    map_loading.style.display = 'none';
+                    if (results && results.length > 0) {
+                        console.log('Reverse geocoding results:', results);
+                        updateLocationInfo(e.latlng, results[0].name, results[0].properties);
+                    } else {
+                        console.warn('No results from reverse geocoding.');
+                        map_error.textContent = 'No se pudo encontrar una dirección para esta ubicación.';
+                        map_error.style.display = 'block';
+                    }
+                });
+            } catch (error) {
+                console.error('Error in map click handler:', error);
+                map_loading.style.display = 'none';
+                map_error.textContent = 'Error al obtener la dirección.';
+                map_error.style.display = 'block';
             }
-            item.addEventListener('click', () => applyCitySelection(city));
-            dom['lista-ciudades'].appendChild(item);
         });
-    };
 
-    const fetchCities = async () => {
-        showLoading(true);
-        showError('');
-        dom['confirmar-ciudad'].disabled = true;
-        try {
-            console.log("Fetching cities from /api/ciudades");
-            const response = await fetch(`${API_BASE}/ciudades`);
-            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-            const data = await response.json();
-            console.log("Cities received:", data);
-            availableCities = (data.ciudades || [])
-                .filter(city => typeof city === 'string' && city.trim())
-                .filter((city, index, array) => index === array.findIndex(c => normalizeCityName(c) === normalizeCityName(city)))
-                .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
-            renderCitySuggestions(availableCities);
-        } catch (error) {
-            console.error('Error fetching cities:', error);
-            availableCities = [];
-            renderCitySuggestions([]);
-            showError('No se pudo obtener la lista de ciudades.');
-        } finally {
-            showLoading(false);
-        }
-    };
+    } catch (error) {
+        console.error("Error initializing map:", error);
+        map_error.textContent = "No se pudo cargar el mapa.";
+        map_error.style.display = 'block';
+    }
+}
 
-    dom['buscar-ciudad'].addEventListener('input', () => {
-        const query = dom['buscar-ciudad'].value;
-        const normalizedQuery = normalizeCityName(query);
-        if (selectedCity && normalizeCityName(selectedCity) !== normalizedQuery) {
-            selectedCity = null;
-            updateSelectionDisplay(null);
-            dom['confirmar-ciudad'].disabled = true;
-        }
-        const matches = normalizedQuery ? availableCities.filter(city => normalizeCityName(city).includes(normalizedQuery)) : availableCities;
-        renderCitySuggestions(matches);
-    });
+function setupNavigationButtons() {
+    confirmar_ubicacion_mapa.addEventListener('click', async () => {
+        if (!selectedLocationData.city) return;
 
-    dom['buscar-ciudad'].addEventListener('keydown', (event) => {
-        if (event.key !== 'Enter') return;
-        event.preventDefault();
-        const normalizedValue = normalizeCityName(dom['buscar-ciudad'].value);
-        if (!normalizedValue) return;
-        const exactMatch = availableCities.find(city => normalizeCityName(city) === normalizedValue);
-        const cityToApply = exactMatch || (filteredCities.length === 1 ? filteredCities[0] : null);
-        if (cityToApply) {
-            applyCitySelection(cityToApply);
-            dom['confirmar-ciudad'].focus();
-        }
-    });
-
-    dom['confirmar-ciudad'].addEventListener('click', async () => {
-        if (!selectedCity) {
-            return;
-        }
-
-        const previousLabel = dom['confirmar-ciudad'].textContent;
-        dom['confirmar-ciudad'].textContent = 'Confirmando...';
-        dom['confirmar-ciudad'].disabled = true;
-        showError('');
+        confirmar_ubicacion_mapa.textContent = 'Confirmando...';
+        confirmar_ubicacion_mapa.disabled = true;
+        map_error.style.display = 'none';
 
         try {
-            const response = await fetch(`${API_BASE}/seleccionar_ciudad`, {
+            const response = await fetch(`${API_BASE}/seleccionar_ubicacion`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ciudad: selectedCity })
+                body: JSON.stringify(selectedLocationData)
             });
 
             const data = await response.json();
-
             if (!response.ok || !data.ok) {
-                throw new Error(data.error || `Error del servidor: ${response.status}`);
+                throw new Error(data.error || 'Error del servidor.');
             }
 
-            // Success path
-            userSelections.selectedCity = data.ciudad;
-            userSelections.ciudad = { codigo: null, nombre: data.ciudad };
-            updateSelectionDisplay(data.ciudad, true);
-            showMapScreenFormSection('user-type-section');
-            updateStepIndicator('user-type-section');
+            userSelections.location = { ...selectedLocationData };
+            userSelections.selectedCity = data.city; // Maintain compatibility
+            userSelections.ciudad.nombre = data.city; // Maintain compatibility
 
-            // The button remains disabled on success as we move to the next screen
+            showMapScreenFormSection('user-type-section');
 
         } catch (error) {
-            console.error('Error during city confirmation:', error);
-            showError(error.message || 'Ocurrió un error desconocido.');
-            // Restore button state only on error
-            dom['confirmar-ciudad'].textContent = previousLabel;
-            dom['confirmar-ciudad'].disabled = false;
+            console.error('Error confirming location:', error);
+            map_error.textContent = `Error: ${error.message}`;
+            map_error.style.display = 'block';
+            confirmar_ubicacion_mapa.textContent = 'Confirmar Ubicación';
+            confirmar_ubicacion_mapa.disabled = false;
         }
     });
+
+ feature/map-location-selector
+    // --- Initial Wizard Flow ---
+    basic_user_button.addEventListener('click', () => {
 
     updateSelectionDisplay(null);
     await fetchCities();
@@ -387,18 +353,17 @@ function setupNavigationButtons() {
     };
 
     addSafeListener('basic-user-button', 'click', () => {
+ main
         userSelections.userType = 'basico';
-        if (dom['data-form-screen']) dom['data-form-screen'].classList.add('basic-user-mode');
         showMapScreenFormSection('supply-section');
     });
 
-    addSafeListener('expert-user-button', 'click', () => {
+    expert_user_button.addEventListener('click', () => {
         userSelections.userType = 'experto';
-        if (dom['data-form-screen']) dom['data-form-screen'].classList.remove('basic-user-mode');
         showMapScreenFormSection('supply-section');
     });
 
-    addSafeListener('residential-button', 'click', () => {
+    residential_button.addEventListener('click', () => {
         userSelections.installationType = 'Residencial';
         showMapScreenFormSection('income-section');
     });
@@ -406,97 +371,56 @@ function setupNavigationButtons() {
     const handleNonResidential = (type) => {
         userSelections.installationType = type;
         showScreen('data-form-screen');
-        if (dom['data-meteorologicos-section']) dom['data-meteorologicos-section'].style.display = 'block';
-        updateStepIndicator('data-meteorologicos-section');
     };
 
-    addSafeListener('commercial-button', 'click', () => handleNonResidential('Comercial'));
-    addSafeListener('pyme-button', 'click', () => handleNonResidential('PYME'));
+    commercial_button.addEventListener('click', () => handleNonResidential('Comercial'));
+    pyme_button.addEventListener('click', () => handleNonResidential('PYME'));
 
     const handleIncome = (level) => {
         userSelections.incomeLevel = level;
         showScreen('data-form-screen');
-        if (dom['data-meteorologicos-section']) dom['data-meteorologicos-section'].style.display = 'block';
-        updateStepIndicator('data-meteorologicos-section');
     };
 
-    addSafeListener('income-high-button', 'click', () => handleIncome('ALTO'));
-    addSafeListener('income-low-button', 'click', () => handleIncome('BAJO'));
-    addSafeListener('income-medium-button', 'click', () => handleIncome('MEDIO'));
+    income_high_button.addEventListener('click', () => handleIncome('ALTO'));
+    income_low_button.addEventListener('click', () => handleIncome('BAJO'));
+    income_medium_button.addEventListener('click', () => handleIncome('MEDIO'));
 
-    addSafeListener('moneda', 'change', e => userSelections.selectedCurrency = e.target.value);
-
-    addSafeListener('next-to-energia', 'click', e => {
+    finalizar_calculo.addEventListener('click', async e => {
         e.preventDefault();
-        const selectedZona = document.querySelector('input[name="zonaInstalacionNewScreen"]:checked');
-        if (selectedZona) userSelections.selectedZonaInstalacion = selectedZona.value;
-        showScreen('energia-section');
-        updateStepIndicator('energia-section');
-        // initElectrodomesticosSection(); // This should be called here
-    });
-
-    addSafeListener('finalizar-calculo', 'click', async e => {
-        e.preventDefault();
-        console.log('Finalizing...');
-        const payload = { /* ... create payload from userSelections ... */ };
+        const payload = {
+            userType: userSelections.userType,
+            ciudad: { nombre: userSelections.location.city },
+            // ... (rest of the payload for the report)
+        };
         try {
-            const response = await fetch(API_BASE + '/generar_informe', {
+            const response = await fetch(`${API_BASE}/generar_informe`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userSelections) // Sending the whole object for now
+                body: JSON.stringify(payload)
             });
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP error ${response.status}`);
+                throw new Error(`HTTP error ${response.status}`);
             }
             const informeFinal = await response.json();
             localStorage.setItem('informeSolar', JSON.stringify(informeFinal));
-            localStorage.setItem('userSelections', JSON.stringify(userSelections));
             window.location.href = 'informe.html';
         } catch (error) {
             console.error('Error generating report:', error);
-            alert('Error al generar el informe: ' + error.message);
+            alert('Error al generar el informe.');
         }
     });
-
-    console.log("Navigation buttons setup complete.");
-}
-
-
-function setupSidebarNavigation() {
-    console.log("Setting up sidebar navigation...");
-    const navMap = {
-        'sidebar-datos': 'data-meteorologicos-section',
-        'sidebar-energia': 'energia-section',
-        'sidebar-paneles': 'paneles-section',
-        'sidebar-inversor': 'inversor-section',
-        'sidebar-perdidas': 'perdidas-section',
-        'sidebar-analisis-economico': 'analisis-economico-section',
-    };
-    Object.entries(navMap).forEach(([sidebarId, target]) => {
-        const element = document.getElementById(sidebarId);
-        if (element) {
-            element.addEventListener('click', () => {
-                showScreen(target);
-                updateStepIndicator(target);
-                // Here you could call init functions if needed, e.g.,
-                // if (target === 'energia-section') initElectrodomesticosSection();
-            });
-        } else {
-             console.warn(`Sidebar element '${sidebarId}' not found.`);
-        }
-    });
-    console.log("Sidebar navigation setup complete.");
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log("DOM content loaded. Starting initialization.");
     try {
+        console.log("DOM content loaded. Starting initialization.");
         cacheDOMElements();
-        await initCitySearch();
+        await initMap();
         setupNavigationButtons();
-        setupSidebarNavigation();
         showScreen('map-screen');
+ feature/map-location-selector
+        showMapScreenFormSection('map-container-section');
+
         showMapScreenFormSection('city-selection-section');
 if (window.map) {
     map.on('click', function(e) {
@@ -515,13 +439,13 @@ if (window.map) {
     });
 }
 updateConfirmButton();
+ main
         console.log("Initialization complete.");
     } catch (error) {
         console.error("Fatal error during initialization:", error);
-        document.body.innerHTML = `<div style="text-align: center; padding: 50px;">
-            <h1>Error al cargar la aplicación</h1>
-            <p>Detalle: ${error.message}</p>
-        </div>`;
+        const errorContainer = document.getElementById('map-error') || document.body;
+        errorContainer.innerHTML = `<p style="color: red; font-weight: bold;">Error grave al cargar la aplicación: ${error.message}</p>`;
+        errorContainer.style.display = 'block';
     }
 });
 const confirmarUbicacionBtn = document.getElementById('confirmar-ubicacion');

@@ -6,6 +6,8 @@
     <title>Calculador Solar</title>
     <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./styles.css?v=prod2">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <style>
         :root {
             --color-primary: #FF8442;
@@ -94,6 +96,37 @@
             flex-direction: column;
             align-items: stretch;
             gap: 1.5rem;
+        }
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        #geocoder-container {
+            margin-bottom: 1rem;
+        }
+        .leaflet-control-geocoder-form input {
+            font-family: var(--font-body);
+            font-size: 1rem;
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .location-details {
+            font-size: 0.9rem;
+            color: #555;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .location-details p {
+            margin: 0.5rem 0;
+        }
+        .location-details strong {
+            color: var(--text-dark);
         }
         .city-selection-card {
             width: 100%;
@@ -681,16 +714,16 @@
                     Seleccioná tu ciudad
                 </h2>
                 <p class="help-text">Elegí la localidad donde instalarás los paneles para continuar con el asistente.</p>
-            <div class="city-selection-card" role="region" aria-labelledby="buscar-ciudad-label" id="city-selection-section">
-                    <div class="city-search-wrapper">
-                        <label id="buscar-ciudad-label" for="buscar-ciudad">Buscá tu ciudad:</label>
-                        <input id="buscar-ciudad" type="text" class="city-search-input" placeholder="Escribí el nombre de tu ciudad..." autocomplete="off" aria-autocomplete="list" aria-controls="lista-ciudades">
+                <div id="map-container-section">
+                    <div id="geocoder-container"></div>
+                    <div id="map"></div>
+                    <div class="location-details">
+                        <p><strong>Dirección:</strong> <span id="address-display">-</span></p>
+                        <p><strong>Coordenadas:</strong> Lat: <span id="lat-display">-</span>, Lng: <span id="lng-display">-</span></p>
                     </div>
-                    <div id="ciudades-loading" class="city-loading" role="status">Cargando ciudades...</div>
-                    <div id="ciudad-error" class="city-error" role="alert"></div>
-                    <ul id="lista-ciudades" class="city-list" role="listbox" aria-label="Resultados de ciudades"></ul>
-                    <div id="ciudad-seleccionada" class="selected-city-display" aria-live="polite"></div>
-                    <button id="confirmar-ciudad" class="confirm-city-button" type="button" disabled>Confirmar ciudad</button>
+                    <div id="map-error" class="city-error" role="alert"></div>
+                    <div id="map-loading" class="city-loading" role="status" style="text-align: center;">Cargando...</div>
+                    <button id="confirmar-ubicacion-mapa" class="confirm-city-button" type="button" disabled>Confirmar Ubicación</button>
                 </div>
 
             <!-- Initial wizard sections moved inside map-area for simpler flow control -->
@@ -1093,6 +1126,8 @@
     <div id="resultados-informe" class="basic-report-summary-container"></div>
 
     <script src="reportTableHelper.js?v=prod1" defer></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script src="calculador.js?v=prod2" defer></script>
 
     <footer>

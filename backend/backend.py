@@ -1081,28 +1081,28 @@ def get_ciudades():
         return jsonify({'error': 'La lista de ciudades no está disponible o no pudo ser cargada.'}), 503
     return jsonify({'ciudades': CITIES_CACHE})
 
+@app.post("/api/seleccionar_ubicacion")
+def seleccionar_ubicacion():
+    try:
+        payload = request.get_json(force=True)
+        city = (payload.get("city") or "").strip()
 
-@app.route('/api/seleccionar_ciudad', methods=['POST'])
-def seleccionar_ciudad():
-    payload = request.get_json(silent=True) or {}
-    raw_city = payload.get('ciudad', '')
-    ciudad_ingresada = '' if raw_city is None else str(raw_city).strip()
+        if not city:
+            return jsonify({"ok": False, "error": "El campo 'city' es requerido"}), 400
 
-    if not ciudad_ingresada:
-        return jsonify({'ok': False, 'error': 'La ciudad proporcionada está vacía.'}), 400
+        with excel_lock:
+            write_city_to_input_sheet(EXCEL_PATH, city)
 
-    # Validar contra la cache
-    ciudad_normalizada = ciudad_ingresada.casefold()
-    if ciudad_normalizada not in CITIES_CACHE_NORMALIZED:
-        print(f"Validation failed: '{ciudad_ingresada}' not in cached cities.")
-        return jsonify({'ok': False, 'error': 'La ciudad seleccionada no es válida.'}), 400
+        return jsonify({"ok": True, "city": city})
 
-    ciudad_final = CITIES_CACHE_NORMALIZED[ciudad_normalizada]
-
-    # La escritura en el Excel se difiere hasta la generación del informe.
-    # Aquí solo validamos y devolvemos éxito.
-    print(f"City '{ciudad_final}' validated successfully. Deferring Excel write.")
-    return jsonify({'ok': True, 'ciudad': ciudad_final})
+    except (FileNotFoundError, ValueError) as e:
+        print(f"ERROR in /api/seleccionar_ubicacion: {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+    except Exception as e:
+        import traceback
+        error_info = traceback.format_exc()
+        print(f"UNEXPECTED CRASH in /api/seleccionar_ubicacion: {e}\n{error_info}")
+        return jsonify({"ok": False, "error": "Error interno del servidor."}), 500
 
 # --- Guardar ciudad en Datos de Entrada!B7 ---
 def _get_ws_for_input(wb):
