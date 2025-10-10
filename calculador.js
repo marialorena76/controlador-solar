@@ -1,7 +1,17 @@
 // ---- PRODUCCIÓN: base de API relativa al dominio ----
 const API_BASE = window.location.origin + "/api";
-
+ feature/map-location-selector
 console.log('🤖 calculador.js cargado - v3');
+
+co
+let geocoderService = null;
+let selectedCity = null;
+let selectedAddress = null;
+
+let availableCities = [];
+let filteredCities = [];
+
+ main
 
 // Objeto para almacenar todas las selecciones del usuario
 let userSelections = {
@@ -234,8 +244,116 @@ function setupNavigationButtons() {
         }
     });
 
+ feature/map-location-selector
     // --- Initial Wizard Flow ---
     basic_user_button.addEventListener('click', () => {
+
+    updateSelectionDisplay(null);
+    await fetchCities();
+}
+
+function showScreen(screenId) {
+    ['map-screen', 'data-form-screen'].forEach(id => {
+        if (dom[id]) dom[id].style.display = 'none';
+    });
+
+    const allSections = [
+        'data-meteorologicos-section', 'superficie-section', 'rugosidad-section',
+        'rotacion-section', 'altura-instalacion-section', 'metodo-calculo-section',
+        'modelo-metodo-section', 'energia-section', 'consumo-factura-section',
+        'paneles-section', 'inversor-section', 'perdidas-section', 'analisis-economico-section'
+    ];
+    allSections.forEach(id => {
+        if(dom[id]) dom[id].style.display = 'none';
+    });
+
+
+    const targetElement = dom[screenId] || document.getElementById(screenId); // Fallback for dynamic elements
+    if (!targetElement) {
+        console.error(`Screen with ID '${screenId}' not found.`);
+        return;
+    }
+
+    if (screenId === 'map-screen') {
+        dom['map-screen'].style.display = 'flex';
+    } else if (screenId === 'data-form-screen') {
+        dom['data-form-screen'].style.display = 'block';
+        dom['data-meteorologicos-section'].style.display = 'block'; // Default section
+    } else {
+        if (dom['data-form-screen']) dom['data-form-screen'].style.display = 'block';
+        targetElement.style.display = 'block';
+    }
+}
+
+function updateStepIndicator(currentSectionId) {
+    document.querySelectorAll('.sidebar .sidebar-item').forEach(item => item.classList.remove('active'));
+    const sectionInfo = sectionInfoMap[currentSectionId];
+    if (sectionInfo && sectionInfo.sidebarId) {
+        const activeSidebarItem = document.getElementById(sectionInfo.sidebarId);
+        if (activeSidebarItem) activeSidebarItem.classList.add('active');
+    }
+    if (dom['step-indicator-text'] && sectionInfo) {
+        dom['step-indicator-text'].textContent = sectionInfo.specificName;
+    }
+}
+function extractCityFromProps(props) {
+  const addr = (props && props.address) || {};
+  return addr.city || addr.town || addr.village || addr.municipality || addr.locality || addr.county || addr.state || null;
+}
+function setCityDisplay(city) {
+  const el = document.getElementById('ciudad-display');
+  if (el) el.textContent = city || '—';
+}
+function updateConfirmButton() {
+  const btn = document.getElementById('confirmar-ubicacion');
+  if (btn) btn.disabled = !selectedCity;
+}
+
+async function reverseGeocode(lat, lon) {
+    try {
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=es`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Error al obtener dirección');
+        const data = await response.json();
+        const city = extractCityFromProps(data.address);
+        if (city) {
+            selectedCity = city;
+            userSelections.selectedCity = city;
+            userSelections.ciudad = { codigo: null, nombre: city };
+            setCityDisplay(city);
+            updateConfirmButton();
+        }
+    } catch (err) {
+        console.error('Error en reverseGeocode:', err);
+    }
+}
+
+function showMapScreenFormSection(sectionIdToShow) {
+    ['city-selection-section', 'user-type-section', 'supply-section', 'income-section'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    const sectionToShow = document.getElementById(sectionIdToShow);
+    if (sectionToShow) {
+        sectionToShow.style.display = 'block';
+    } else {
+        console.error(`Map screen section '${sectionIdToShow}' not found.`);
+    }
+}
+
+function setupNavigationButtons() {
+    console.log("Setting up navigation buttons...");
+    const addSafeListener = (id, event, handler) => {
+        const element = dom[id] || document.getElementById(id);
+        if (element) {
+            element.addEventListener(event, handler);
+        } else {
+            console.warn(`Element with ID '${id}' not found for event listener.`);
+        }
+    };
+
+    addSafeListener('basic-user-button', 'click', () => {
+ main
         userSelections.userType = 'basico';
         showMapScreenFormSection('supply-section');
     });
@@ -300,7 +418,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initMap();
         setupNavigationButtons();
         showScreen('map-screen');
+ feature/map-location-selector
         showMapScreenFormSection('map-container-section');
+
+        showMapScreenFormSection('city-selection-section');
+if (window.map) {
+    map.on('click', function(e) {
+        handleLocationSelected(e.latlng); // si ya la tenés, dejala
+
+        if (!geocoderService) geocoderService = L.Control.Geocoder.nominatim();
+        geocoderService.reverse(e.latlng, map.getZoom(), (results) => {
+            if (results && results.length) {
+                const r = results[0];
+                selectedCity = extractCityFromProps(r.properties);
+                selectedAddress = (r.properties && r.properties.display_name) || "";
+                setCityDisplay(selectedCity);
+                updateConfirmButton();
+            }
+        });
+    });
+}
+updateConfirmButton();
+ main
         console.log("Initialization complete.");
     } catch (error) {
         console.error("Fatal error during initialization:", error);
@@ -309,3 +448,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         errorContainer.style.display = 'block';
     }
 });
+const confirmarUbicacionBtn = document.getElementById('confirmar-ubicacion');
+if (confirmarUbicacionBtn) {
+  confirmarUbicacionBtn.addEventListener('click', async () => {
+    if (!selectedCity) {
+      alert('Seleccioná una ciudad válida (buscá o hacé click en el mapa).');
+      return;
+    }
+    try {
+      // Guardamos en Excel: Datos de Entrada!B7
+      const res = await fetch('/api/seleccionar_ubicacion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          city: selectedCity,
+          address: selectedAddress || '',
+          lat: userSelections.location.lat,
+          lng: userSelections.location.lng
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar la ubicación');
+
+      // Guardar en estado del front si lo usás después
+      userSelections.selectedCity = data.city;
+
+      alert(`Ubicación guardada: ${data.city}. Podés continuar con el cálculo.`);
+    } catch (err) {
+      console.error(err);
+      alert('Error guardando la ubicación. Probá nuevamente.');
+    }
+  });
+}
