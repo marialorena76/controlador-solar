@@ -1,18 +1,68 @@
 // ---- PRODUCCIÓN: base de API relativa al dominio ----
 const API_BASE = window.location.origin + "/api";
 
-console.log('🤖 calculador.js cargado - v2');
+console.log('🤖 calculador.js cargado - v3');
 
-let availableCities = [];
-let filteredCities = [];
-let selectedCity = null;
+// Objeto para almacenar todas las selecciones del usuario
+let userSelections = {
+    userType: null,
+    location: {
+        city: null,
+        address: null,
+        lat: null,
+        lng: null,
+    },
+    ciudad: { codigo: null, nombre: null },
+    installationType: null,
+    incomeLevel: null,
+    zonaInstalacionExpert: null,
+    zonaInstalacionBasic: null,
+    selectedZonaInstalacion: null,
+    superficieRodea: {
+        descripcion: null,
+        valor: null
+    },
+    rugosidadSuperficie: {
+        descripcion: null,
+        valor: null
+    },
+    rotacionInstalacion: {
+        descripcion: null,
+        valor: null
+    },
+    alturaInstalacion: null,
+    metodoCalculoRadiacion: null,
+    modeloMetodoRadiacion: null,
+    marcaPanel: null,
+    potenciaPanelDeseada: null,
+    modeloTemperaturaPanel: null,
+    frecuenciaLluvias: null,
+    focoPolvoCercano: null,
+    metodoIngresoConsumoEnergia: null,
+    electrodomesticos: {},
+    totalMonthlyConsumption: 0,
+    totalAnnualConsumption: 0,
+    selectedCurrency: 'Pesos argentinos',
+    panelesSolares: {
+        tipo: null,
+        cantidad: 0,
+        modelo: null,
+        potenciaNominal: 0,
+        superficie: 0
+    },
+    inversor: {
+        tipo: null,
+        potenciaNominal: 0
+    },
+    perdidas: {
+        eficienciaPanel: 0,
+        eficienciaInversor: 0,
+        factorPerdidas: 0
+    }
+};
 
-// Mapa
-let map, marker;
-let selectedAddress = null;
-// Ambos estilos del geocoder pueden existir según la versión del plugin:
-let geocoderControl = null;   // UI del buscador
-let geocoderService = null;   // servicio reverse (Nominatim)
+let map, geocoder, marker;
+let selectedLocationData = {};
 
 function cacheDOMElements() {
     // Cache all relevant DOM elements for faster access
@@ -113,73 +163,69 @@ function updateLocationInfo(latlng, addressName, properties) {
     }
 }
 
-function initMap() {
-  const mapEl = document.getElementById('map');
-  if (!mapEl || !window.L) {
-    console.error('Leaflet o #map no disponible');
-    return;
-  }
+async function initMap() {
+    try {
+        map = L.map('map').setView([-34.6037, -58.3816], 10); // Center on Buenos Aires
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
 
-  map = L.map('map').setView([-34.6037, -58.3816], 10);
+        const geocodingService = L.Control.Geocoder.nominatim();
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap'
-  }).addTo(map);
+        geocoder = L.Control.geocoder({
+            defaultMarkGeocode: false,
+            geocoder: geocodingService,
+            placeholder: 'Buscar domicilio o ciudad...',
+            collapsed: false,
+        });
 
-  // --- Instanciar servicio de reverse geocoding (según API disponible) ---
-  if (L.Control && L.Control.Geocoder && typeof L.Control.Geocoder.nominatim === 'function') {
-    geocoderService = L.Control.Geocoder.nominatim();
-  } else {
-    console.warn('L.Control.Geocoder no disponible, el reverse usará el control si existe');
-  }
+        // Add the geocoder to the map and then move it to the container
+        geocoder.addTo(map);
+        const geocoderControl = geocoder.getContainer();
+        document.getElementById('geocoder-container').appendChild(geocoderControl);
 
-  // --- Agregar el control de buscador con API tolerante ---
-  if (L.Control && typeof L.Control.geocoder === 'function') {
-    geocoderControl = L.Control.geocoder({
-      defaultMarkGeocode: false,
-      placeholder: 'Buscá una dirección...'
-    })
-    .on('markgeocode', (e) => {
-      const center = e.geocode.center;
-      map.setView(center, 14);
-      if (marker) map.removeLayer(marker);
-      marker = L.marker(center).addTo(map);
 
-      const p = (e.geocode && e.geocode.properties) || {};
-      selectedCity = p.city || p.town || p.village || p.municipality || '';
-      selectedAddress = e.geocode.name || '';
-      setCityDisplay(selectedCity);
-      updateConfirmButton();
-    })
-    .addTo(map);
-  } else {
-    console.warn('L.Control.geocoder no disponible. ¿Falta el script leaflet-control-geocoder?');
-  }
+        geocoder.on('markgeocode', function(e) {
+            map_loading.style.display = 'block';
+            map_error.style.display = 'none';
+            try {
+                const { center, name, properties } = e.geocode;
+                updateLocationInfo(center, name, properties);
+            } catch (error) {
+                console.error('Error in markgeocode handler:', error);
+                map_error.textContent = 'Error al procesar la dirección.';
+                map_error.style.display = 'block';
+            } finally {
+                map_loading.style.display = 'none';
+            }
+        });
 
-  // --- Click en el mapa → reverse geocoding (si hay servicio disponible) ---
-  map.on('click', (e) => {
-    if (marker) map.removeLayer(marker);
-    marker = L.marker(e.latlng).addTo(map);
+        map.on('click', function(e) {
+            map_loading.style.display = 'block';
+            map_error.style.display = 'none';
+            try {
+                geocodingService.reverse(e.latlng, map.options.crs.scale(map.getZoom()), (results) => {
+                    map_loading.style.display = 'none';
+                    if (results && results.length > 0) {
+                        updateLocationInfo(e.latlng, results[0].name, results[0].properties);
+                    } else {
+                        map_error.textContent = 'No se pudo encontrar una dirección para esta ubicación.';
+                        map_error.style.display = 'block';
+                    }
+                });
+            } catch (error) {
+                console.error('Error in map click handler:', error);
+                map_loading.style.display = 'none';
+                map_error.textContent = 'Error al obtener la dirección.';
+                map_error.style.display = 'block';
+            }
+        });
 
-    if (geocoderService && typeof geocoderService.reverse === 'function') {
-      geocoderService.reverse(e.latlng, map.getZoom(), (results) => {
-        if (results && results.length) {
-          const r = results[0];
-          const props = r.properties || {};
-          selectedCity = props.city || props.town || props.village || props.municipality || '';
-          selectedAddress = props.display_name || '';
-          setCityDisplay(selectedCity);
-          updateConfirmButton();
-        }
-      });
-    } else {
-      console.warn('Reverse geocoder no disponible (L.Control.Geocoder.nominatim no encontrado)');
+    } catch (error) {
+        console.error("Error initializing map:", error);
+        map_error.textContent = "No se pudo cargar el mapa.";
+        map_error.style.display = 'block';
     }
-  });
-
-  // Estado inicial del botón
-  updateConfirmButton();
 }
 
 function setupNavigationButtons() {
@@ -278,24 +324,19 @@ function setupNavigationButtons() {
     });
 }
 
-function setCityDisplay(name){
-  const el = document.getElementById('location-display');
-  if (el) el.textContent = name ? `Ubicación: ${name}` : 'Ubicación no seleccionada';
-}
-
-// Ajusta el selector si tu botón tiene un id/clase distinto
-function updateConfirmButton(){
-  const btn = document.querySelector('#confirmar-ciudad, .btn-confirmar-ciudad, button[data-role="confirmar-ciudad"]');
-  if (btn) btn.disabled = !(selectedCity || selectedAddress);
-}
-
-// Arranque sin bloquear la UI si falla el mapa
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    initMap();
-  } catch (e) {
-    console.error('initMap error:', e);
-    // Aun si el mapa falla, no bloquees el resto de la UI
-    updateConfirmButton();
-  }
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        console.log("DOM content loaded. Starting initialization.");
+        cacheDOMElements();
+        await initMap();
+        setupNavigationButtons();
+        showScreen('map-screen');
+        showMapScreenFormSection('map-container-section');
+        console.log("Initialization complete.");
+    } catch (error) {
+        console.error("Fatal error during initialization:", error);
+        const errorContainer = document.getElementById('map-error') || document.body;
+        errorContainer.innerHTML = `<p style="color: red; font-weight: bold;">Error grave al cargar la aplicación: ${error.message}</p>`;
+        errorContainer.style.display = 'block';
+    }
 });
