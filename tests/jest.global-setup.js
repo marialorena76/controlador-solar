@@ -25,7 +25,7 @@ module.exports = async () => {
     console.log(`Flask server started with PID: ${server.pid}`);
     server.unref();
     // Give the server a moment to start up
-    await new Promise(resolve => setTimeout(resolve, 5000)); // Increased timeout
+    await new Promise(resolve => setTimeout(resolve, 10000)); // Increased timeout
   } else {
     console.error('Flask server did not start. PID is missing.');
     // Wait a moment to see if an error message comes through stderr
