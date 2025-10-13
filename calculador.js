@@ -297,31 +297,46 @@ function setupNavigationButtons() {
     document.getElementById('income-low-button').addEventListener('click', () => handleIncome('BAJO'));
     document.getElementById('income-medium-button').addEventListener('click', () => handleIncome('MEDIO'));
 
-    finalizar_calculo.addEventListener('click', async e => {
-        e.preventDefault();
-        const payload = {
-            userType: userSelections.userType,
-            ciudad: { nombre: userSelections.location.city },
-            // ... (rest of the payload for the report)
-        };
-        try {
-            const response = await fetch(`${API_BASE}/generar_informe`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP error ${response.status}`);
+    const finalizarCalculoButton = document.getElementById('finalizar-calculo');
+    if (finalizarCalculoButton) {
+        finalizarCalculoButton.onclick = async () => {
+            const out = document.getElementById('resultados-informe');
+            if (!out) {
+                console.error("Element with id 'resultados-informe' not found!");
+                return;
             }
-            const informeFinal = await response.json();
-            localStorage.setItem('informeSolar', JSON.stringify(informeFinal));
-            window.location.href = 'informe.html';
-        } catch (error) {
-            console.error('Error generating report:', error);
-            alert(`Error al generar el informe: ${error.message}`);
-        }
-    });
+            out.innerHTML = "<b>Generando informe...</b>";
+
+            try {
+                // Ensure totalAnnualConsumption is up-to-date before sending
+                const consumoMensual = parseFloat(document.getElementById('consumo-mensual-kwh')?.value) || 0;
+                userSelections.totalAnnualConsumption = consumoMensual * 12;
+
+                const resp = await fetch(`${API_BASE}/generar_informe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userSelections }) // Send the whole object
+                });
+
+                const raw = await resp.text();
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${raw.slice(0, 200)}`);
+
+                let data;
+                try { data = JSON.parse(raw); }
+                catch (e) { throw new Error(`Respuesta no-JSON: ${raw.slice(0, 200)}`); }
+
+                out.innerHTML = `
+                    <h2>Informe generado</h2>
+                    <ul>
+                      <li><b>Consumo base:</b> ${data.consumo_base ?? "-"}</li>
+                      <li><b>KWh ajustado:</b> ${data.kwh_ajustado ?? "-"}</li>
+                      <li><b>Tarifa:</b> ${data.tarifa ?? "-"}</li>
+                    </ul>`;
+            } catch (err) {
+                out.innerHTML = `<span style="color:red;">Error al generar el informe: ${err.message}</span>`;
+            }
+        };
+    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
