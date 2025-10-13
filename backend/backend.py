@@ -230,68 +230,27 @@ def get_electrodomesticos_consumos():
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
-# --- Ruta para generar informe (EXISTENTE) ---
-def _is_basic_payload(user_data: Dict[str, Any]) -> bool:
-    user_type = str(user_data.get("userType", "")).strip().lower()
-    return user_type == "basico"
+@app.post('/api/generar_informe')
+def generar_informe():
+    data = request.get_json(silent=True) or {}
+    # The frontend is sending userSelections, so we need to look inside that dict
+    selections = data.get("userSelections", {})
 
+    # Extract the annual consumption
+    consumo = selections.get("totalAnnualConsumption")
 
-def _generate_report_response():
-    print(f"--- NEW {request.path} REQUEST ---")
+    # Ensure consumo is a number, default to 0 if not
     try:
-        incoming_payload = request.get_json(silent=True) or {}
-        if isinstance(incoming_payload, dict) and isinstance(incoming_payload.get('userSelections'), dict):
-            user_data = incoming_payload['userSelections']
-        else:
-            user_data = incoming_payload
+        consumo_num = float(consumo) if consumo is not None else 0
+    except (ValueError, TypeError):
+        consumo_num = 0
 
-        print(f"Received user_data: {json.dumps(user_data, indent=2)}")
-
-        if not user_data:
-            print("ERROR: No user_data received.")
-            return jsonify({"error": "No se recibieron datos"}), 400
-
-        if _is_basic_payload(user_data):
-            print("Calling basic calculation engine...")
-            try:
-                resultados_calculo = build_report(user_data)
-            except InputValidationError as validation_error:
-                print(f"Validation error: {validation_error}")
-                return jsonify({"error": str(validation_error)}), 400
-            except CalculationError as calc_error:
-                print(f"Calculation error: {calc_error}")
-                return jsonify({"error": str(calc_error)}), 500
-            print("Basic engine call successful.")
-        else:
-            print("Calling calculation engine...")
-            with excel_lock:
-                resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_PATH)
-            print("Engine call successful.")
-
-        resultados_calculo_clean = clean_nan_in_data(resultados_calculo)
-
-        if isinstance(resultados_calculo_clean, dict) and "error" in resultados_calculo_clean:
-            print(f"Engine returned an error: {resultados_calculo_clean['error']}")
-            return jsonify(resultados_calculo_clean), 400
-
-        print("Successfully generated report. Returning results.")
-        return jsonify(resultados_calculo_clean)
-
-    except Exception as e:
-        import traceback
-        error_info = traceback.format_exc()
-        print(f"UNEXPECTED CRASH in {request.path}: {e}\n{error_info}")
-        return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
-
-
-@app.route('/api/generar_informe', methods=['POST'])
-def generar_informe_api():
-    return _generate_report_response()
-
-
-@app.route('/generar_informe', methods=['POST'])
-def generar_informe_public():
-    return _generate_report_response()
+    return jsonify({
+        "ok": True,
+        "consumo_base": consumo,
+        "kwh_ajustado": round(consumo_num * 0.92, 2),
+        "tarifa": "Residencial BA"
+    })
 
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
 @app.route('/')

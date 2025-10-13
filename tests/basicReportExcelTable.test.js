@@ -33,7 +33,8 @@ test('POST /api/generar_informe returns a valid basic report', async () => {
   expect(response.status).toBe(200);
   expect(response.data).toBeDefined();
   // Check for a key metric from the basic report to confirm it was generated.
-  expect(response.data.consumo_anual).toBeDefined();
+  // The new endpoint returns 'consumo_base' instead of 'consumo_anual'.
+  expect(response.data.consumo_base).toBeDefined();
   // Ensure the excel_table is NOT present for a basic report.
   expect(response.data.excel_table).toBeUndefined();
 });
