@@ -66,6 +66,8 @@
         .logo { max-height: 88px; width: auto; }
         .logo-small { max-height: 40px; width: auto; }
 
+
+
 #map-screen {
     width: 100%;
     display: flex;
@@ -97,7 +99,16 @@
             align-items: stretch;
             gap: 1.5rem;
         }
+<<<<<<< HEAD
         #map { width:100%; height:600px; border-radius:10px; border:1px solid #ccc; }
+=======
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+>>>>>>> 52640f8 (WIP)
         #geocoder-container {
             margin-bottom: 1rem;
         }
@@ -685,6 +696,29 @@
             border-bottom: 1px solid #555;
             padding-bottom: 5px;
         }
+        * === Posición del buscador del mapa === */
+    #map-container-section { 
+      position: relative; 
+    }
+#geocoder-container{
+    position: absolute;
+    left: 50%;
+    bottom: 14px;
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: min(700px, 90%);
+    pointer-events: none;            /* <- clave: no bloquear clics del mapa */
+}
+
+/* Solo el control del geocoder vuelve a aceptar interacción */
+#geocoder-container .leaflet-control-geocoder,
+#geocoder-container .leaflet-control-geocoder *{
+  pointer-events: auto;
+}
+
+/* seguridad: el mapa debajo */
+#map { position: relative; z-index: 0; height: 600px; }
+
     </style>
 </head>
 <body>
@@ -716,9 +750,22 @@
                         <p><strong>Dirección:</strong> <span id="address-display">-</span></p>
                         <p><strong>Coordenadas:</strong> Lat: <span id="lat-display">-</span>, Lng: <span id="lng-display">-</span></p>
                     </div>
+<<<<<<< HEAD
                     <div id="map-error" class="city-error" role="alert"></div>
                     <div id="map-loading" class="city-loading" role="status" style="text-align: center;">Cargando...</div>
                     <button id="confirmar-ubicacion-mapa" class="confirm-city-button" type="button" disabled>Confirmar Ubicación</button>
+=======
+                 <!--    <div id="map-error" class="city-error" role="alert"></div>
+                    <div id="map-loading" class="city-loading" role="status" style="text-align: center;">Cargando...</div>
+                    <button id="confirmar-ubicacion-mapa" class="confirm-city-button" type="button" disabled>Confirmar Ubicación</button>
+                </div>-->
+                <!-- Botón para confirmar la ubicación -->
+                <div style="margin-top: 1rem; text-align: center;">
+                    <button id="confirmar-ubicacion-mapa" class="selection-button" disabled>
+                    Confirmar ubicación
+                    </button>
+                    <div id="map-error" style="display:none;color:red;margin-top:0.5rem;"></div>
+>>>>>>> 52640f8 (WIP)
                 </div>
 
             <!-- Initial wizard sections moved inside map-area for simpler flow control -->
@@ -1121,9 +1168,38 @@
     <div id="resultados-informe" class="basic-report-summary-container"></div>
 
     <script src="reportTableHelper.js?v=prod1" defer></script>
+<<<<<<< HEAD
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script src="/calculador.js?v=20251013f"></script>
+=======
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="calculador.js?v=prod5" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Asegurar altura del contenedor (por si styles.css lo pisa)
+        var el = document.getElementById('map');
+        if (el && !el.style.height) el.style.height = '600px';
+
+            // ¿Está Leaflet cargado?
+        if (typeof L === 'undefined') {
+            console.error('Leaflet no cargó (L es undefined). Revisar <script src="https://unpkg.com/leaflet...">');
+        return;
+  }
+
+  // Crear mapa mínimo
+    var map = L.map('map', { zoomControl: true }).setView([-34.6037, -58.3816], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+  // Si el contenedor recién se vuelve visible, recalcular
+  setTimeout(function(){ map.invalidateSize(); }, 200);
+});
+</script>
+>>>>>>> 52640f8 (WIP)
 
     <footer>
         <div class="footer-logos">
