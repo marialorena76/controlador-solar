@@ -296,6 +296,7 @@ function setupNavigationButtons() {
     document.getElementById('income-high-button').addEventListener('click', () => handleIncome('ALTO'));
     document.getElementById('income-low-button').addEventListener('click', () => handleIncome('BAJO'));
     document.getElementById('income-medium-button').addEventListener('click', () => handleIncome('MEDIO'));
+}
 
 const finalizarCalculoButton = document.getElementById('finalizarCalculoButton');
 
@@ -347,6 +348,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupNavigationButtons();
         showScreen('map-screen');
         showMapScreenFormSection('map-container-section');
+
+        // Force map to re-render after its container is visible
+        requestAnimationFrame(() => {
+            if (map) {
+                map.invalidateSize();
+            }
+        });
+
         console.log("Initialization complete.");
     } catch (error) {
         console.error("Fatal error during initialization:", error);
