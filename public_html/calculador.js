@@ -1,5 +1,8 @@
 // Estado y refs globales
 let map, marker, geocoderCtrl;
+// Locks globales para no duplicar instancias
+window.__mapInitLock = window.__mapInitLock || false;
+window.__geocoderMounted = window.__geocoderMounted || false;
 
 window.__geocoderContainerEl = window.__geocoderContainerEl || null;
 
@@ -63,6 +66,16 @@ function clampToBuenosAires(latlng) {
   return L.latLng(clampedLat, clampedLng);
 }
 
+function initializeMap() {
+  // Evitar doble init en navegaciones/recargas parciales
+
+
+
+  const clampedLat = Math.min(Math.max(latlng.lat, south), north);
+  const clampedLng = Math.min(Math.max(latlng.lng, west), east);
+  return L.latLng(clampedLat, clampedLng);
+}
+
 
 
   const clampedLat = Math.min(Math.max(latlng.lat, south), north);
@@ -73,6 +86,7 @@ function clampToBuenosAires(latlng) {
 
 function initializeMap() {
   // Evitar doble init
+
   if (window.__mapInitLock) return;
   window.__mapInitLock = true;
   if (map) {
@@ -81,21 +95,94 @@ function initializeMap() {
     map = null;
   }
 
+
+  map = L.map('map').setView([userLocation.lat, userLocation.lng], 5);
+
   map = L.map('map', {
     maxBounds: BUENOS_AIRES_BOUNDS,
     maxBoundsViscosity: 1.0
   }).setView([userLocation.lat, userLocation.lng], 6);
 
+
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
+
+  // Geocoder global para poder usar reverse()
+
   // Geocoder global para poder usar reverse
+
   geocoderCtrl = L.Control.geocoder({
     defaultMarkGeocode: false,
     placeholder: 'Buscar ciudad o dirección...',
     showResultIcons: true
   });
+
+
+  geocoderCtrl.on('markgeocode', function (e) {
+    map.setView(e.geocode.center, 13);
+    // Guardar nombre de ciudad
+    userSelections.city = e.geocode.name || (e.geocode.properties && e.geocode.properties.display_name) || null;
+    handleLocationSelected(e.geocode.center);
+  });
+
+  // Montar el geocoder solo una vez en el mapa
+  if (!window.__geocoderMounted) {
+    geocoderCtrl.addTo(map);
+    window.__geocoderMounted = true;
+  }
+
+  // Mover el nodo del widget al host SIN crear jerarquías inválidas
+  const host = document.getElementById('geocoder-container');
+  if (host) {
+    // 1) localizar el widget real que genera Leaflet
+    let widget = document.querySelector('.leaflet-control-container .leaflet-control-geocoder');
+    // 2) Si el host ya contiene un widget viejo, limpiarlo
+    const stale = host.querySelector('.leaflet-control-geocoder');
+    if (stale && stale !== widget) {
+      try { stale.remove(); } catch (e) {}
+    }
+    // 3) Si no hay widget (DOM corrupto), reconstruirlo
+    if (!widget) {
+      try {
+        // quitar bandera para poder re-montar y volver a crear
+        window.__geocoderMounted = false;
+        geocoderCtrl = L.Control.geocoder({ defaultMarkGeocode: false, placeholder: 'Buscar ciudad o dirección...', showResultIcons: true });
+        geocoderCtrl.on('markgeocode', function (e) {
+          map.setView(e.geocode.center, 13);
+          userSelections.city = e.geocode.name || (e.geocode.properties && e.geocode.properties.display_name) || null;
+          handleLocationSelected(e.geocode.center);
+        });
+        geocoderCtrl.addTo(map);
+        window.__geocoderMounted = true;
+        widget = document.querySelector('.leaflet-control-container .leaflet-control-geocoder');
+      } catch (_) {}
+    }
+    // 4) Si existe widget, moverlo a host con TODAS las salvaguardas
+    if (widget) {
+      // Evitar ciclos: si host contiene widget, no hagas nada
+      if (!host.contains(widget)) {
+        // Evitar "el nuevo hijo contiene al padre"
+        if (!widget.contains(host)) {
+          // Quitar de su padre actual antes de insertar
+          if (widget.parentNode && widget.parentNode !== host) {
+            widget.parentNode.removeChild(widget);
+          }
+          host.innerHTML = '';
+          host.appendChild(widget);
+          // Asegurar el botón "Buscar"
+          const form = widget.querySelector('.leaflet-control-geocoder-form');
+          if (form) {
+            let btn = form.querySelector('button');
+            if (!btn) {
+              btn = document.createElement('button');
+              btn.type = 'submit';
+              form.appendChild(btn);
+            }
+            btn.textContent = 'Buscar';
+          }
+        }
 
   geocoderCtrl.on('markgeocode', (e) => {
     const center = e.geocode.center;
@@ -173,6 +260,7 @@ function initializeMap() {
           form.appendChild(searchButton);
         }
         searchButton.textContent = 'Buscar';
+
       }
     }
   }
@@ -183,6 +271,16 @@ function initializeMap() {
 }
 
 function handleLocationSelected(latlng) {
+
+  userLocation = { lat: latlng.lat, lng: latlng.lng };
+  userSelections.location = userLocation;
+  placeMarker(latlng);
+  updateLocationDisplay(latlng.lat, latlng.lng);
+  // Reverse si vino de click/drag
+  const canReverse = geocoderCtrl && geocoderCtrl.options && geocoderCtrl.options.geocoder && geocoderCtrl.options.geocoder.reverse;
+  if (canReverse) {
+    geocoderCtrl.options.geocoder.reverse(latlng, map.getZoom(), (results) => {
+
   const boundedLatLng = clampToBuenosAires(latlng);
   if (!BUENOS_AIRES_BOUNDS.contains(latlng)) {
     alert('La ubicación debe estar dentro de la provincia de Buenos Aires.');
@@ -196,12 +294,16 @@ function handleLocationSelected(latlng) {
   const canReverse = geocoderCtrl && geocoderCtrl.options && geocoderCtrl.options.geocoder && geocoderCtrl.options.geocoder.reverse;
   if (canReverse) {
     geocoderCtrl.options.geocoder.reverse(boundedLatLng, map.getZoom(), (results) => {
+
       if (results && results[0]) {
         userSelections.city =
           results[0].name ||
           (results[0].properties && results[0].properties.display_name) ||
           userSelections.city || null;
+
+
         updateLocationDisplay(boundedLatLng.lat, boundedLatLng.lng);
+
       }
     });
   }
