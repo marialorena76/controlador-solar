@@ -201,68 +201,64 @@ function updateLocationInfo(latlng, addressName, properties) {
 }
 
 async function initMap() {
-    try {
-        map = L.map('map').setView([-34.6037, -58.3816], 10); // Center on Buenos Aires
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+  try {
+    map = L.map('map', { zoomControl: true }).setView([-34.6037, -58.3816], 12);
 
-        const geocodingService = L.Control.Geocoder.nominatim();
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
 
-        geocoder = L.Control.geocoder({
-            defaultMarkGeocode: false,
-            geocoder: geocodingService,
-            placeholder: 'Buscar domicilio o ciudad...',
-            collapsed: false,
-        });
+    const geocodingService = L.Control.Geocoder.nominatim();
 
-        // Add the geocoder to the map and then move it to the container
-        geocoder.addTo(map);
-        const geocoderControl = geocoder.getContainer();
-        document.getElementById('geocoder-container').appendChild(geocoderControl);
+    const geocoderControl = L.Control.geocoder({
+      defaultMarkGeocode: false,
+      collapsed: false,
+      placeholder: 'Buscar domicilio o ciudad...',
+      geocoder: geocodingService
+    })
+      .on('markgeocode', (e) => {
+        const { center, name, properties } = e.geocode;
+        updateLocationInfo(center, name, properties);
+      })
+      .addTo(map);
 
-
-        geocoder.on('markgeocode', function(e) {
-            map_loading.style.display = 'block';
-            map_error.style.display = 'none';
-            try {
-                const { center, name, properties } = e.geocode;
-                updateLocationInfo(center, name, properties);
-            } catch (error) {
-                console.error('Error in markgeocode handler:', error);
-                map_error.textContent = 'Error al procesar la dirección.';
-                map_error.style.display = 'block';
-            } finally {
-                map_loading.style.display = 'none';
-            }
-        });
-
-        map.on('click', function(e) {
-            map_loading.style.display = 'block';
-            map_error.style.display = 'none';
-            try {
-                geocodingService.reverse(e.latlng, map.options.crs.scale(map.getZoom()), (results) => {
-                    map_loading.style.display = 'none';
-                    if (results && results.length > 0) {
-                        updateLocationInfo(e.latlng, results[0].name, results[0].properties);
-                    } else {
-                        map_error.textContent = 'No se pudo encontrar una dirección para esta ubicación.';
-                        map_error.style.display = 'block';
-                    }
-                });
-            } catch (error) {
-                console.error('Error in map click handler:', error);
-                map_loading.style.display = 'none';
-                map_error.textContent = 'Error al obtener la dirección.';
-                map_error.style.display = 'block';
-            }
-        });
-
-    } catch (error) {
-        console.error("Error initializing map:", error);
-        map_error.textContent = "No se pudo cargar el mapa.";
-        map_error.style.display = 'block';
+    const gcEl = geocoderControl.getContainer();
+    const gcTarget = document.getElementById('geocoder-container');
+    if (gcEl && gcTarget && gcEl.parentNode !== gcTarget) {
+      gcTarget.appendChild(gcEl);
     }
+
+    map.on('click', function(e) {
+      map_loading.style.display = 'block';
+      map_error.style.display = 'none';
+      try {
+        geocodingService.reverse(e.latlng, map.options.crs.scale(map.getZoom()), (results) => {
+          map_loading.style.display = 'none';
+          if (results && results.length > 0) {
+            updateLocationInfo(e.latlng, results[0].name, results[0].properties);
+          } else {
+            map_error.textContent = 'No se pudo encontrar una dirección para esta ubicación.';
+            map_error.style.display = 'block';
+          }
+        });
+      } catch (error) {
+        console.error('Error in map click handler:', error);
+        map_loading.style.display = 'none';
+        map_error.textContent = 'Error al obtener la dirección.';
+        map_error.style.display = 'block';
+      }
+    });
+
+    requestAnimationFrame(() => {
+        map.invalidateSize();
+    });
+
+  } catch (error) {
+    console.error("Error initializing map:", error);
+    map_error.textContent = "No se pudo cargar el mapa.";
+    map_error.style.display = 'block';
+  }
 }
 
 function setupNavigationButtons() {
