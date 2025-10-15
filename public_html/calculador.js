@@ -1,0 +1,198 @@
+// Estado y refs globales
+let map, marker, geocoderCtrl;
+const BUENOS_AIRES_BOUNDS = L.latLngBounds(
+  L.latLng(-41.5, -66.5),
+  L.latLng(-33.0, -56.0)
+);
+let userLocation = { lat: -36.6769, lng: -60.5588 }; // centro aproximado provincia BA
+
+let userSelections = {
+  userType: null,
+  location: userLocation,
+  city: null, // <-- NUEVO: nombre de ciudad a guardar en B7
+  installationType: null,
+  incomeLevel: null,
+  zonaInstalacionExpert: null,
+  zonaInstalacionBasic: null,
+  electrodomesticos: {},
+  totalMonthlyConsumption: 0,
+  totalAnnualConsumption: 0,
+  selectedCurrency: 'Pesos argentinos'
+};
+
+function updateLocationDisplay(lat, lng) {
+  const latDisplay = document.getElementById('lat-display');
+  const lngDisplay = document.getElementById('lng-display');
+  const cityDisplay = document.getElementById('city-display');
+
+  if (latDisplay) latDisplay.textContent = typeof lat === 'number' ? lat.toFixed(5) : '-';
+  if (lngDisplay) lngDisplay.textContent = typeof lng === 'number' ? lng.toFixed(5) : '-';
+  if (cityDisplay) cityDisplay.textContent = userSelections.city || '-';
+}
+
+function placeMarker(latlng) {
+  if (!map) return;
+  if (!marker) {
+    marker = L.marker(latlng, { draggable: true }).addTo(map);
+    marker.on('dragend', (event) => {
+      const newLatLng = event.target.getLatLng();
+      handleLocationSelected(newLatLng);
+    });
+  } else {
+    marker.setLatLng(latlng);
+  }
+}
+
+function initializeMap() {
+  // Proteger contra doble init
+  if (map) {
+    try {
+      map.off();
+    } catch (e) {}
+    try {
+      map.remove();
+    } catch (e) {}
+    map = null;
+  }
+
+  map = L.map('map', {
+    maxBounds: BUENOS_AIRES_BOUNDS,
+    maxBoundsViscosity: 1.0
+  }).setView([userLocation.lat, userLocation.lng], 6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  // Geocoder global para poder usar reverse
+  geocoderCtrl = L.Control.geocoder({
+    defaultMarkGeocode: false,
+    placeholder: 'Buscar ciudad o dirección...',
+    showResultIcons: true
+  });
+
+  geocoderCtrl.on('markgeocode', (e) => {
+    const center = e.geocode.center;
+    if (!BUENOS_AIRES_BOUNDS.contains(center)) {
+      alert('Seleccioná una ubicación dentro de la provincia de Buenos Aires.');
+      map.fitBounds(BUENOS_AIRES_BOUNDS);
+      return;
+    }
+    map.setView(center, 13);
+    // nombre de ciudad desde el resultado
+    userSelections.city = e.geocode.name || e.geocode.properties?.display_name || null;
+    handleLocationSelected(center);
+  });
+
+  // Montar en el mapa y mover el nodo del widget al host sin anidarlo en sí mismo
+  geocoderCtrl.addTo(map);
+  const geocoderContainer = document.getElementById('geocoder-container');
+  if (geocoderContainer) {
+    // Seleccionar el widget creado por Leaflet dentro de los controles del mapa
+    const mapGeocoderElement = document.querySelector('.leaflet-control-container .leaflet-control-geocoder');
+    if (
+      mapGeocoderElement &&
+      mapGeocoderElement !== geocoderContainer &&
+      !geocoderContainer.contains(mapGeocoderElement)
+    ) {
+      geocoderContainer.innerHTML = '';
+      geocoderContainer.appendChild(mapGeocoderElement);
+      // Asegurar botón "Buscar"
+      const form = mapGeocoderElement.querySelector('.leaflet-control-geocoder-form');
+      if (form) {
+        let searchButton = form.querySelector('button');
+        if (!searchButton) {
+          searchButton = document.createElement('button');
+          searchButton.type = 'submit';
+          form.appendChild(searchButton);
+        }
+        searchButton.textContent = 'Buscar';
+      }
+    }
+  }
+
+  map.on('click', (e) => handleLocationSelected(e.latlng));
+  placeMarker(userLocation);
+  updateLocationDisplay(userLocation.lat, userLocation.lng);
+}
+
+function clampToBuenosAires(latlng) {
+  const north = BUENOS_AIRES_BOUNDS.getNorth();
+  const south = BUENOS_AIRES_BOUNDS.getSouth();
+  const east = BUENOS_AIRES_BOUNDS.getEast();
+  const west = BUENOS_AIRES_BOUNDS.getWest();
+
+  const clampedLat = Math.min(Math.max(latlng.lat, south), north);
+  const clampedLng = Math.min(Math.max(latlng.lng, west), east);
+  return L.latLng(clampedLat, clampedLng);
+}
+
+function handleLocationSelected(latlng) {
+  const boundedLatLng = clampToBuenosAires(latlng);
+  if (!BUENOS_AIRES_BOUNDS.contains(latlng)) {
+    alert('La ubicación debe estar dentro de la provincia de Buenos Aires.');
+  }
+
+  userLocation = { lat: boundedLatLng.lat, lng: boundedLatLng.lng };
+  userSelections.location = userLocation;
+  placeMarker(boundedLatLng);
+  updateLocationDisplay(boundedLatLng.lat, boundedLatLng.lng);
+  // Si el usuario clickeó/arrastró, intentar reverse para obtener nombre de ciudad
+  const reverse =
+    geocoderCtrl &&
+    geocoderCtrl.options &&
+    geocoderCtrl.options.geocoder &&
+    geocoderCtrl.options.geocoder.reverse;
+  if (reverse) {
+    geocoderCtrl.options.geocoder.reverse(boundedLatLng, map.getZoom(), (results) => {
+      if (results && results[0]) {
+        userSelections.city =
+          results[0].name ||
+          (results[0].properties && results[0].properties.display_name) ||
+          userSelections.city || null;
+        updateLocationDisplay(boundedLatLng.lat, boundedLatLng.lng);
+      }
+    });
+  }
+
+  const confirmBtn = document.getElementById('confirm-location-btn');
+  if (confirmBtn) confirmBtn.disabled = false;
+}
+
+// Listener del botón Confirmar
+const confirmBtn = document.getElementById('confirm-location-btn');
+if (confirmBtn) {
+  confirmBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (!userSelections.city) {
+      alert('Elegí una ubicación o buscá una ciudad antes de confirmar.');
+      return;
+    }
+    try {
+      // Usar ruta relativa si backend corre bajo el mismo dominio (proxy)
+      const resp = await fetch('/api/guardar_ciudad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ciudad: userSelections.city }) // <-- SOLO ciudad
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data?.error || 'No se pudo guardar la ubicación');
+
+      alert(`Ubicación guardada en Excel (B7): ${userSelections.city}`);
+      // Si querés continuar al siguiente paso, descomentar:
+      // showScreen('data-form-screen');
+    } catch (err) {
+      alert('Error guardando la ubicación: ' + err.message);
+    }
+  });
+}
+
+// (mantener el resto del código existente)
+// En DOMContentLoaded, NO re-inicializar el mapa más de una vez.
+document.addEventListener('DOMContentLoaded', () => {
+  initializeMap(); // solo una vez
+  // showScreen('map-screen'); // si aplica en tu flujo
+  // showFormSection(userTypeSection); // si aplica
+  if (typeof cargarElectrodomesticosJSON === 'function') {
+    cargarElectrodomesticosJSON();
+  }
+});
