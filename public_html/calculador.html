@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculador Solar</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Dosis', sans-serif;
+      background-color: #f3f4f6;
+      color: #374151;
+      display: flex;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1.5rem;
+      box-sizing: border-box;
+      max-width: 960px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    #map {
+      width: 100%;
+      height: 480px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    #geocoder-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+
+    .leaflet-control-geocoder.leaflet-bar {
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+
+    .selection-button {
+      background-color: #ff8442;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease, opacity 0.2s ease;
+    }
+
+    .selection-button[disabled] {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .location-details {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
+    }
+
+    .location-details p {
+      margin: 0.5rem 0;
+    }
+
+    .location-details strong {
+      color: #111827;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <div id="map"></div>
+    </section>
+    <section>
+      <div id="geocoder-container" class="leaflet-control-geocoder"></div>
+      <button id="confirm-location-btn" class="selection-button" disabled>
+        Confirmar ubicación
+      </button>
+    </section>
+    <section class="location-details">
+      <p><strong>Ciudad:</strong> <span id="city-display">-</span></p>
+      <p><strong>Latitud:</strong> <span id="lat-display">-</span></p>
+      <p><strong>Longitud:</strong> <span id="lng-display">-</span></p>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j7kG96z8nH7IyzH6kHgMHtYhP/7Lx3FZ8JdZr3s=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <script src="calculador.js"></script>
+</body>
+</html>
