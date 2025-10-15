@@ -369,50 +369,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const confirmBtn = document.getElementById('confirm-location-btn');
   if (confirmBtn) {
-    confirmBtn.addEventListener('click', async () => {
+    confirmBtn.addEventListener('click', () => { // No longer async
       if (!userSelections.city) {
         alert('Elegí una ubicación o buscá una ciudad antes de confirmar.');
         return;
       }
 
-      try {
-        const response = await fetch(`${API_BASE}/guardar_ciudad`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ciudad: userSelections.city })
-        });
+      // 1. Update UI immediately
+      const mapArea = document.querySelector('.map-area');
+      if (mapArea) {
+          mapArea.querySelector('h2').style.display = 'none';
+          mapArea.querySelector('.help-text').style.display = 'none';
+          mapArea.querySelector('#map-container-section').style.display = 'none';
 
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(data?.error || 'No se pudo guardar la ubicación');
-        }
-
-        try {
-          localStorage.setItem('ubicacionSeleccionada', JSON.stringify({
-            lat: userLocation.lat,
-            lng: userLocation.lng,
-            address: userSelections.city
-          }));
-        } catch (error) {
-          console.warn('No se pudo guardar la ubicación seleccionada:', error);
-        }
-
-        // Ocultar todos los elementos del área del mapa y mostrar solo la selección de tipo de usuario
-        const mapArea = document.querySelector('.map-area');
-        if (mapArea) {
-            mapArea.querySelector('h2').style.display = 'none';
-            mapArea.querySelector('.help-text').style.display = 'none';
-            mapArea.querySelector('#map-container-section').style.display = 'none';
-
-            const userTypeSection = mapArea.querySelector('#user-type-section');
-            if (userTypeSection) {
-                userTypeSection.style.display = 'block';
-            }
-        }
-      } catch (error) {
-        console.error('Error al guardar la ubicación:', error);
-        alert('Error guardando la ubicación: ' + error.message);
+          const userTypeSection = mapArea.querySelector('#user-type-section');
+          if (userTypeSection) {
+              userTypeSection.style.display = 'block';
+          }
       }
+
+      // 2. Save to localStorage
+      try {
+        localStorage.setItem('ubicacionSeleccionada', JSON.stringify({
+          lat: userLocation.lat,
+          lng: userLocation.lng,
+          address: userSelections.city
+        }));
+      } catch (error) {
+        console.warn('No se pudo guardar la ubicación seleccionada:', error);
+      }
+
+      // 3. Make the API call in the background
+      fetch(`${API_BASE}/guardar_ciudad`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ciudad: userSelections.city })
+      })
+      .then(response => {
+        if (!response.ok) {
+            response.json().catch(() => ({})).then(data => {
+                const errorMessage = data?.error || 'No se pudo guardar la ubicación en el servidor';
+                console.error('Error al guardar la ubicación:', errorMessage);
+            });
+        }
+      })
+      .catch(error => {
+        console.error('Error de red al guardar la ubicación:', error);
+      });
     });
   }
 
