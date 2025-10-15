@@ -228,8 +228,7 @@ function initializeMap() {
   geocoderCtrl = L.Control.geocoder({
     defaultMarkGeocode: false,
     placeholder: 'Buscar ciudad o dirección...',
-    showResultIcons: true,
-    collapsed: false
+    showResultIcons: true
   });
 
   geocoderCtrl.on('markgeocode', (e) => {
@@ -241,20 +240,27 @@ function initializeMap() {
 
   const geocoderContainer = document.getElementById('geocoder-container');
   if (geocoderContainer) {
-    // Limpia el contenedor por si se reinicializa el mapa
     while (geocoderContainer.firstChild) {
       geocoderContainer.removeChild(geocoderContainer.firstChild);
     }
-    // Añade el control al mapa para que se inicialice y cree su DOM
+
     geocoderCtrl.addTo(map);
-    // Obtiene el elemento DOM del control
-    const geocoderEl = geocoderCtrl.getContainer();
-    if (geocoderEl) {
-      // Mueve el elemento del control a nuestro contenedor personalizado
+    const geocoderEl = document.querySelector('.leaflet-control-geocoder');
+    if (geocoderEl && geocoderEl.parentNode !== geocoderContainer) {
       geocoderContainer.appendChild(geocoderEl);
+
+      const form = geocoderEl.querySelector('.leaflet-control-geocoder-form');
+      if (form) {
+        let submitBtn = form.querySelector('button');
+        if (!submitBtn) {
+          submitBtn = document.createElement('button');
+          submitBtn.type = 'submit';
+          form.appendChild(submitBtn);
+        }
+        submitBtn.textContent = 'Buscar';
+      }
     }
   } else {
-    // Si no hay contenedor personalizado, lo añade en la posición por defecto
     geocoderCtrl.addTo(map);
   }
 
@@ -391,8 +397,18 @@ document.addEventListener('DOMContentLoaded', () => {
           console.warn('No se pudo guardar la ubicación seleccionada:', error);
         }
 
-        // Navegar a la siguiente pantalla
-        showMapScreenFormSection('user-type-section');
+        // Ocultar todos los elementos del área del mapa y mostrar solo la selección de tipo de usuario
+        const mapArea = document.querySelector('.map-area');
+        if (mapArea) {
+            mapArea.querySelector('h2').style.display = 'none';
+            mapArea.querySelector('.help-text').style.display = 'none';
+            mapArea.querySelector('#map-container-section').style.display = 'none';
+
+            const userTypeSection = mapArea.querySelector('#user-type-section');
+            if (userTypeSection) {
+                userTypeSection.style.display = 'block';
+            }
+        }
       } catch (error) {
         console.error('Error al guardar la ubicación:', error);
         alert('Error guardando la ubicación: ' + error.message);
