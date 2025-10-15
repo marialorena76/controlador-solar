@@ -386,6 +386,7 @@ function setupNavigationButtons() {
 document.addEventListener('DOMContentLoaded', () => {
   loadSavedLocation();
   initializeMap();
+  setupNavigationButtons();
   showScreen('map-screen');
   showMapScreenFormSection('map-container-section');
 
