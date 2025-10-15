@@ -391,8 +391,10 @@ document.addEventListener('DOMContentLoaded', () => {
           console.warn('No se pudo guardar la ubicación seleccionada:', error);
         }
 
-        alert(`Ubicación guardada en Excel (B7): ${userSelections.city}`);
+        // Navegar a la siguiente pantalla
+        showMapScreenFormSection('user-type-section');
       } catch (error) {
+        console.error('Error al guardar la ubicación:', error);
         alert('Error guardando la ubicación: ' + error.message);
       }
     });
