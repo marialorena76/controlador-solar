@@ -2,12 +2,13 @@ const API_BASE = "/api";
 
 let map = null;
 let marker = null;
+let geocoderCtrl = null;
 let userLocation = { lat: -34.6037, lng: -58.3816 };
 
 const userSelections = {
   userType: null,
-  location: null,
-  ciudad: { codigo: null, nombre: null },
+  location: { lat: userLocation.lat, lng: userLocation.lng, address: null },
+  city: null,
   installationType: null,
   incomeLevel: null,
   zonaInstalacionExpert: null,
@@ -56,12 +57,14 @@ function loadSavedLocation() {
 
     const parsed = JSON.parse(stored);
     if (parsed && typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
+      const savedAddress = typeof parsed.address === 'string' ? parsed.address : null;
       userLocation = { lat: parsed.lat, lng: parsed.lng };
       userSelections.location = {
         lat: parsed.lat,
         lng: parsed.lng,
-        address: typeof parsed.address === 'string' ? parsed.address : null
+        address: savedAddress
       };
+      userSelections.city = savedAddress && savedAddress.trim() ? savedAddress : null;
     }
   } catch (error) {
     console.warn('No se pudo cargar la ubicación guardada:', error);
@@ -81,13 +84,12 @@ function updateLocationDisplay(lat, lng, label = null) {
 
   const addressDisplay = document.getElementById('address-display');
   if (addressDisplay) {
-    if (label) {
-      addressDisplay.textContent = label;
-    } else if (!addressDisplay.textContent || addressDisplay.textContent.trim() === '') {
-      addressDisplay.textContent = '-';
-    } else if (addressDisplay.textContent.trim() === '-') {
-      addressDisplay.textContent = '-';
-    }
+    const addressText =
+      label ||
+      userSelections.city ||
+      (userSelections.location && userSelections.location.address) ||
+      '-';
+    addressDisplay.textContent = addressText;
   }
 }
 
@@ -107,28 +109,85 @@ function placeMarker(latlng) {
   }
 }
 
-function handleLocationSelected(latlng, label = null) {
+function updateCitySelection(cityName) {
+  const normalizedCity =
+    typeof cityName === 'string' && cityName.trim().length > 0
+      ? cityName.trim()
+      : null;
+
+  userSelections.city = normalizedCity;
+  if (userSelections.location) {
+    userSelections.location.address = normalizedCity;
+  }
+
+  const confirmBtn = document.getElementById('confirm-location-btn');
+  if (confirmBtn) {
+    confirmBtn.disabled = !userSelections.city;
+  }
+}
+
+function handleLocationSelected(latlng, cityName = null) {
   if (!latlng) return;
+
+  const loadingIndicator = document.getElementById('map-loading');
+  const mapError = document.getElementById('map-error');
+  if (mapError) {
+    mapError.style.display = 'none';
+    mapError.textContent = '';
+  }
 
   userLocation = { lat: latlng.lat, lng: latlng.lng };
   userSelections.location = {
     lat: latlng.lat,
     lng: latlng.lng,
-    address: label || null
+    address: cityName || userSelections.city || null
   };
 
   placeMarker(latlng);
-  updateLocationDisplay(latlng.lat, latlng.lng, label);
+  updateLocationDisplay(latlng.lat, latlng.lng, cityName || userSelections.city);
 
-  const confirmBtn = document.getElementById('confirm-location-btn');
-  if (confirmBtn) {
-    confirmBtn.disabled = false;
-  }
+  if (cityName) {
+    if (loadingIndicator) {
+      loadingIndicator.style.display = 'none';
+    }
+    updateCitySelection(cityName);
+  } else {
+    if (loadingIndicator) {
+      loadingIndicator.style.display = 'block';
+    }
+    updateCitySelection(null);
 
-  const mapError = document.getElementById('map-error');
-  if (mapError) {
-    mapError.style.display = 'none';
-    mapError.textContent = '';
+    if (geocoderCtrl?.options?.geocoder?.reverse) {
+      geocoderCtrl.options.geocoder.reverse(latlng, map.getZoom(), (results) => {
+        if (loadingIndicator) {
+          loadingIndicator.style.display = 'none';
+        }
+        if (results && results[0]) {
+          const result = results[0];
+          const reverseName =
+            result.name ||
+            result.properties?.display_name ||
+            null;
+          if (reverseName) {
+            updateCitySelection(reverseName);
+            updateLocationDisplay(latlng.lat, latlng.lng, reverseName);
+          }
+        } else {
+          if (mapError) {
+            mapError.style.display = 'block';
+            mapError.textContent = 'No se pudo determinar la ciudad seleccionada. Probá otra ubicación.';
+          }
+        }
+      });
+    } else {
+      if (loadingIndicator) {
+        loadingIndicator.style.display = 'none';
+      }
+      if (mapError) {
+        mapError.style.display = 'block';
+        mapError.textContent = 'El geocodificador no está disponible para obtener la ciudad.';
+      }
+    }
   }
 }
 
@@ -144,6 +203,7 @@ function initializeMap() {
     map = null;
   }
   marker = null;
+  geocoderCtrl = null;
 
   const mapContainer = document.getElementById('map');
   if (!mapContainer) {
@@ -153,7 +213,7 @@ function initializeMap() {
 
   const confirmBtn = document.getElementById('confirm-location-btn');
   if (confirmBtn) {
-    confirmBtn.disabled = true;
+    confirmBtn.disabled = !userSelections.city;
   }
 
   const defaultLat = typeof userLocation.lat === 'number' ? userLocation.lat : -34.6037;
@@ -165,16 +225,17 @@ function initializeMap() {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
-  const geocoder = L.Control.geocoder({
+  geocoderCtrl = L.Control.geocoder({
     defaultMarkGeocode: false,
     placeholder: 'Buscar ciudad o dirección...',
     showResultIcons: true
   });
 
-  geocoder.on('markgeocode', (e) => {
+  geocoderCtrl.on('markgeocode', (e) => {
     const center = e.geocode.center;
+    const cityName = e.geocode.name || e.geocode.properties?.display_name || null;
     map.setView(center, 13);
-    handleLocationSelected(center, e.geocode.name || null);
+    handleLocationSelected(center, cityName);
   });
 
   const geocoderContainer = document.getElementById('geocoder-container');
@@ -183,7 +244,7 @@ function initializeMap() {
       geocoderContainer.removeChild(geocoderContainer.firstChild);
     }
 
-    geocoder.addTo(map);
+    geocoderCtrl.addTo(map);
     const geocoderEl = document.querySelector('.leaflet-control-geocoder');
     if (geocoderEl && geocoderEl.parentNode !== geocoderContainer) {
       geocoderContainer.appendChild(geocoderEl);
@@ -200,14 +261,12 @@ function initializeMap() {
       }
     }
   } else {
-    geocoder.addTo(map);
+    geocoderCtrl.addTo(map);
   }
 
   map.on('click', (e) => handleLocationSelected(e.latlng));
 
-  placeMarker({ lat: defaultLat, lng: defaultLng });
-  const savedAddress = userSelections.location && userSelections.location.address ? userSelections.location.address : null;
-  updateLocationDisplay(defaultLat, defaultLng, savedAddress);
+  handleLocationSelected({ lat: defaultLat, lng: defaultLng }, userSelections.city);
 
   setTimeout(() => {
     try {
@@ -310,25 +369,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const confirmBtn = document.getElementById('confirm-location-btn');
   if (confirmBtn) {
-    confirmBtn.addEventListener('click', () => {
-      if (!userLocation || typeof userLocation.lat !== 'number' || typeof userLocation.lng !== 'number') {
-        alert('Seleccioná una ubicación válida antes de confirmar.');
+    confirmBtn.addEventListener('click', async () => {
+      if (!userSelections.city) {
+        alert('Elegí una ubicación o buscá una ciudad antes de confirmar.');
         return;
       }
 
-      const payload = {
-        lat: userLocation.lat,
-        lng: userLocation.lng,
-        address: userSelections.location && userSelections.location.address ? userSelections.location.address : null
-      };
-
       try {
-        localStorage.setItem('ubicacionSeleccionada', JSON.stringify(payload));
-      } catch (error) {
-        console.warn('No se pudo guardar la ubicación seleccionada:', error);
-      }
+        const response = await fetch(`${API_BASE}/guardar_ciudad`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ciudad: userSelections.city })
+        });
 
-      alert(`Ubicación confirmada: Lat ${userLocation.lat.toFixed(6)} / Lng ${userLocation.lng.toFixed(6)}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data?.error || 'No se pudo guardar la ubicación');
+        }
+
+        try {
+          localStorage.setItem('ubicacionSeleccionada', JSON.stringify({
+            lat: userLocation.lat,
+            lng: userLocation.lng,
+            address: userSelections.city
+          }));
+        } catch (error) {
+          console.warn('No se pudo guardar la ubicación seleccionada:', error);
+        }
+
+        alert(`Ubicación guardada en Excel (B7): ${userSelections.city}`);
+      } catch (error) {
+        alert('Error guardando la ubicación: ' + error.message);
+      }
     });
   }
 

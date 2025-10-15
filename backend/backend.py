@@ -157,6 +157,25 @@ def write_city_to_input_sheet(path: str, city: str) -> None:
 app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path='')
 CORS(app)  # Habilita CORS para permitir solicitudes desde el frontend
 
+
+@app.post('/api/guardar_ciudad')
+def guardar_ciudad():
+    payload = request.get_json(silent=True) or {}
+    ciudad = (payload.get('ciudad') or '').strip()
+
+    if not ciudad:
+        return jsonify({'error': 'Falta el nombre de la ciudad'}), 400
+
+    if not os.path.exists(EXCEL_PATH):
+        return jsonify({'error': 'Archivo Excel de configuración no encontrado.'}), 404
+
+    try:
+        with excel_lock:
+            write_city_to_input_sheet(EXCEL_PATH, ciudad)
+        return jsonify({'ok': True, 'ciudad': ciudad})
+    except Exception as exc:
+        return jsonify({'error': f'No se pudo escribir en Excel: {exc}'}), 500
+
 @app.get('/api/health')
 def health():
     return jsonify({"ok": True, "msg": "alive"}), 200
