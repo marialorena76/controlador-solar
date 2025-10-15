@@ -1,5 +1,8 @@
 // Estado y refs globales
 let map, marker, geocoderCtrl;
+
+window.__geocoderContainerEl = window.__geocoderContainerEl || null;
+
 // Locks para no re-montar mapa/geocoder
 window.__mapInitLock = window.__mapInitLock || false;
 window.__geocoderMounted = window.__geocoderMounted || false;
@@ -54,10 +57,19 @@ function clampToBuenosAires(latlng) {
   const east = BUENOS_AIRES_BOUNDS.getEast();
   const west = BUENOS_AIRES_BOUNDS.getWest();
 
+
   const clampedLat = Math.min(Math.max(latlng.lat, south), north);
   const clampedLng = Math.min(Math.max(latlng.lng, west), east);
   return L.latLng(clampedLat, clampedLng);
 }
+
+
+
+  const clampedLat = Math.min(Math.max(latlng.lat, south), north);
+  const clampedLng = Math.min(Math.max(latlng.lng, west), east);
+  return L.latLng(clampedLat, clampedLng);
+}
+
 
 function initializeMap() {
   // Evitar doble init
@@ -100,6 +112,38 @@ function initializeMap() {
     handleLocationSelected(center);
   });
 
+
+  // Montar el geocoder en el mapa una sola vez y guardar el nodo real
+  if (!window.__geocoderMounted) {
+    geocoderCtrl.addTo(map);
+    window.__geocoderMounted = true;
+    window.__geocoderContainerEl =
+      (typeof geocoderCtrl.getContainer === 'function' && geocoderCtrl.getContainer()) ||
+      geocoderCtrl._container ||
+      window.__geocoderContainerEl;
+  } else if (!window.__geocoderContainerEl) {
+    window.__geocoderContainerEl =
+      (typeof geocoderCtrl.getContainer === 'function' && geocoderCtrl.getContainer()) ||
+      geocoderCtrl._container ||
+      null;
+  }
+  // Mover el nodo del geocoder al host SIN crear jerarquías inválidas
+  const geocoderContainer = document.getElementById('geocoder-container');
+  const geocoderElement = window.__geocoderContainerEl;
+  if (geocoderContainer && geocoderElement) {
+    const hostParent = geocoderContainer.parentNode;
+    if (geocoderElement.contains(geocoderContainer) && hostParent) {
+      hostParent.appendChild(geocoderContainer);
+    }
+    if (geocoderElement.parentNode !== geocoderContainer) {
+      if (geocoderElement.parentNode) {
+        geocoderElement.parentNode.removeChild(geocoderElement);
+      }
+      geocoderContainer.innerHTML = '';
+      geocoderContainer.appendChild(geocoderElement);
+      // Asegurar el botón "Buscar"
+      const form = geocoderElement.querySelector('.leaflet-control-geocoder-form');
+
   // Montar el geocoder en el mapa una sola vez
   if (!window.__geocoderMounted) {
     geocoderCtrl.addTo(map);
@@ -120,6 +164,7 @@ function initializeMap() {
       geocoderContainer.appendChild(mapGeocoderElement);
       // Asegurar el botón "Buscar"
       const form = mapGeocoderElement.querySelector('.leaflet-control-geocoder-form');
+
       if (form) {
         let searchButton = form.querySelector('button');
         if (!searchButton) {
