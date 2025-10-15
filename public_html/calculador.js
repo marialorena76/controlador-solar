@@ -4,6 +4,12 @@ let map, marker, geocoderCtrl;
 window.__mapInitLock = window.__mapInitLock || false;
 window.__geocoderMounted = window.__geocoderMounted || false;
 
+window.__geocoderContainerEl = window.__geocoderContainerEl || null;
+
+// Locks para no re-montar mapa/geocoder
+window.__mapInitLock = window.__mapInitLock || false;
+window.__geocoderMounted = window.__geocoderMounted || false;
+
 const BUENOS_AIRES_BOUNDS = L.latLngBounds(
   L.latLng(-41.5, -66.5),
   L.latLng(-33.0, -56.0)
@@ -54,6 +60,7 @@ function clampToBuenosAires(latlng) {
   const east = BUENOS_AIRES_BOUNDS.getEast();
   const west = BUENOS_AIRES_BOUNDS.getWest();
 
+
   const clampedLat = Math.min(Math.max(latlng.lat, south), north);
   const clampedLng = Math.min(Math.max(latlng.lng, west), east);
   return L.latLng(clampedLat, clampedLng);
@@ -61,6 +68,36 @@ function clampToBuenosAires(latlng) {
 
 function initializeMap() {
   // Evitar doble init en navegaciones/recargas parciales
+
+
+
+  const clampedLat = Math.min(Math.max(latlng.lat, south), north);
+  const clampedLng = Math.min(Math.max(latlng.lng, west), east);
+  return L.latLng(clampedLat, clampedLng);
+}
+
+function initializeMap() {
+  // Evitar doble init en navegaciones/recargas parciales
+
+
+
+  const clampedLat = Math.min(Math.max(latlng.lat, south), north);
+  const clampedLng = Math.min(Math.max(latlng.lng, west), east);
+  return L.latLng(clampedLat, clampedLng);
+}
+
+
+
+  const clampedLat = Math.min(Math.max(latlng.lat, south), north);
+  const clampedLng = Math.min(Math.max(latlng.lng, west), east);
+  return L.latLng(clampedLat, clampedLng);
+}
+
+
+function initializeMap() {
+  // Evitar doble init
+
+
   if (window.__mapInitLock) return;
   window.__mapInitLock = true;
   if (map) {
@@ -69,18 +106,42 @@ function initializeMap() {
     map = null;
   }
 
+
   map = L.map('map').setView([userLocation.lat, userLocation.lng], 5);
+
+
+
+  map = L.map('map').setView([userLocation.lat, userLocation.lng], 5);
+
+  map = L.map('map', {
+    maxBounds: BUENOS_AIRES_BOUNDS,
+    maxBoundsViscosity: 1.0
+  }).setView([userLocation.lat, userLocation.lng], 6);
+
+
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
+
   // Geocoder global para poder usar reverse()
+
+
+  // Geocoder global para poder usar reverse()
+
+  // Geocoder global para poder usar reverse
+
+
   geocoderCtrl = L.Control.geocoder({
     defaultMarkGeocode: false,
     placeholder: 'Buscar ciudad o dirección...',
     showResultIcons: true
   });
+
+
+
+
 
   geocoderCtrl.on('markgeocode', function (e) {
     map.setView(e.geocode.center, 13);
@@ -89,10 +150,74 @@ function initializeMap() {
     handleLocationSelected(e.geocode.center);
   });
 
+
+
+  // Montar el geocoder solo una vez en el mapa
   if (!window.__geocoderMounted) {
     geocoderCtrl.addTo(map);
     window.__geocoderMounted = true;
   }
+
+  // Mover el nodo del widget al host SIN crear jerarquías inválidas
+  const host = document.getElementById('geocoder-container');
+  if (host) {
+    // 1) localizar el widget real que genera Leaflet
+    let widget = document.querySelector('.leaflet-control-container .leaflet-control-geocoder');
+    // 2) Si el host ya contiene un widget viejo, limpiarlo
+    const stale = host.querySelector('.leaflet-control-geocoder');
+    if (stale && stale !== widget) {
+      try { stale.remove(); } catch (e) {}
+    }
+    // 3) Si no hay widget (DOM corrupto), reconstruirlo
+    if (!widget) {
+      try {
+        // quitar bandera para poder re-montar y volver a crear
+        window.__geocoderMounted = false;
+        geocoderCtrl = L.Control.geocoder({ defaultMarkGeocode: false, placeholder: 'Buscar ciudad o dirección...', showResultIcons: true });
+        geocoderCtrl.on('markgeocode', function (e) {
+          map.setView(e.geocode.center, 13);
+          userSelections.city = e.geocode.name || (e.geocode.properties && e.geocode.properties.display_name) || null;
+          handleLocationSelected(e.geocode.center);
+        });
+        geocoderCtrl.addTo(map);
+        window.__geocoderMounted = true;
+        widget = document.querySelector('.leaflet-control-container .leaflet-control-geocoder');
+      } catch (_) {}
+    }
+    // 4) Si existe widget, moverlo a host con TODAS las salvaguardas
+    if (widget) {
+      // Evitar ciclos: si host contiene widget, no hagas nada
+      if (!host.contains(widget)) {
+        // Evitar "el nuevo hijo contiene al padre"
+        if (!widget.contains(host)) {
+          // Quitar de su padre actual antes de insertar
+          if (widget.parentNode && widget.parentNode !== host) {
+            widget.parentNode.removeChild(widget);
+          }
+          host.innerHTML = '';
+          host.appendChild(widget);
+          // Asegurar el botón "Buscar"
+          const form = widget.querySelector('.leaflet-control-geocoder-form');
+          if (form) {
+            let btn = form.querySelector('button');
+            if (!btn) {
+              btn = document.createElement('button');
+              btn.type = 'submit';
+              form.appendChild(btn);
+            }
+            btn.textContent = 'Buscar';
+          }
+        }
+
+  geocoderCtrl.on('markgeocode', (e) => {
+    const center = e.geocode.center;
+
+
+  if (!window.__geocoderMounted) {
+    geocoderCtrl.addTo(map);
+    window.__geocoderMounted = true;
+  }
+
 
   // Mover el nodo del widget al host SIN crear jerarquías inválidas
   const host = document.getElementById('geocoder-container');
@@ -121,6 +246,13 @@ function initializeMap() {
       widget = document.querySelector('.leaflet-control-container .leaflet-control-geocoder');
     }
 
+    map.setView(center, 13);
+    // Guardar nombre de la ciudad desde el resultado
+    userSelections.city = e.geocode.name || e.geocode.properties?.display_name || null;
+    handleLocationSelected(center);
+  });
+
+
     if (widget) {
       // Si el widget contiene al host, mover el host para que sea hermano
       if (widget.contains(host)) {
@@ -130,14 +262,76 @@ function initializeMap() {
         }
       }
 
+
       // Si el host ya contiene al widget, no hacer nada
       if (!host.contains(widget)) {
         if (widget.parentNode && widget.parentNode !== host) {
           widget.parentNode.removeChild(widget);
+
+  // Montar el geocoder en el mapa una sola vez y guardar el nodo real
+  if (!window.__geocoderMounted) {
+    geocoderCtrl.addTo(map);
+    window.__geocoderMounted = true;
+    window.__geocoderContainerEl =
+      (typeof geocoderCtrl.getContainer === 'function' && geocoderCtrl.getContainer()) ||
+      geocoderCtrl._container ||
+      window.__geocoderContainerEl;
+  } else if (!window.__geocoderContainerEl) {
+    window.__geocoderContainerEl =
+      (typeof geocoderCtrl.getContainer === 'function' && geocoderCtrl.getContainer()) ||
+      geocoderCtrl._container ||
+      null;
+  }
+  // Mover el nodo del geocoder al host SIN crear jerarquías inválidas
+  const geocoderContainer = document.getElementById('geocoder-container');
+  const geocoderElement = window.__geocoderContainerEl;
+  if (geocoderContainer && geocoderElement) {
+    const hostParent = geocoderContainer.parentNode;
+    if (geocoderElement.contains(geocoderContainer) && hostParent) {
+      hostParent.appendChild(geocoderContainer);
+    }
+    if (geocoderElement.parentNode !== geocoderContainer) {
+      if (geocoderElement.parentNode) {
+        geocoderElement.parentNode.removeChild(geocoderElement);
+      }
+      geocoderContainer.innerHTML = '';
+      geocoderContainer.appendChild(geocoderElement);
+      // Asegurar el botón "Buscar"
+      const form = geocoderElement.querySelector('.leaflet-control-geocoder-form');
+
+  // Montar el geocoder en el mapa una sola vez
+  if (!window.__geocoderMounted) {
+    geocoderCtrl.addTo(map);
+    window.__geocoderMounted = true;
+  }
+  // Mover el nodo del geocoder al host SIN crear jerarquías inválidas
+  const geocoderContainer = document.getElementById('geocoder-container');
+  if (geocoderContainer) {
+    const mapGeocoderElement = document.querySelector('.leaflet-control-container .leaflet-control-geocoder');
+    if (
+      mapGeocoderElement &&
+      mapGeocoderElement !== geocoderContainer &&
+      !geocoderContainer.contains(mapGeocoderElement) &&
+      !mapGeocoderElement.contains(geocoderContainer) && // evita contener al padre
+      mapGeocoderElement.parentNode !== geocoderContainer
+    ) {
+      geocoderContainer.innerHTML = '';
+      geocoderContainer.appendChild(mapGeocoderElement);
+      // Asegurar el botón "Buscar"
+      const form = mapGeocoderElement.querySelector('.leaflet-control-geocoder-form');
+
+      if (form) {
+        let searchButton = form.querySelector('button');
+        if (!searchButton) {
+          searchButton = document.createElement('button');
+          searchButton.type = 'submit';
+          form.appendChild(searchButton);
+
         }
         host.innerHTML = '';
         host.appendChild(widget);
       }
+
 
       const form = widget.querySelector('.leaflet-control-geocoder-form');
       if (form) {
@@ -148,6 +342,7 @@ function initializeMap() {
           form.appendChild(btn);
         }
         btn.textContent = 'Buscar';
+
       }
     }
   }
@@ -158,6 +353,7 @@ function initializeMap() {
 }
 
 function handleLocationSelected(latlng) {
+
   userLocation = { lat: latlng.lat, lng: latlng.lng };
   userSelections.location = userLocation;
   placeMarker(latlng);
@@ -166,11 +362,34 @@ function handleLocationSelected(latlng) {
   const canReverse = geocoderCtrl && geocoderCtrl.options && geocoderCtrl.options.geocoder && geocoderCtrl.options.geocoder.reverse;
   if (canReverse) {
     geocoderCtrl.options.geocoder.reverse(latlng, map.getZoom(), (results) => {
+
+
+  const boundedLatLng = clampToBuenosAires(latlng);
+  if (!BUENOS_AIRES_BOUNDS.contains(latlng)) {
+    alert('La ubicación debe estar dentro de la provincia de Buenos Aires.');
+  }
+
+  userLocation = { lat: boundedLatLng.lat, lng: boundedLatLng.lng };
+  userSelections.location = userLocation;
+  placeMarker(boundedLatLng);
+  updateLocationDisplay(boundedLatLng.lat, boundedLatLng.lng);
+  // Reverse geocoding si vino por click/drag
+  const canReverse = geocoderCtrl && geocoderCtrl.options && geocoderCtrl.options.geocoder && geocoderCtrl.options.geocoder.reverse;
+  if (canReverse) {
+    geocoderCtrl.options.geocoder.reverse(boundedLatLng, map.getZoom(), (results) => {
+
+
       if (results && results[0]) {
         userSelections.city =
           results[0].name ||
           (results[0].properties && results[0].properties.display_name) ||
           userSelections.city || null;
+
+
+
+        updateLocationDisplay(boundedLatLng.lat, boundedLatLng.lng);
+
+
       }
     });
   }
