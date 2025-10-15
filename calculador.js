@@ -228,7 +228,8 @@ function initializeMap() {
   geocoderCtrl = L.Control.geocoder({
     defaultMarkGeocode: false,
     placeholder: 'Buscar ciudad o dirección...',
-    showResultIcons: true
+    showResultIcons: true,
+    collapsed: false
   });
 
   geocoderCtrl.on('markgeocode', (e) => {
@@ -240,27 +241,20 @@ function initializeMap() {
 
   const geocoderContainer = document.getElementById('geocoder-container');
   if (geocoderContainer) {
+    // Limpia el contenedor por si se reinicializa el mapa
     while (geocoderContainer.firstChild) {
       geocoderContainer.removeChild(geocoderContainer.firstChild);
     }
-
+    // Añade el control al mapa para que se inicialice y cree su DOM
     geocoderCtrl.addTo(map);
-    const geocoderEl = document.querySelector('.leaflet-control-geocoder');
-    if (geocoderEl && geocoderEl.parentNode !== geocoderContainer) {
+    // Obtiene el elemento DOM del control
+    const geocoderEl = geocoderCtrl.getContainer();
+    if (geocoderEl) {
+      // Mueve el elemento del control a nuestro contenedor personalizado
       geocoderContainer.appendChild(geocoderEl);
-
-      const form = geocoderEl.querySelector('.leaflet-control-geocoder-form');
-      if (form) {
-        let submitBtn = form.querySelector('button');
-        if (!submitBtn) {
-          submitBtn = document.createElement('button');
-          submitBtn.type = 'submit';
-          form.appendChild(submitBtn);
-        }
-        submitBtn.textContent = 'Buscar';
-      }
     }
   } else {
+    // Si no hay contenedor personalizado, lo añade en la posición por defecto
     geocoderCtrl.addTo(map);
   }
 
