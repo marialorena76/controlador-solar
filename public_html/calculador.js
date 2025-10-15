@@ -1,20 +1,21 @@
 // Estado y refs globales
 let map, marker, geocoderCtrl;
+window.__geocoderContainerEl = window.__geocoderContainerEl || null;
+// Locks para no re-montar mapa/geocoder
+window.__mapInitLock = window.__mapInitLock || false;
+window.__geocoderMounted = window.__geocoderMounted || false;
 
 const BUENOS_AIRES_BOUNDS = L.latLngBounds(
   L.latLng(-41.5, -66.5),
   L.latLng(-33.0, -56.0)
 );
-let userLocation = { lat: -36.6769, lng: -60.5588 }; // centro aproximado provincia BA
-
 
 let userLocation = { lat: -34.6037, lng: -58.3816 }; // por defecto BA
-
 
 let userSelections = {
   userType: null,
   location: userLocation,
-  city: null, // <-- NUEVO: nombre de ciudad a guardar en B7
+  city: null, // nombre de ciudad a guardar en B7
   installationType: null,
   incomeLevel: null,
   zonaInstalacionExpert: null,
@@ -48,33 +49,37 @@ function placeMarker(latlng) {
   }
 }
 
-function initializeMap() {
+function clampToBuenosAires(latlng) {
+  const north = BUENOS_AIRES_BOUNDS.getNorth();
+  const south = BUENOS_AIRES_BOUNDS.getSouth();
+  const east = BUENOS_AIRES_BOUNDS.getEast();
+  const west = BUENOS_AIRES_BOUNDS.getWest();
 
+  const clampedLat = Math.min(Math.max(latlng.lat, south), north);
+  const clampedLng = Math.min(Math.max(latlng.lng, west), east);
+  return L.latLng(clampedLat, clampedLng);
+}
+
+function initializeMap() {
+  // Evitar doble init
+  if (window.__mapInitLock) return;
+  window.__mapInitLock = true;
   if (map) {
-    try {
-      map.off();
-    } catch (e) {}
-    try {
-      map.remove();
-    } catch (e) {}
+    try { map.off(); } catch (e) {}
+    try { map.remove(); } catch (e) {}
     map = null;
   }
-
 
   map = L.map('map', {
     maxBounds: BUENOS_AIRES_BOUNDS,
     maxBoundsViscosity: 1.0
   }).setView([userLocation.lat, userLocation.lng], 6);
 
-
-  map = L.map('map').setView([userLocation.lat, userLocation.lng], 5);
-
-
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
-
+  // Geocoder global para poder usar reverse
   geocoderCtrl = L.Control.geocoder({
     defaultMarkGeocode: false,
     placeholder: 'Buscar ciudad o dirección...',
@@ -91,27 +96,41 @@ function initializeMap() {
     }
 
     map.setView(center, 13);
-    // nombre de ciudad desde el resultado
+    // Guardar nombre de la ciudad desde el resultado
     userSelections.city = e.geocode.name || e.geocode.properties?.display_name || null;
     handleLocationSelected(center);
   });
 
-
-  // Montar en el mapa y mover el nodo del widget al host sin anidarlo en sí mismo
-  geocoderCtrl.addTo(map);
+  // Montar el geocoder en el mapa una sola vez y guardar el nodo real
+  if (!window.__geocoderMounted) {
+    geocoderCtrl.addTo(map);
+    window.__geocoderMounted = true;
+    window.__geocoderContainerEl =
+      (typeof geocoderCtrl.getContainer === 'function' && geocoderCtrl.getContainer()) ||
+      geocoderCtrl._container ||
+      window.__geocoderContainerEl;
+  } else if (!window.__geocoderContainerEl) {
+    window.__geocoderContainerEl =
+      (typeof geocoderCtrl.getContainer === 'function' && geocoderCtrl.getContainer()) ||
+      geocoderCtrl._container ||
+      null;
+  }
+  // Mover el nodo del geocoder al host SIN crear jerarquías inválidas
   const geocoderContainer = document.getElementById('geocoder-container');
-  if (geocoderContainer) {
-    // Seleccionar el widget creado por Leaflet dentro de los controles del mapa
-    const mapGeocoderElement = document.querySelector('.leaflet-control-container .leaflet-control-geocoder');
-    if (
-      mapGeocoderElement &&
-      mapGeocoderElement !== geocoderContainer &&
-      !geocoderContainer.contains(mapGeocoderElement)
-    ) {
+  const geocoderElement = window.__geocoderContainerEl;
+  if (geocoderContainer && geocoderElement) {
+    const hostParent = geocoderContainer.parentNode;
+    if (geocoderElement.contains(geocoderContainer) && hostParent) {
+      hostParent.appendChild(geocoderContainer);
+    }
+    if (geocoderElement.parentNode !== geocoderContainer) {
+      if (geocoderElement.parentNode) {
+        geocoderElement.parentNode.removeChild(geocoderElement);
+      }
       geocoderContainer.innerHTML = '';
-      geocoderContainer.appendChild(mapGeocoderElement);
-      // Asegurar botón "Buscar"
-      const form = mapGeocoderElement.querySelector('.leaflet-control-geocoder-form');
+      geocoderContainer.appendChild(geocoderElement);
+      // Asegurar el botón "Buscar"
+      const form = geocoderElement.querySelector('.leaflet-control-geocoder-form');
       if (form) {
         let searchButton = form.querySelector('button');
         if (!searchButton) {
@@ -120,24 +139,6 @@ function initializeMap() {
           form.appendChild(searchButton);
         }
         searchButton.textContent = 'Buscar';
-
-  const geocoderContainer = document.getElementById('geocoder-container');
-  if (geocoderContainer) {
-    while (geocoderContainer.firstChild) geocoderContainer.removeChild(geocoderContainer.firstChild);
-    geocoderCtrl.addTo(map);
-    const geocoderEl = document.querySelector('.leaflet-control-geocoder');
-    if (geocoderEl && geocoderEl.parentNode !== geocoderContainer) {
-      geocoderContainer.appendChild(geocoderEl);
-      const form = geocoderEl.querySelector('.leaflet-control-geocoder-form');
-      if (form) {
-        let btn = form.querySelector('button');
-        if (!btn) {
-          btn = document.createElement('button');
-          btn.type = 'submit';
-          form.appendChild(btn);
-        }
-        btn.textContent = 'Buscar';
-
       }
     }
   }
@@ -145,18 +146,6 @@ function initializeMap() {
   map.on('click', (e) => handleLocationSelected(e.latlng));
   placeMarker(userLocation);
   updateLocationDisplay(userLocation.lat, userLocation.lng);
-}
-
-
-function clampToBuenosAires(latlng) {
-  const north = BUENOS_AIRES_BOUNDS.getNorth();
-  const south = BUENOS_AIRES_BOUNDS.getSouth();
-  const east = BUENOS_AIRES_BOUNDS.getEast();
-  const west = BUENOS_AIRES_BOUNDS.getWest();
-
-  const clampedLat = Math.min(Math.max(latlng.lat, south), north);
-  const clampedLng = Math.min(Math.max(latlng.lng, west), east);
-  return L.latLng(clampedLat, clampedLng);
 }
 
 function handleLocationSelected(latlng) {
@@ -169,14 +158,9 @@ function handleLocationSelected(latlng) {
   userSelections.location = userLocation;
   placeMarker(boundedLatLng);
   updateLocationDisplay(boundedLatLng.lat, boundedLatLng.lng);
-
-  // Si el usuario clickeó/arrastró, intentar reverse para obtener nombre de ciudad
-  const reverse =
-    geocoderCtrl &&
-    geocoderCtrl.options &&
-    geocoderCtrl.options.geocoder &&
-    geocoderCtrl.options.geocoder.reverse;
-  if (reverse) {
+  // Reverse geocoding si vino por click/drag
+  const canReverse = geocoderCtrl && geocoderCtrl.options && geocoderCtrl.options.geocoder && geocoderCtrl.options.geocoder.reverse;
+  if (canReverse) {
     geocoderCtrl.options.geocoder.reverse(boundedLatLng, map.getZoom(), (results) => {
       if (results && results[0]) {
         userSelections.city =
@@ -184,88 +168,44 @@ function handleLocationSelected(latlng) {
           (results[0].properties && results[0].properties.display_name) ||
           userSelections.city || null;
         updateLocationDisplay(boundedLatLng.lat, boundedLatLng.lng);
-
-
-  // Intentar reverse geocoding para obtener nombre de ciudad si el usuario hizo click/drag
-  if (geocoderCtrl?.options?.geocoder?.reverse) {
-    geocoderCtrl.options.geocoder.reverse(boundedLatLng, map.getZoom(), (results) => {
-
-function handleLocationSelected(latlng) {
-  userLocation = { lat: latlng.lat, lng: latlng.lng };
-  userSelections.location = userLocation;
-  placeMarker(latlng);
-  updateLocationDisplay(latlng.lat, latlng.lng);
-
-  // Intentar reverse geocoding para obtener nombre de ciudad si el usuario hizo click/drag
-  if (geocoderCtrl?.options?.geocoder?.reverse) {
-    geocoderCtrl.options.geocoder.reverse(latlng, map.getZoom(), (results) => {
-
-      if (results && results[0]) {
-        userSelections.city =
-          results[0].name ||
-          results[0].properties?.display_name ||
-          userSelections.city || null;
-
-        updateLocationDisplay(boundedLatLng.lat, boundedLatLng.lng);
-
-        updateLocationDisplay(latlng.lat, latlng.lng);
-
-
       }
     });
   }
-
   const confirmBtn = document.getElementById('confirm-location-btn');
   if (confirmBtn) confirmBtn.disabled = false;
 }
 
-// Listener del botón Confirmar
 const confirmBtn = document.getElementById('confirm-location-btn');
 if (confirmBtn) {
-
   confirmBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-
-  confirmBtn.addEventListener('click', async () => {
-
+    e.preventDefault(); // nunca hacer submit
     if (!userSelections.city) {
       alert('Elegí una ubicación o buscá una ciudad antes de confirmar.');
       return;
     }
     try {
-      // Usar ruta relativa si backend corre bajo el mismo dominio (proxy)
       const resp = await fetch('/api/guardar_ciudad', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ciudad: userSelections.city }) // <-- SOLO ciudad
+        body: JSON.stringify({ ciudad: userSelections.city }) // SOLO ciudad
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data?.error || 'No se pudo guardar la ubicación');
-
-      alert(`Ubicación guardada en Excel (B7): ${userSelections.city}`);
-      // Si querés continuar al siguiente paso, descomentar:
-      // showScreen('data-form-screen');
+      // OK: ir al formulario "Tipo de usuario"
+      if (typeof showFormSection === 'function') {
+        const userTypeSectionEl = document.getElementById('user-type-section');
+        if (userTypeSectionEl) showFormSection(userTypeSectionEl);
+      }
+      // (opcional) hacer scroll al formulario
+      const userType = document.getElementById('user-type-section');
+      if (userType) userType.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (err) {
       alert('Error guardando la ubicación: ' + err.message);
     }
   });
 }
 
-// (mantener el resto del código existente)
-// En DOMContentLoaded, NO re-inicializar el mapa más de una vez.
 document.addEventListener('DOMContentLoaded', () => {
-
-  initializeMap(); // solo una vez
-  // showScreen('map-screen'); // si aplica en tu flujo
-  // showFormSection(userTypeSection); // si aplica
-  if (typeof cargarElectrodomesticosJSON === 'function') {
-    cargarElectrodomesticosJSON();
-  }
-
-  initializeMap();
-  updateLocationDisplay(userLocation.lat, userLocation.lng);
-  // showScreen('map-screen'); // si aplica en tu flujo
-  // showFormSection(userTypeSection); // si aplica
-  // cargarElectrodomesticosJSON(); // si aplica
-
+  initializeMap(); // solo una vez gracias al lock
+  if (typeof cargarElectrodomesticosJSON === 'function') { cargarElectrodomesticosJSON(); }
 });
