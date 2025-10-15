@@ -7,6 +7,7 @@ const BUENOS_AIRES_BOUNDS = L.latLngBounds(
 );
 let userLocation = { lat: -36.6769, lng: -60.5588 }; // centro aproximado provincia BA
 
+
 let userLocation = { lat: -34.6037, lng: -58.3816 }; // por defecto BA
 
 
@@ -48,6 +49,7 @@ function placeMarker(latlng) {
 }
 
 function initializeMap() {
+
   if (map) {
     try {
       map.off();
@@ -64,13 +66,15 @@ function initializeMap() {
     maxBoundsViscosity: 1.0
   }).setView([userLocation.lat, userLocation.lng], 6);
 
+
   map = L.map('map').setView([userLocation.lat, userLocation.lng], 5);
+
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
-  // Geocoder global
+
   geocoderCtrl = L.Control.geocoder({
     defaultMarkGeocode: false,
     placeholder: 'Buscar ciudad o dirección...',
@@ -86,12 +90,36 @@ function initializeMap() {
       return;
     }
 
-
     map.setView(center, 13);
     // nombre de ciudad desde el resultado
     userSelections.city = e.geocode.name || e.geocode.properties?.display_name || null;
     handleLocationSelected(center);
   });
+
+
+  // Montar en el mapa y mover el nodo del widget al host sin anidarlo en sí mismo
+  geocoderCtrl.addTo(map);
+  const geocoderContainer = document.getElementById('geocoder-container');
+  if (geocoderContainer) {
+    // Seleccionar el widget creado por Leaflet dentro de los controles del mapa
+    const mapGeocoderElement = document.querySelector('.leaflet-control-container .leaflet-control-geocoder');
+    if (
+      mapGeocoderElement &&
+      mapGeocoderElement !== geocoderContainer &&
+      !geocoderContainer.contains(mapGeocoderElement)
+    ) {
+      geocoderContainer.innerHTML = '';
+      geocoderContainer.appendChild(mapGeocoderElement);
+      // Asegurar botón "Buscar"
+      const form = mapGeocoderElement.querySelector('.leaflet-control-geocoder-form');
+      if (form) {
+        let searchButton = form.querySelector('button');
+        if (!searchButton) {
+          searchButton = document.createElement('button');
+          searchButton.type = 'submit';
+          form.appendChild(searchButton);
+        }
+        searchButton.textContent = 'Buscar';
 
   const geocoderContainer = document.getElementById('geocoder-container');
   if (geocoderContainer) {
@@ -109,6 +137,7 @@ function initializeMap() {
           form.appendChild(btn);
         }
         btn.textContent = 'Buscar';
+
       }
     }
   }
@@ -141,6 +170,22 @@ function handleLocationSelected(latlng) {
   placeMarker(boundedLatLng);
   updateLocationDisplay(boundedLatLng.lat, boundedLatLng.lng);
 
+  // Si el usuario clickeó/arrastró, intentar reverse para obtener nombre de ciudad
+  const reverse =
+    geocoderCtrl &&
+    geocoderCtrl.options &&
+    geocoderCtrl.options.geocoder &&
+    geocoderCtrl.options.geocoder.reverse;
+  if (reverse) {
+    geocoderCtrl.options.geocoder.reverse(boundedLatLng, map.getZoom(), (results) => {
+      if (results && results[0]) {
+        userSelections.city =
+          results[0].name ||
+          (results[0].properties && results[0].properties.display_name) ||
+          userSelections.city || null;
+        updateLocationDisplay(boundedLatLng.lat, boundedLatLng.lng);
+
+
   // Intentar reverse geocoding para obtener nombre de ciudad si el usuario hizo click/drag
   if (geocoderCtrl?.options?.geocoder?.reverse) {
     geocoderCtrl.options.geocoder.reverse(boundedLatLng, map.getZoom(), (results) => {
@@ -165,6 +210,7 @@ function handleLocationSelected(latlng) {
 
         updateLocationDisplay(latlng.lat, latlng.lng);
 
+
       }
     });
   }
@@ -176,7 +222,12 @@ function handleLocationSelected(latlng) {
 // Listener del botón Confirmar
 const confirmBtn = document.getElementById('confirm-location-btn');
 if (confirmBtn) {
+
+  confirmBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+
   confirmBtn.addEventListener('click', async () => {
+
     if (!userSelections.city) {
       alert('Elegí una ubicación o buscá una ciudad antes de confirmar.');
       return;
@@ -203,9 +254,18 @@ if (confirmBtn) {
 // (mantener el resto del código existente)
 // En DOMContentLoaded, NO re-inicializar el mapa más de una vez.
 document.addEventListener('DOMContentLoaded', () => {
+
+  initializeMap(); // solo una vez
+  // showScreen('map-screen'); // si aplica en tu flujo
+  // showFormSection(userTypeSection); // si aplica
+  if (typeof cargarElectrodomesticosJSON === 'function') {
+    cargarElectrodomesticosJSON();
+  }
+
   initializeMap();
   updateLocationDisplay(userLocation.lat, userLocation.lng);
   // showScreen('map-screen'); // si aplica en tu flujo
   // showFormSection(userTypeSection); // si aplica
   // cargarElectrodomesticosJSON(); // si aplica
+
 });
