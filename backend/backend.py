@@ -8,6 +8,7 @@ import math
 from threading import Lock
 from openpyxl import load_workbook
 from typing import Any, Dict, List
+from pathlib import Path
 
 # --- ENGINE imports robustos ---
 try:
@@ -63,7 +64,23 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 
 DEFAULT_EXCEL_FILENAME = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx'
-EXCEL_PATH = os.path.join(SCRIPT_DIR, DEFAULT_EXCEL_FILENAME)
+
+# === Ruta del Excel relativa a este archivo (backend.py) ===
+# Se asume que el .xlsx está dentro de la carpeta "backend/" junto a este backend.py
+BASE_DIR = Path(__file__).resolve().parent
+EXCEL_DIR = BASE_DIR / 'backend'
+# Si no existe la subcarpeta backend/, se usa el mismo directorio de este archivo
+if not EXCEL_DIR.exists():
+    EXCEL_DIR = BASE_DIR
+# Nombre esperado; si cambia la versión, se intenta encontrar por patrón
+EXCEL_PATH = EXCEL_DIR / DEFAULT_EXCEL_FILENAME
+if not EXCEL_PATH.exists():
+    matches = sorted(EXCEL_DIR.glob('Calculador Solar*.xlsx'))
+    if matches:
+        EXCEL_PATH = matches[0]
+    else:
+        raise FileNotFoundError(f'No se encontró el Excel dentro de: {EXCEL_DIR}')
+
 CONSUMOS_JSON_PATH = os.path.join(PROJECT_ROOT, 'consumos_electrodomesticos.json')
 
 # --- City Data Caching ---
