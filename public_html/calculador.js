@@ -76,6 +76,16 @@ function initializeMap() {
   return L.latLng(clampedLat, clampedLng);
 }
 
+function initializeMap() {
+  // Evitar doble init en navegaciones/recargas parciales
+
+
+
+  const clampedLat = Math.min(Math.max(latlng.lat, south), north);
+  const clampedLng = Math.min(Math.max(latlng.lng, west), east);
+  return L.latLng(clampedLat, clampedLng);
+}
+
 
 
   const clampedLat = Math.min(Math.max(latlng.lat, south), north);
@@ -86,6 +96,7 @@ function initializeMap() {
 
 function initializeMap() {
   // Evitar doble init
+
 
   if (window.__mapInitLock) return;
   window.__mapInitLock = true;
@@ -98,10 +109,15 @@ function initializeMap() {
 
   map = L.map('map').setView([userLocation.lat, userLocation.lng], 5);
 
+
+
+  map = L.map('map').setView([userLocation.lat, userLocation.lng], 5);
+
   map = L.map('map', {
     maxBounds: BUENOS_AIRES_BOUNDS,
     maxBoundsViscosity: 1.0
   }).setView([userLocation.lat, userLocation.lng], 6);
+
 
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -111,7 +127,11 @@ function initializeMap() {
 
   // Geocoder global para poder usar reverse()
 
+
+  // Geocoder global para poder usar reverse()
+
   // Geocoder global para poder usar reverse
+
 
   geocoderCtrl = L.Control.geocoder({
     defaultMarkGeocode: false,
@@ -120,12 +140,17 @@ function initializeMap() {
   });
 
 
+
+
+
   geocoderCtrl.on('markgeocode', function (e) {
     map.setView(e.geocode.center, 13);
     // Guardar nombre de ciudad
     userSelections.city = e.geocode.name || (e.geocode.properties && e.geocode.properties.display_name) || null;
     handleLocationSelected(e.geocode.center);
   });
+
+
 
   // Montar el geocoder solo una vez en el mapa
   if (!window.__geocoderMounted) {
@@ -187,10 +212,38 @@ function initializeMap() {
   geocoderCtrl.on('markgeocode', (e) => {
     const center = e.geocode.center;
 
-    if (!BUENOS_AIRES_BOUNDS.contains(center)) {
-      alert('Seleccioná una ubicación dentro de la provincia de Buenos Aires.');
-      map.fitBounds(BUENOS_AIRES_BOUNDS);
-      return;
+
+  if (!window.__geocoderMounted) {
+    geocoderCtrl.addTo(map);
+    window.__geocoderMounted = true;
+  }
+
+
+  // Mover el nodo del widget al host SIN crear jerarquías inválidas
+  const host = document.getElementById('geocoder-container');
+  if (host) {
+    let widget = document.querySelector('.leaflet-control-container .leaflet-control-geocoder');
+
+    // Si no hay widget (DOM corrupto), reconstruirlo
+    if (!widget) {
+      try {
+        if (geocoderCtrl && typeof geocoderCtrl.remove === 'function') {
+          geocoderCtrl.remove();
+        }
+      } catch (_) {}
+      geocoderCtrl = L.Control.geocoder({
+        defaultMarkGeocode: false,
+        placeholder: 'Buscar ciudad o dirección...',
+        showResultIcons: true
+      });
+      geocoderCtrl.on('markgeocode', function (e) {
+        map.setView(e.geocode.center, 13);
+        userSelections.city = e.geocode.name || (e.geocode.properties && e.geocode.properties.display_name) || null;
+        handleLocationSelected(e.geocode.center);
+      });
+      geocoderCtrl.addTo(map);
+      window.__geocoderMounted = true;
+      widget = document.querySelector('.leaflet-control-container .leaflet-control-geocoder');
     }
 
     map.setView(center, 13);
@@ -199,6 +252,21 @@ function initializeMap() {
     handleLocationSelected(center);
   });
 
+
+    if (widget) {
+      // Si el widget contiene al host, mover el host para que sea hermano
+      if (widget.contains(host)) {
+        const parent = widget.parentNode;
+        if (parent) {
+          parent.insertBefore(host, widget);
+        }
+      }
+
+
+      // Si el host ya contiene al widget, no hacer nada
+      if (!host.contains(widget)) {
+        if (widget.parentNode && widget.parentNode !== host) {
+          widget.parentNode.removeChild(widget);
 
   // Montar el geocoder en el mapa una sola vez y guardar el nodo real
   if (!window.__geocoderMounted) {
@@ -258,8 +326,22 @@ function initializeMap() {
           searchButton = document.createElement('button');
           searchButton.type = 'submit';
           form.appendChild(searchButton);
+
         }
-        searchButton.textContent = 'Buscar';
+        host.innerHTML = '';
+        host.appendChild(widget);
+      }
+
+
+      const form = widget.querySelector('.leaflet-control-geocoder-form');
+      if (form) {
+        let btn = form.querySelector('button');
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.type = 'submit';
+          form.appendChild(btn);
+        }
+        btn.textContent = 'Buscar';
 
       }
     }
@@ -281,6 +363,7 @@ function handleLocationSelected(latlng) {
   if (canReverse) {
     geocoderCtrl.options.geocoder.reverse(latlng, map.getZoom(), (results) => {
 
+
   const boundedLatLng = clampToBuenosAires(latlng);
   if (!BUENOS_AIRES_BOUNDS.contains(latlng)) {
     alert('La ubicación debe estar dentro de la provincia de Buenos Aires.');
@@ -295,6 +378,7 @@ function handleLocationSelected(latlng) {
   if (canReverse) {
     geocoderCtrl.options.geocoder.reverse(boundedLatLng, map.getZoom(), (results) => {
 
+
       if (results && results[0]) {
         userSelections.city =
           results[0].name ||
@@ -302,7 +386,9 @@ function handleLocationSelected(latlng) {
           userSelections.city || null;
 
 
+
         updateLocationDisplay(boundedLatLng.lat, boundedLatLng.lng);
+
 
       }
     });
