@@ -358,12 +358,34 @@ function setupNavigationButtons() {
   if (incomeLowButton) {
     incomeLowButton.addEventListener('click', () => registerIncome('BAJO'));
   }
+
+  const nextToEnergiaBtn = document.getElementById('next-to-energia');
+  if (nextToEnergiaBtn) {
+    nextToEnergiaBtn.addEventListener('click', () => {
+      const selectedZona = document.querySelector('input[name="zonaInstalacionNewScreen"]:checked');
+      if (!selectedZona) {
+        alert('Por favor, seleccioná una zona de instalación.');
+        return;
+      }
+      userSelections.selectedZonaInstalacion = selectedZona.value;
+
+      const nextSection = userSelections.userType === 'experto' ? 'superficie-section' : 'energia-section';
+
+      const dataFormScreen = document.getElementById('data-form-screen');
+      const targetSection = dataFormScreen.querySelector(`#${nextSection}`);
+
+      // Ocultar la sección actual y mostrar la siguiente
+      document.getElementById('data-meteorologicos-section').style.display = 'none';
+      if(targetSection) {
+        targetSection.style.display = 'block';
+      }
+    });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSavedLocation();
   initializeMap();
-  setupNavigationButtons();
   showScreen('map-screen');
   showMapScreenFormSection('map-container-section');
 
