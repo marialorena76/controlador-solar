@@ -1,6 +1,14 @@
 // Estado y refs globales
 let map, marker, geocoderCtrl;
+
+const BUENOS_AIRES_BOUNDS = L.latLngBounds(
+  L.latLng(-41.5, -66.5),
+  L.latLng(-33.0, -56.0)
+);
+let userLocation = { lat: -36.6769, lng: -60.5588 }; // centro aproximado provincia BA
+
 let userLocation = { lat: -34.6037, lng: -58.3816 }; // por defecto BA
+
 
 let userSelections = {
   userType: null,
@@ -50,7 +58,14 @@ function initializeMap() {
     map = null;
   }
 
+
+  map = L.map('map', {
+    maxBounds: BUENOS_AIRES_BOUNDS,
+    maxBoundsViscosity: 1.0
+  }).setView([userLocation.lat, userLocation.lng], 6);
+
   map = L.map('map').setView([userLocation.lat, userLocation.lng], 5);
+
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
@@ -64,6 +79,14 @@ function initializeMap() {
 
   geocoderCtrl.on('markgeocode', (e) => {
     const center = e.geocode.center;
+
+    if (!BUENOS_AIRES_BOUNDS.contains(center)) {
+      alert('Seleccioná una ubicación dentro de la provincia de Buenos Aires.');
+      map.fitBounds(BUENOS_AIRES_BOUNDS);
+      return;
+    }
+
+
     map.setView(center, 13);
     // nombre de ciudad desde el resultado
     userSelections.city = e.geocode.name || e.geocode.properties?.display_name || null;
@@ -95,6 +118,33 @@ function initializeMap() {
   updateLocationDisplay(userLocation.lat, userLocation.lng);
 }
 
+
+function clampToBuenosAires(latlng) {
+  const north = BUENOS_AIRES_BOUNDS.getNorth();
+  const south = BUENOS_AIRES_BOUNDS.getSouth();
+  const east = BUENOS_AIRES_BOUNDS.getEast();
+  const west = BUENOS_AIRES_BOUNDS.getWest();
+
+  const clampedLat = Math.min(Math.max(latlng.lat, south), north);
+  const clampedLng = Math.min(Math.max(latlng.lng, west), east);
+  return L.latLng(clampedLat, clampedLng);
+}
+
+function handleLocationSelected(latlng) {
+  const boundedLatLng = clampToBuenosAires(latlng);
+  if (!BUENOS_AIRES_BOUNDS.contains(latlng)) {
+    alert('La ubicación debe estar dentro de la provincia de Buenos Aires.');
+  }
+
+  userLocation = { lat: boundedLatLng.lat, lng: boundedLatLng.lng };
+  userSelections.location = userLocation;
+  placeMarker(boundedLatLng);
+  updateLocationDisplay(boundedLatLng.lat, boundedLatLng.lng);
+
+  // Intentar reverse geocoding para obtener nombre de ciudad si el usuario hizo click/drag
+  if (geocoderCtrl?.options?.geocoder?.reverse) {
+    geocoderCtrl.options.geocoder.reverse(boundedLatLng, map.getZoom(), (results) => {
+
 function handleLocationSelected(latlng) {
   userLocation = { lat: latlng.lat, lng: latlng.lng };
   userSelections.location = userLocation;
@@ -104,12 +154,17 @@ function handleLocationSelected(latlng) {
   // Intentar reverse geocoding para obtener nombre de ciudad si el usuario hizo click/drag
   if (geocoderCtrl?.options?.geocoder?.reverse) {
     geocoderCtrl.options.geocoder.reverse(latlng, map.getZoom(), (results) => {
+
       if (results && results[0]) {
         userSelections.city =
           results[0].name ||
           results[0].properties?.display_name ||
           userSelections.city || null;
+
+        updateLocationDisplay(boundedLatLng.lat, boundedLatLng.lng);
+
         updateLocationDisplay(latlng.lat, latlng.lng);
+
       }
     });
   }
