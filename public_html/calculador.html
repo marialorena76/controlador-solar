@@ -89,10 +89,15 @@
       <div id="map"></div>
     </section>
     <section>
+
       <!-- Host del widget geocoder (NO usar la misma clase que el widget para evitar auto-conteners) -->
       <div id="geocoder-container" class="geocoder-host"></div>
       <!-- Evitar submit accidental: type="button" -->
       <button id="confirm-location-btn" class="selection-button" type="button" disabled>
+
+      <div id="geocoder-container" class="leaflet-control-geocoder"></div>
+      <button id="confirm-location-btn" class="selection-button" disabled>
+
         Confirmar ubicación
       </button>
     </section>
