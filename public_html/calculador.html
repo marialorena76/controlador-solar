@@ -90,16 +90,10 @@
     </section>
     <section>
 
-      <!-- Host del widget geocoder (NO usar la misma clase que el widget para evitar auto-conteners) -->
+      <!-- Host del widget geocoder (NO usar la clase del widget para evitar auto-embedding) -->
       <div id="geocoder-container" class="geocoder-host"></div>
-      <!-- Evitar submit accidental: type="button" -->
-      <button id="confirm-location-btn" class="selection-button" type="button" disabled>
-
-      <div id="geocoder-container" class="leaflet-control-geocoder"></div>
-      <button id="confirm-location-btn" class="selection-button" disabled>
-
-        Confirmar ubicación
-      </button>
+      <!-- Evitar submits accidentales -->
+      <button id="confirm-location-btn" class="selection-button" type="button" disabled>Confirmar ubicación</button>
     </section>
     <section class="location-details">
       <p><strong>Ciudad:</strong> <span id="city-display">-</span></p>
