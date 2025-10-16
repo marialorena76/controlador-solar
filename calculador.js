@@ -245,7 +245,7 @@ function initializeMap() {
     }
 
     geocoderCtrl.addTo(map);
-    const geocoderEl = document.querySelector('.leaflet-control-geocoder');
+    const geocoderEl = mapContainer.querySelector('.leaflet-control-geocoder');
     if (geocoderEl && geocoderEl.parentNode !== geocoderContainer) {
       geocoderContainer.appendChild(geocoderEl);
 
@@ -267,14 +267,29 @@ function initializeMap() {
   map.on('click', (e) => handleLocationSelected(e.latlng));
 
   handleLocationSelected({ lat: defaultLat, lng: defaultLng }, userSelections.city);
+}
 
-  setTimeout(() => {
+function initMap() {
+  const mapContainer = document.getElementById('map');
+  const wasHidden =
+    mapContainer && (mapContainer.offsetParent === null || mapContainer.clientHeight === 0);
+
+  initializeMap();
+
+  const invalidate = () => {
+    if (!map) return;
     try {
       map.invalidateSize();
     } catch (error) {
       console.warn('No se pudo invalidar el tamaño del mapa:', error);
     }
-  }, 0);
+  };
+
+  if (wasHidden) {
+    requestAnimationFrame(() => requestAnimationFrame(invalidate));
+  } else {
+    requestAnimationFrame(invalidate);
+  }
 }
 
 function showScreen(screenId) {
@@ -360,12 +375,77 @@ function setupNavigationButtons() {
   }
 }
 
+function setupZonaInstalacionStep() {
+  const zonaRadios = Array.from(
+    document.querySelectorAll('input[name="zona-instalacion"], input[name="zonaInstalacionNewScreen"]')
+  );
+  const nextButton =
+    document.getElementById('btn-zona-siguiente') || document.getElementById('next-to-energia');
+
+  const updateSelectionState = () => {
+    const selectedRadio = zonaRadios.find((radio) => radio.checked);
+    if (selectedRadio) {
+      userSelections.selectedZonaInstalacion = selectedRadio.value;
+      if (nextButton) {
+        nextButton.disabled = false;
+      }
+    } else {
+      userSelections.selectedZonaInstalacion = null;
+      if (nextButton) {
+        nextButton.disabled = true;
+      }
+    }
+  };
+
+  zonaRadios.forEach((radio) => {
+    radio.addEventListener('change', () => {
+      updateSelectionState();
+    });
+  });
+
+  if (nextButton) {
+    nextButton.addEventListener('click', (event) => {
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
+      }
+
+      if (!userSelections.selectedZonaInstalacion) {
+        alert('Seleccioná una zona antes de continuar.');
+        return;
+      }
+
+      const stepScreens = document.querySelectorAll('.step-screen');
+      stepScreens.forEach((screen) => {
+        if (screen instanceof HTMLElement) {
+          screen.style.display = 'none';
+        }
+      });
+
+      const dataMeteorologicosSection = document.getElementById('data-meteorologicos-section');
+      if (dataMeteorologicosSection) {
+        dataMeteorologicosSection.style.display = 'none';
+      }
+
+      const energiaScreen =
+        document.getElementById('energia-screen') || document.getElementById('energia-section');
+      if (energiaScreen) {
+        energiaScreen.style.display = '';
+      } else {
+        console.warn('Pantalla de energía no encontrada.');
+      }
+    });
+  }
+
+  updateSelectionState();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadSavedLocation();
-  initializeMap();
   setupNavigationButtons();
+  setupZonaInstalacionStep();
   showScreen('map-screen');
   showMapScreenFormSection('map-container-section');
+  initMap();
 
   const confirmBtn = document.getElementById('confirm-location-btn');
   if (confirmBtn) {
@@ -376,25 +456,35 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       try {
-        const response = await fetch(`${API_BASE}/guardar_ciudad`, {
+        const response = await fetch(`${API_BASE}/ubicacion`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ciudad: userSelections.city })
+          body: JSON.stringify({ city: userSelections.city })
         });
 
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) {
+        if (!response.ok || data?.ok !== true) {
           throw new Error(data?.error || 'No se pudo guardar la ubicación');
         }
+
+        const savedCity = typeof data.city === 'string' && data.city.trim()
+          ? data.city.trim()
+          : userSelections.city;
 
         try {
           localStorage.setItem('ubicacionSeleccionada', JSON.stringify({
             lat: userLocation.lat,
             lng: userLocation.lng,
-            address: userSelections.city
+            address: savedCity
           }));
         } catch (error) {
           console.warn('No se pudo guardar la ubicación seleccionada:', error);
+        }
+
+        const locationDisplay = document.getElementById('location-display');
+        if (locationDisplay) {
+          locationDisplay.textContent = `Ubicación guardada: ${savedCity}`;
+          locationDisplay.style.backgroundColor = '#e9f5e9';
         }
 
         // Ocultar todos los elementos del área del mapa y mostrar solo la selección de tipo de usuario
@@ -411,6 +501,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } catch (error) {
         console.error('Error al guardar la ubicación:', error);
+        const locationDisplay = document.getElementById('location-display');
+        if (locationDisplay) {
+          locationDisplay.textContent = 'Error al guardar la ubicación.';
+          locationDisplay.style.backgroundColor = '#fbe9e7';
+        }
         alert('Error guardando la ubicación: ' + error.message);
       }
     });
