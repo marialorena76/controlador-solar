@@ -391,25 +391,35 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       try {
-        const response = await fetch(`${API_BASE}/guardar_ciudad`, {
+        const response = await fetch(`${API_BASE}/ubicacion`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ciudad: userSelections.city })
+          body: JSON.stringify({ city: userSelections.city })
         });
 
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) {
+        if (!response.ok || data?.ok !== true) {
           throw new Error(data?.error || 'No se pudo guardar la ubicación');
         }
+
+        const savedCity = typeof data.city === 'string' && data.city.trim()
+          ? data.city.trim()
+          : userSelections.city;
 
         try {
           localStorage.setItem('ubicacionSeleccionada', JSON.stringify({
             lat: userLocation.lat,
             lng: userLocation.lng,
-            address: userSelections.city
+            address: savedCity
           }));
         } catch (error) {
           console.warn('No se pudo guardar la ubicación seleccionada:', error);
+        }
+
+        const locationDisplay = document.getElementById('location-display');
+        if (locationDisplay) {
+          locationDisplay.textContent = `Ubicación guardada: ${savedCity}`;
+          locationDisplay.style.backgroundColor = '#e9f5e9';
         }
 
         // Ocultar todos los elementos del área del mapa y mostrar solo la selección de tipo de usuario
@@ -426,6 +436,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } catch (error) {
         console.error('Error al guardar la ubicación:', error);
+        const locationDisplay = document.getElementById('location-display');
+        if (locationDisplay) {
+          locationDisplay.textContent = 'Error al guardar la ubicación.';
+          locationDisplay.style.backgroundColor = '#fbe9e7';
+        }
         alert('Error guardando la ubicación: ' + error.message);
       }
     });
