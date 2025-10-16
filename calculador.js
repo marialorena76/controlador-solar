@@ -4,7 +4,6 @@ let map = null;
 let marker = null;
 let geocoderCtrl = null;
 let userLocation = { lat: -34.6037, lng: -58.3816 };
-let electrodomesticosCategorias = {};
 
 const userSelections = {
   userType: null,
@@ -359,114 +358,7 @@ function setupNavigationButtons() {
   if (incomeLowButton) {
     incomeLowButton.addEventListener('click', () => registerIncome('BAJO'));
   }
-
-  const nextToEnergiaBtn = document.getElementById('next-to-energia');
-  if (nextToEnergiaBtn) {
-    nextToEnergiaBtn.addEventListener('click', () => {
-      const selectedZona = document.querySelector('input[name="zonaInstalacionNewScreen"]:checked');
-      if (!selectedZona) {
-        alert('Por favor, seleccioná una zona de instalación.');
-        return;
-      }
-      userSelections.selectedZonaInstalacion = selectedZona.value;
-
-      const nextSection = userSelections.userType === 'experto' ? 'superficie-section' : 'energia-section';
-
-      const dataFormScreen = document.getElementById('data-form-screen');
-      const targetSection = dataFormScreen.querySelector(`#${nextSection}`);
-
-      // Ocultar la sección actual y mostrar la siguiente
-      document.getElementById('data-meteorologicos-section').style.display = 'none';
-      if(targetSection) {
-        targetSection.style.display = 'block';
-      }
-    });
-  }
 }
-
-async function cargarElectrodomesticosDesdeBackend() {
-    try {
-        const response = await fetch(API_BASE + '/electrodomesticos');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        // El JSON generado tiene una clave raíz "categorias"
-        electrodomesticosCategorias = data.categorias;
-        console.log('Electrodomésticos cargados desde el backend:', electrodomesticosCategorias);
-        initElectrodomesticosSection(); // Inicializa la interfaz de electrodomésticos
-        calcularConsumo(); // Recalcula el consumo con los datos cargados y cantidades del usuario
-    } catch (error) {
-        console.error('No se pudo cargar los electrodomésticos desde el backend (/api/electrodomesticos):', error);
-        const container = document.getElementById('electrodomesticos-list');
-        if (container) {
-            container.innerHTML = '<p class="city-error" style="display: block;">No se pudieron cargar los electrodomésticos. Intentalo nuevamente.</p>';
-        }
-    }
-}
-
-function initElectrodomesticosSection() {
-    // Dynamically set the title and description for the 'Energia' section based on user profile.
-    // NOTE: The selectors target the H1 and the P tags that are direct children of #energia-section.
-    // The P tag was added in a previous step to serve as a dynamic description area.
-    const energiaSectionTitle = document.querySelector('#energia-section > h1');
-    const energiaSectionDescription = document.querySelector('#energia-section > p');
-
-    let title = 'Consumo de Energía';
-    let description = 'A continuación ingrese los datos requeridos acerca de su consumo de energía eléctrica.';
-
-    if (userSelections.installationType === 'Comercial' || userSelections.installationType === 'PYME') {
-        title = 'Ingrese su consumo de Energia';
-        description = ''; // Remove subtitle
-    }
-
-    if (energiaSectionTitle) energiaSectionTitle.innerHTML = title;
-    if (energiaSectionDescription) energiaSectionDescription.innerHTML = description;
-
-    const modoSeleccionContainer = document.getElementById('energia-modo-seleccion-container');
-    const listContainer = document.getElementById('electrodomesticos-list');
-    const summaryContainer = document.querySelector('#energia-section .energy-summary');
-    // Ensure totalConsumoMensualDisplay and totalConsumoAnualDisplay are accessible if needed here
-    // const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');
-    // const totalConsumoAnualDisplay = document.getElementById('totalConsumoAnual');
-
-
-    if (!listContainer || !modoSeleccionContainer) {
-        console.error("Elementos necesarios para energia-section no encontrados.");
-        return;
-    }
-
-    // Default states
-    modoSeleccionContainer.style.display = 'none';
-    listContainer.innerHTML = ''; // Clear previous content from list area
-    if (summaryContainer) summaryContainer.style.display = 'none';
-
-
-    if (userSelections.userType === 'experto') {
-        // --- START: Definition of handleExpertEnergyChoice (moved up) ---
-        const handleExpertEnergyChoice = (choice) => {
-            const consumoFacturaForm = document.getElementById('consumo-factura-section');
-            const electrodomesticosList = document.getElementById('electrodomesticos-list');
-
-            // Hide all possible content sections first
-            if (electrodomesticosList) electrodomesticosList.style.display = 'none';
-            if (consumoFacturaForm) consumoFacturaForm.style.display = 'none';
-            if (summaryContainer) summaryContainer.style.display = 'none';
-            // Clear the list container to prevent old data from showing
-            if (listContainer) listContainer.innerHTML = '';
-
-
-            if (choice === 'detalleHogar') {
-                if (summaryContainer) summaryContainer.style.display = 'flex';
-                if (electrodomesticosList) electrodomesticosList.style.display = 'block';
-                populateStandardApplianceList(listContainer);
-            } else if (choice === 'boletaMensual') {
-                if (consumoFacturaForm) consumoFacturaForm.style.display = 'block';
-            } else if (choice === 'detalleHogarHoras') {
-                if (electrodomesticosList) electrodomesticosList.style.display = 'block';
-                populateDetailedApplianceList(listContainer);
-            }
-        };
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSavedLocation();
@@ -477,110 +369,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const confirmBtn = document.getElementById('confirm-location-btn');
   if (confirmBtn) {
-    confirmBtn.addEventListener('click', () => { // No longer async
+    confirmBtn.addEventListener('click', async () => {
       if (!userSelections.city) {
         alert('Elegí una ubicación o buscá una ciudad antes de confirmar.');
         return;
       }
 
-      // 1. Update UI immediately
-      const mapArea = document.querySelector('.map-area');
-      if (mapArea) {
-          mapArea.querySelector('h2').style.display = 'none';
-          mapArea.querySelector('.help-text').style.display = 'none';
-          mapArea.querySelector('#map-container-section').style.display = 'none';
-
-          const userTypeSection = mapArea.querySelector('#user-type-section');
-          if (userTypeSection) {
-              userTypeSection.style.display = 'block';
-          }
-      }
-
-      // 2. Save to localStorage
       try {
-        localStorage.setItem('ubicacionSeleccionada', JSON.stringify({
-          lat: userLocation.lat,
-          lng: userLocation.lng,
-          address: userSelections.city
-        }));
-      } catch (error) {
-        console.warn('No se pudo guardar la ubicación seleccionada:', error);
-      }
-
-      // 3. Make the API call in the background
-      fetch(`${API_BASE}/guardar_ciudad`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ciudad: userSelections.city })
-      })
-      .then(response => {
-        if (!response.ok) {
-            response.json().catch(() => ({})).then(data => {
-                const errorMessage = data?.error || 'No se pudo guardar la ubicación en el servidor';
-                console.error('Error al guardar la ubicación:', errorMessage);
-            });
-        }
-      })
-      .catch(error => {
-        console.error('Error de red al guardar la ubicación:', error);
-      });
-    });
-  }
-
-  // Load appliances when the energia section is shown
-  const nextToEnergiaBtn = document.getElementById('next-to-energia');
-  if (nextToEnergiaBtn) {
-    nextToEnergiaBtn.addEventListener('click', () => {
-      // ... (existing code)
-      if (targetSection.id === 'energia-section' && typeof cargarElectrodomesticosDesdeBackend === 'function') {
-        try {
-          cargarElectrodomesticosDesdeBackend();
-        } catch (error) {
-          console.error('Error al cargar electrodomésticos:', error);
-        }
-      }
-    });
-  }
-});
-
-function renderCategoriasAcordeon(categorias) {
-    const container = document.getElementById('electrodomesticos-list');
-    if (!container) return;
-    container.innerHTML = '';
-
-    for (const categoria in categorias) {
-        const categoriaContainer = document.createElement('div');
-        categoriaContainer.className = 'electrodomesticos-categoria';
-
-        const categoriaTitle = document.createElement('h2');
-        categoriaTitle.textContent = categoria.replace(/_/g, ' ');
-        categoriaContainer.appendChild(categoriaTitle);
-
-        categorias[categoria].forEach(item => {
-            const row = document.createElement('div');
-            row.className = 'electrodomestico-row';
-
-            const nameSpan = document.createElement('span');
-            nameSpan.textContent = item.nombre;
-            row.appendChild(nameSpan);
-
-            const consumptionSpan = document.createElement('span');
-            consumptionSpan.textContent = `Consumo: ${item.consumo_diario} kWh`;
-            row.appendChild(consumptionSpan);
-
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.min = 0;
-            input.className = 'electrodomestico-input';
-            input.dataset.consumo = item.consumo_diario;
-            input.dataset.categoria = categoria;
-            input.dataset.nombre = item.nombre;
-            input.value = userSelections.electrodomesticos[item.nombre]?.cantidad || 0;
-            row.appendChild(input);
-
-            categoriaContainer.appendChild(row);
+        const response = await fetch(`${API_BASE}/guardar_ciudad`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ciudad: userSelections.city })
         });
 
-        container.appendChild(categoriaContainer);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data?.error || 'No se pudo guardar la ubicación');
+        }
+
+        try {
+          localStorage.setItem('ubicacionSeleccionada', JSON.stringify({
+            lat: userLocation.lat,
+            lng: userLocation.lng,
+            address: userSelections.city
+          }));
+        } catch (error) {
+          console.warn('No se pudo guardar la ubicación seleccionada:', error);
+        }
+
+        // Ocultar todos los elementos del área del mapa y mostrar solo la selección de tipo de usuario
+        const mapArea = document.querySelector('.map-area');
+        if (mapArea) {
+            mapArea.querySelector('h2').style.display = 'none';
+            mapArea.querySelector('.help-text').style.display = 'none';
+            mapArea.querySelector('#map-container-section').style.display = 'none';
+
+            const userTypeSection = mapArea.querySelector('#user-type-section');
+            if (userTypeSection) {
+                userTypeSection.style.display = 'block';
+            }
+        }
+      } catch (error) {
+        console.error('Error al guardar la ubicación:', error);
+        alert('Error guardando la ubicación: ' + error.message);
+      }
+    });
+  }
+
+  if (typeof cargarElectrodomesticosJSON === 'function') {
+    try {
+      cargarElectrodomesticosJSON();
+    } catch (error) {
+      console.error('Error al cargar electrodomésticos:', error);
     }
-}
+  }
+});
