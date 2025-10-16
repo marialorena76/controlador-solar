@@ -245,7 +245,7 @@ function initializeMap() {
     }
 
     geocoderCtrl.addTo(map);
-    const geocoderEl = document.querySelector('.leaflet-control-geocoder');
+    const geocoderEl = mapContainer.querySelector('.leaflet-control-geocoder');
     if (geocoderEl && geocoderEl.parentNode !== geocoderContainer) {
       geocoderContainer.appendChild(geocoderEl);
 
@@ -267,14 +267,29 @@ function initializeMap() {
   map.on('click', (e) => handleLocationSelected(e.latlng));
 
   handleLocationSelected({ lat: defaultLat, lng: defaultLng }, userSelections.city);
+}
 
-  setTimeout(() => {
+function initMap() {
+  const mapContainer = document.getElementById('map');
+  const wasHidden =
+    mapContainer && (mapContainer.offsetParent === null || mapContainer.clientHeight === 0);
+
+  initializeMap();
+
+  const invalidate = () => {
+    if (!map) return;
     try {
       map.invalidateSize();
     } catch (error) {
       console.warn('No se pudo invalidar el tamaño del mapa:', error);
     }
-  }, 0);
+  };
+
+  if (wasHidden) {
+    requestAnimationFrame(() => requestAnimationFrame(invalidate));
+  } else {
+    requestAnimationFrame(invalidate);
+  }
 }
 
 function showScreen(screenId) {
@@ -362,10 +377,10 @@ function setupNavigationButtons() {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSavedLocation();
-  initializeMap();
   setupNavigationButtons();
   showScreen('map-screen');
   showMapScreenFormSection('map-container-section');
+  initMap();
 
   const confirmBtn = document.getElementById('confirm-location-btn');
   if (confirmBtn) {
