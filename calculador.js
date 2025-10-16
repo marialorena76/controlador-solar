@@ -375,9 +375,59 @@ function setupNavigationButtons() {
   }
 }
 
+function setupZonaInstalacionStep() {
+  const zonaRadios = Array.from(document.querySelectorAll('input[name="zona-instalacion"]'));
+  const nextButton = document.getElementById('btn-zona-siguiente');
+
+  const updateSelectionState = () => {
+    const selectedRadio = zonaRadios.find((radio) => radio.checked);
+    if (selectedRadio) {
+      userSelections.selectedZonaInstalacion = selectedRadio.value;
+      if (nextButton) {
+        nextButton.disabled = false;
+      }
+    } else {
+      userSelections.selectedZonaInstalacion = null;
+      if (nextButton) {
+        nextButton.disabled = true;
+      }
+    }
+  };
+
+  zonaRadios.forEach((radio) => {
+    radio.addEventListener('change', () => {
+      updateSelectionState();
+    });
+  });
+
+  if (nextButton) {
+    nextButton.addEventListener('click', () => {
+      if (!userSelections.selectedZonaInstalacion) {
+        alert('Seleccioná una zona antes de continuar.');
+        return;
+      }
+
+      const stepScreens = document.querySelectorAll('.step-screen');
+      stepScreens.forEach((screen) => {
+        if (screen instanceof HTMLElement) {
+          screen.style.display = 'none';
+        }
+      });
+
+      const energiaScreen = document.getElementById('energia-screen');
+      if (energiaScreen) {
+        energiaScreen.style.display = '';
+      }
+    });
+  }
+
+  updateSelectionState();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadSavedLocation();
   setupNavigationButtons();
+  setupZonaInstalacionStep();
   showScreen('map-screen');
   showMapScreenFormSection('map-container-section');
   initMap();
