@@ -376,8 +376,16 @@ function setupNavigationButtons() {
 }
 
 function setupZonaInstalacionStep() {
+
+  const zonaRadios = Array.from(
+    document.querySelectorAll('input[name="zona-instalacion"], input[name="zonaInstalacionNewScreen"]')
+  );
+  const nextButton =
+    document.getElementById('btn-zona-siguiente') || document.getElementById('next-to-energia');
+
   const zonaRadios = Array.from(document.querySelectorAll('input[name="zona-instalacion"]'));
   const nextButton = document.getElementById('btn-zona-siguiente');
+
 
   const updateSelectionState = () => {
     const selectedRadio = zonaRadios.find((radio) => radio.checked);
@@ -401,7 +409,15 @@ function setupZonaInstalacionStep() {
   });
 
   if (nextButton) {
+
+    nextButton.addEventListener('click', (event) => {
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
+      }
+
+
     nextButton.addEventListener('click', () => {
+
       if (!userSelections.selectedZonaInstalacion) {
         alert('Seleccioná una zona antes de continuar.');
         return;
@@ -414,9 +430,23 @@ function setupZonaInstalacionStep() {
         }
       });
 
+
+      const dataMeteorologicosSection = document.getElementById('data-meteorologicos-section');
+      if (dataMeteorologicosSection) {
+        dataMeteorologicosSection.style.display = 'none';
+      }
+
+      const energiaScreen =
+        document.getElementById('energia-screen') || document.getElementById('energia-section');
+      if (energiaScreen) {
+        energiaScreen.style.display = '';
+      } else {
+        console.warn('Pantalla de energía no encontrada.');
+
       const energiaScreen = document.getElementById('energia-screen');
       if (energiaScreen) {
         energiaScreen.style.display = '';
+
       }
     });
   }
