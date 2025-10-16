@@ -274,7 +274,13 @@ function initMap() {
   const wasHidden =
     mapContainer && (mapContainer.offsetParent === null || mapContainer.clientHeight === 0);
 
+
   initializeMap();
+
+
+
+  initializeMap();
+
 
   const invalidate = () => {
     if (!map) return;
@@ -376,11 +382,16 @@ function setupNavigationButtons() {
 }
 
 function setupZonaInstalacionStep() {
+
+
+
+main
   const zonaRadios = Array.from(
     document.querySelectorAll('input[name="zona-instalacion"], input[name="zonaInstalacionNewScreen"]')
   );
   const nextButton =
     document.getElementById('btn-zona-siguiente') || document.getElementById('next-to-energia');
+
   const zonaSection = document.getElementById('data-meteorologicos-section');
   const energiaSection =
     document.getElementById('energia-screen') || document.getElementById('energia-section');
@@ -393,6 +404,11 @@ function setupZonaInstalacionStep() {
     'altura-instalacion-section',
     'metodo-calculo-section'
   ];
+
+
+  const zonaRadios = Array.from(document.querySelectorAll('input[name="zona-instalacion"]'));
+  const nextButton = document.getElementById('btn-zona-siguiente');
+
 
   const updateSelectionState = () => {
     const selectedRadio = zonaRadios.find((radio) => radio.checked);
@@ -416,16 +432,27 @@ function setupZonaInstalacionStep() {
   });
 
   if (nextButton) {
+
     nextButton.disabled = true;
+
+
+
     nextButton.addEventListener('click', (event) => {
       if (typeof event?.preventDefault === 'function') {
         event.preventDefault();
       }
 
+
+
+
+    nextButton.addEventListener('click', () => {
+
+
       if (!userSelections.selectedZonaInstalacion) {
         alert('Seleccioná una zona antes de continuar.');
         return;
       }
+
 
       sectionsToHide.forEach((sectionId) => {
         const sectionEl = document.getElementById(sectionId);
@@ -445,6 +472,32 @@ function setupZonaInstalacionStep() {
 
       if (zonaSection) {
         zonaSection.style.display = 'none';
+
+      const stepScreens = document.querySelectorAll('.step-screen');
+      stepScreens.forEach((screen) => {
+        if (screen instanceof HTMLElement) {
+          screen.style.display = 'none';
+        }
+      });
+
+
+      const dataMeteorologicosSection = document.getElementById('data-meteorologicos-section');
+      if (dataMeteorologicosSection) {
+        dataMeteorologicosSection.style.display = 'none';
+      }
+
+      const energiaScreen =
+        document.getElementById('energia-screen') || document.getElementById('energia-section');
+      if (energiaScreen) {
+        energiaScreen.style.display = '';
+      } else {
+        console.warn('Pantalla de energía no encontrada.');
+
+      const energiaScreen = document.getElementById('energia-screen');
+      if (energiaScreen) {
+        energiaScreen.style.display = '';
+
+
       }
     });
   }
