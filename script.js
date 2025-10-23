@@ -58,11 +58,11 @@ const humedadSpan = document.getElementById('humedad');
 
 // 1. Inicialización del Mapa con Leaflet
 // Asegúrate de que 'mapa-container' existe en el HTML antes de que este script se ejecute
-const mapaContainer = document.getElementById('mapa-container');
+const mapaContainer = document.getElementById('map');
 
 // VERIFICACIÓN CRÍTICA: Asegurarse de que mapaContainer no es null
 if (!mapaContainer) {
-    console.error("Error: El elemento con ID 'mapa-container' no fue encontrado en el HTML.");
+    console.error("Error: El elemento con ID 'map' no fue encontrado en el HTML.");
     // Podrías mostrar un mensaje al usuario aquí si lo deseas
 } else {
     // Si el contenedor existe, inicializa el mapa

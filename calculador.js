@@ -122,7 +122,7 @@ function updateCitySelection(cityName) {
 
   const confirmBtn = document.getElementById('confirm-location-btn');
   if (confirmBtn) {
-    confirmBtn.disabled = !userSelections.city;
+        confirmBtn.disabled = !userSelections.city;
   }
 }
 
@@ -275,11 +275,11 @@ function initMap() {
     mapContainer && (mapContainer.offsetParent === null || mapContainer.clientHeight === 0);
 
 
-  initializeMap();
 
 
 
-  initializeMap();
+
+
 
 
   const invalidate = () => {
@@ -553,17 +553,17 @@ document.addEventListener('DOMContentLoaded', () => {
           locationDisplay.style.backgroundColor = '#e9f5e9';
         }
 
-        // Ocultar todos los elementos del área del mapa y mostrar solo la selección de tipo de usuario
-        const mapArea = document.querySelector('.map-area');
-        if (mapArea) {
-            mapArea.querySelector('h2').style.display = 'none';
-            mapArea.querySelector('.help-text').style.display = 'none';
-            mapArea.querySelector('#map-container-section').style.display = 'none';
-
-            const userTypeSection = mapArea.querySelector('#user-type-section');
-            if (userTypeSection) {
-                userTypeSection.style.display = 'block';
-            }
+        // Navegación: Ocultar la sección del mapa y mostrar la sección de tipo de usuario
+        showMapScreenFormSection('user-type-section');
+        
+        // Ocultar el encabezado y el texto de ayuda de la sección del mapa
+        const mapAreaTitle = document.querySelector('.map-area h2');
+        const mapAreaHelpText = document.querySelector('.map-area .help-text');
+        if (mapAreaTitle) {
+            mapAreaTitle.style.display = 'none';
+        }
+        if (mapAreaHelpText) {
+            mapAreaHelpText.style.display = 'none';
         }
       } catch (error) {
         console.error('Error al guardar la ubicación:', error);
