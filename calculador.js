@@ -1,7 +1,12 @@
+// Evitar ejecutar este archivo dos veces
+if (window.__CS_LOADED__) { console.warn('calculador.js ya cargado'); }
+if (window.__CS_LOADED__) throw new Error('CS_DUP_LOAD'); // corta la segunda ejecución
+window.__CS_LOADED__ = true;
+
 const API_BASE = "/api";
 
-let map = null;
-let marker = null;
+window.map ??= null;               // en vez de: let map;
+window.marker ??= null;  
 let geocoderCtrl = null;
 let userLocation = { lat: -34.6037, lng: -58.3816 };
 
@@ -49,7 +54,7 @@ const userSelections = {
 };
 
 
-let appliancesCache = null;
+window.appliancesCache ??= null; 
 
 // Cargar el JSON solo una vez
 async function ensureAppliancesLoaded() {
