@@ -43,6 +43,68 @@ PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 
 DEFAULT_EXCEL_FILENAME = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx'
 EXCEL_FILE_PATH = os.path.join(SCRIPT_DIR, DEFAULT_EXCEL_FILENAME)
+# === Persistencia rápida de la ciudad (JSON) ===
+STATE_PATH = os.path.join(SCRIPT_DIR, 'estado_ubicacion.json')
+
+def _persist_ciudad_rapido(city: str):
+    """Guarda solo el nombre de la ciudad en un JSON (respuesta instantánea)."""
+    data = {'city': (city or '').strip()}
+    with open(STATE_PATH, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False)
+    return data
+
+def _leer_ciudad_rapido():
+    """Lee la ciudad pendiente del JSON (si existe)."""
+    if not os.path.exists(STATE_PATH):
+        return None
+    try:
+        with open(STATE_PATH, 'r', encoding='utf-8') as f:
+            return (json.load(f) or {}).get('city')
+    except Exception:
+        return None
+
+def _escribir_ciudad_en_excel_si_pendiente():
+    """
+    Si hay una ciudad pendiente en estado_ubicacion.json y B7 es distinto,
+    escribe B7 y guarda Excel a archivo temporal y reemplaza atómicamente.
+    Debe llamarse bajo excel_lock.
+    """
+    from uuid import uuid4
+    import shutil
+
+    ciudad_pend = _leer_ciudad_rapido()
+    if not ciudad_pend:
+        return False  # nada que hacer
+
+    # Abrir Excel y leer B7 actual
+    wb = load_workbook(EXCEL_FILE_PATH, data_only=False, read_only=False, keep_vba=False, keep_links=False)
+    try:
+        sheet_name = 'Datos de Entrada'   # ajustá si tu hoja se llama distinto
+        if sheet_name not in wb.sheetnames:
+            raise KeyError(f"Hoja no encontrada: '{sheet_name}' (disponibles: {wb.sheetnames})")
+        ws = wb[sheet_name]
+        actual = (ws['B7'].value or '').strip()
+        if actual == ciudad_pend:
+            # ya está, no vuelvas a guardar
+            return False
+
+        ws['B7'] = ciudad_pend
+
+        # Guardar a RAM si existe (más rápido), o mismo dir
+        tmp_dir = '/dev/shm' if os.path.isdir('/dev/shm') else os.path.dirname(EXCEL_FILE_PATH)
+        tmp_path = os.path.join(tmp_dir, f'tmp_{uuid4().hex}.xlsx')
+
+        wb.save(tmp_path)
+        wb.close()
+        shutil.move(tmp_path, EXCEL_FILE_PATH)
+        return True
+    finally:
+        try:
+            wb.close()
+        except Exception:
+            pass
+
+
 CONSUMOS_JSON_PATH = os.path.join(PROJECT_ROOT, 'consumos_electrodomesticos.json')
 
 
@@ -160,7 +222,15 @@ def generar_informe():
         # para evitar condiciones de carrera. La sección crítica se mantiene al
         # mínimo, limitándose a la llamada del motor.
         with excel_lock:
-            resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
+          # 1) asegurar B7 actualizado si hay ciudad pendiente
+        try:
+            _escribir_ciudad_en_excel_si_pendiente()
+        except Exception as e:
+            print(f"WARN: No se pudo escribir B7 antes del motor: {e}")
+
+        # 2) correr el motor
+        resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
+
         print("Engine call successful.")
 
         # Clean NaN values before returning the JSON response.
@@ -1003,78 +1073,17 @@ def health():
 @app.route('/api/ubicacion', methods=['POST'])
 def set_ubicacion():
     """
-    Guarda la ciudad en B7 de 'Datos de Entrada'.
-    Protegido con lock, logs detallados y guardado a archivo temporal.
+    Versión rápida: guarda la ciudad en JSON y responde al instante.
+    El Excel se actualizará más tarde (en /api/generar_informe).
     """
-    import time
-    import json
-    import shutil
-    from tempfile import NamedTemporaryFile
-
-    t0 = time.time()
     try:
-        print("[/api/ubicacion] INICIO", flush=True)
         payload = request.get_json(force=True) or {}
         city = (payload.get('city') or '').strip()
-        lat = payload.get('lat'); lng = payload.get('lng')
-        print(f"[/api/ubicacion] payload={payload}", flush=True)
-
         if not city:
-            print("[/api/ubicacion] city vacío", flush=True)
             return jsonify({'error': 'city es requerido'}), 400
 
-        if not os.path.exists(EXCEL_FILE_PATH):
-            print(f"[/api/ubicacion] NO existe Excel: {EXCEL_FILE_PATH}", flush=True)
-            return jsonify({'error': 'Archivo Excel no encontrado.'}), 404
-
-        # BLOQUEO EXCLUSIVO para evitar colgues por acceso concurrente
-        print("[/api/ubicacion] esperando excel_lock...", flush=True)
-        with excel_lock:
-            print("[/api/ubicacion] excel_lock OBTENIDO", flush=True)
-
-            wb = load_workbook(
-              EXCEL_FILE_PATH,
-              data_only=False,
-              read_only=False,
-              keep_vba=False,
-              keep_links=False
-            )
-            print(f"[/api/ubicacion] hojas={wb.sheetnames}", flush=True)
-            try:
-                print("[/api/ubicacion] load_workbook...", flush=True)
-                wb = load_workbook(EXCEL_FILE_PATH, data_only=False, read_only=False, keep_vba=False)
-                print(f"[/api/ubicacion] hojas={wb.sheetnames}", flush=True)
-
-                sheet_name = 'Datos de Entrada'  # AJUSTAR si tu hoja tiene otro nombre exacto
-                if sheet_name not in wb.sheetnames:
-                    raise KeyError(f"Hoja no encontrada: '{sheet_name}' (disponibles: {wb.sheetnames})")
-
-                ws = wb[sheet_name]
-                ws['B7'] = city
-                print(f"[/api/ubicacion] B7 <- {city}", flush=True)
-
-                # Guardado a archivo temporal + reemplazo atómico
-                tmpf = NamedTemporaryFile(delete=False, dir=os.path.dirname(EXCEL_FILE_PATH), suffix='.xlsx')
-                tmpf_path = tmpf.name
-                tmpf.close()
-
-                print(f"[/api/ubicacion] wb.save({tmpf_path}) ...", flush=True)
-                wb.save(tmpf_path)
-                print("[/api/ubicacion] wb.save OK", flush=True)
-
-                print(f"[/api/ubicacion] reemplazo atómico -> {EXCEL_FILE_PATH}", flush=True)
-                shutil.move(tmpf_path, EXCEL_FILE_PATH)
-                print("[/api/ubicacion] move OK", flush=True)
-
-            finally:
-                if wb is not None:
-                    wb.close()
-                    print("[/api/ubicacion] wb.close()", flush=True)
-
-        t1 = time.time()
-        print(f"[/api/ubicacion] FIN ok en {t1 - t0:.2f}s", flush=True)
-        return jsonify({'ok': True, 'city': city, 'lat': lat, 'lng': lng})
-
+        _persist_ciudad_rapido(city)
+        return jsonify({'ok': True, 'city': city})
     except Exception as e:
         import traceback
         print("[/api/ubicacion] ERROR:", e, flush=True)
