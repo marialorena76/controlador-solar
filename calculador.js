@@ -48,7 +48,7 @@ const userSelections = {
   }
 };
 
-wind
+
 let appliancesCache = null;
 
 // Cargar el JSON solo una vez
@@ -354,6 +354,7 @@ function initMap() {
   }
 }
 
+
 function showScreen(screenId) {
   const screens = ['map-screen', 'data-form-screen'];
   screens.forEach((id) => {
@@ -513,6 +514,200 @@ function setupZonaInstalacionStep() {
   }
 
   updateSelectionState();
+}
+
+// === Config ===
+// URL del JSON (debe existir en la raíz pública del sitio)
+const APPLIANCES_JSON_URL = '/consumos_electrodomesticos.json';
+
+// Cache en memoria del JSON
+let appliancesCache = null;
+
+// Helpers de UI mínimos usados aquí
+function show(el) { if (el) el.style.display = ''; }
+function hide(el) { if (el) el.style.display = 'none'; }
+
+// Referencias a elementos de ENERGÍA (coinciden con tu HTML)
+const energiaSectionEl          = document.getElementById('energia-section');
+const listaElectrodomesticosEl = document.getElementById('electrodomesticos-list');
+const facturaMensualEl         = document.getElementById('consumo-factura-section');
+const promedioMensualEl        = document.getElementById('consumo-promedio-section'); // lo dejamos oculto salvo que lo uses
+const totalMensualEl           = document.getElementById('totalConsumoMensual');
+const totalAnualEl             = document.getElementById('totalConsumoAnual');
+const btnNextPaneles           = document.getElementById('next-to-paneles');
+
+// ---------- API de alto nivel que vas a llamar al entrar a Energía ----------
+async function initEnergyForBasic() {
+  if (!energiaSectionEl) return;
+
+  // Modo en función del tipo de instalación
+  const tipo = (userSelections?.installationType || '').toLowerCase(); // 'residencial' | 'comercial' | 'pyme'...
+
+  if (tipo === 'residencial') {
+    // Mostrar electrodomésticos
+    await ensureAppliancesLoaded();
+    renderAppliances(appliancesCache);
+    show(listaElectrodomesticosEl);
+    hide(facturaMensualEl);
+    hide(promedioMensualEl);
+  } else {
+    // Mostrar inputs de factura (12 meses)
+    ensureMonthlyInputsHandlers();
+    hide(listaElectrodomesticosEl);
+    show(facturaMensualEl);
+    hide(promedioMensualEl);
+  }
+
+  // Actualizar el resumen por si algo ya estaba tildado/completado
+  recalcEnergySummary();
+  show(energiaSectionEl);
+  energiaSectionEl.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ---------- Carga del JSON de electrodomésticos ----------
+async function ensureAppliancesLoaded() {
+  if (appliancesCache) return;
+  try {
+    const res = await fetch(APPLIANCES_JSON_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    appliancesCache = await res.json();
+  } catch (err) {
+    console.error('No se pudo cargar consumos_electrodomesticos.json:', err);
+    if (listaElectrodomesticosEl) {
+      listaElectrodomesticosEl.innerHTML =
+        `<div class="city-error">No se pudieron cargar los electrodomésticos.</div>`;
+    }
+  }
+}
+
+// ---------- Render de electrodomésticos (residencial) ----------
+function renderAppliances(data) {
+  if (!listaElectrodomesticosEl) return;
+  listaElectrodomesticosEl.innerHTML = '';
+
+  (data || []).forEach(item => {
+    // Ajustá claves según tu JSON (dejo kwh_mes como principal)
+    const kwhMes  = Number(item.kwh_mes ?? item.kwhMes ?? 0);
+    const nombre  = item.nombre ?? item.name ?? 'Item';
+
+    const row = document.createElement('div');
+    row.className = 'appliance-item';
+    row.innerHTML = `
+      <label class="appliance-row" style="display:flex;gap:.6rem;align-items:center;">
+        <input type="checkbox" class="appliance-check" data-kwh="${kwhMes}">
+        <span style="flex:1">${nombre}</span>
+        <small title="Consumo de referencia">(≈ ${kwhMes} kWh/mes)</small>
+      </label>
+    `;
+    listaElectrodomesticosEl.appendChild(row);
+  });
+
+  // Recalcular cada vez que el usuario tilda/ destilda algo
+  listaElectrodomesticosEl.addEventListener('change', () => {
+    recalcEnergyFromAppliances();
+    recalcEnergySummary();
+  }, { once: true });
+}
+
+// Suma los kWh/mes de los items tildados (residencial)
+function recalcEnergyFromAppliances() {
+  const checks = [...document.querySelectorAll('.appliance-check:checked')];
+  const kwhMes = checks.reduce((acc, el) => acc + Number(el.dataset.kwh || 0), 0);
+  // Guardamos en userSelections por si lo usás luego
+  userSelections.totalMonthlyKwh = kwhMes;
+  userSelections.totalYearlyKwh  = Math.round(kwhMes * 12);
+}
+
+// ---------- Handlers para inputs de 12 meses (comercial/pyme) ----------
+let monthlyInputsWired = false;
+function ensureMonthlyInputsHandlers() {
+  if (monthlyInputsWired) return;
+
+  const ids = [
+    'consumo-enero','consumo-febrero','consumo-marzo','consumo-abril',
+    'consumo-mayo','consumo-junio','consumo-julio','consumo-agosto',
+    'consumo-septiembre','consumo-octubre','consumo-noviembre','consumo-diciembre'
+  ];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => {
+        recalcEnergyFromMonthlyInputs();
+        recalcEnergySummary();
+      });
+    }
+  });
+  monthlyInputsWired = true;
+}
+
+function recalcEnergyFromMonthlyInputs() {
+  const ids = [
+    'consumo-enero','consumo-febrero','consumo-marzo','consumo-abril',
+    'consumo-mayo','consumo-junio','consumo-julio','consumo-agosto',
+    'consumo-septiembre','consumo-octubre','consumo-noviembre','consumo-diciembre'
+  ];
+  let sum = 0;
+  let count = 0;
+  ids.forEach(id => {
+    const v = Number(document.getElementById(id)?.value || 0);
+    sum += v;
+    if (!Number.isNaN(v) && v > 0) count++;
+  });
+  const promedioMes = sum / 12; // usamos promedio anual / 12; si querés promedio de meses cargados, usa (sum / count) con guardas
+  userSelections.totalMonthlyKwh = Math.round(promedioMes * 100) / 100;
+  userSelections.totalYearlyKwh  = Math.round(sum);
+}
+
+// ---------- Actualiza los 2 campos del resumen ----------
+function recalcEnergySummary() {
+  const kwhMes  = Number(userSelections.totalMonthlyKwh || 0);
+  const kwhAnio = Number(userSelections.totalYearlyKwh  || Math.round(kwhMes * 12));
+  if (totalMensualEl) totalMensualEl.value = kwhMes.toString();
+  if (totalAnualEl)   totalAnualEl.value   = kwhAnio.toString();
+}
+
+document.getElementById('btn-zona-next')?.addEventListener('click', async () => {
+  // (validaciones de zona, etc.)
+  const tipoUsuario = (userSelections.userType || '').toLowerCase();
+
+  if (tipoUsuario === 'basico') {
+    // Mostrar la sección de energía con el modo correcto
+    await initEnergyForBasic();
+
+    // ⚠️ Cuando termina la sección de energía, el botón "Siguiente"
+    // ya no lleva a paneles, sino a generar el informe.
+    const btnNext = document.getElementById('next-to-paneles');
+    if (btnNext) {
+      btnNext.addEventListener('click', async (e) => {
+        e.preventDefault();
+        // Calcula el consumo final y genera el informe automáticamente
+        recalcEnergySummary();
+        console.log('Generando informe para usuario básico...');
+        await generarInformeDesdeFrontend(); // 👈 función que tenés o agregamos abajo
+      });
+    }
+
+  } else {
+    // Flujo Avanzado (lo que ya tenías)
+    // showScreen('paneles-section');  // o como se llame tu siguiente pantalla
+  }
+});
+
+async function generarInformeDesdeFrontend() {
+  try {
+    const res = await fetch('/api/generar_informe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userSelections),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al generar el informe');
+    console.log('Informe generado:', data);
+    alert('✅ Informe generado correctamente');
+  } catch (err) {
+    console.error('Error generando informe:', err);
+    alert('❌ No se pudo generar el informe.');
+  }
 }
 
 
