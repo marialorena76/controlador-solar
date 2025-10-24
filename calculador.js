@@ -800,3 +800,105 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// ===== Hook universal para pasar de ZONA → ENERGÍA (usuario BÁSICO) =====
+
+// Helpers mínimos
+function isVisible(el) {
+  if (!el) return false;
+  const s = getComputedStyle(el);
+  if (s.display === 'none' || s.visibility === 'hidden' || s.opacity === '0') return false;
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.height > 0;
+}
+function textMatch(el, re) {
+  return el && re.test((el.textContent || '').trim());
+}
+function inZonaScreen() {
+  // Heurísticas: cualquiera que dé true ya alcanza
+  // 1) contenedor con id típico de zona
+  const candidates = [
+    '#zona-section', '#zona-instalacion-section', '#zona-inst-section',
+    '[data-step="zona"]', '.zona-section'
+  ];
+  if (candidates.some(sel => isVisible(document.querySelector(sel)))) return true;
+
+  // 2) hay radios/inputs de zona visibles
+  if ([...document.querySelectorAll('input[name="selectedZonaInstalacion"]')].some(isVisible)) return true;
+
+  // 3) hay un título típico
+  const h = [...document.querySelectorAll('h1,h2,h3')]
+    .find(x => /zona.*instalaci[oó]n/i.test(x.textContent || ''));
+  if (isVisible(h)) return true;
+
+  return false;
+}
+
+// Generar informe (si no tenés una función propia)
+async function generarInformeDesdeFrontend() {
+  try {
+    const res = await fetch('/api/generar_informe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userSelections),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al generar el informe');
+    alert('✅ Informe generado correctamente');
+    console.log('Informe:', data);
+  } catch (err) {
+    console.error(err);
+    alert('❌ No se pudo generar el informe.');
+  }
+}
+
+// Enganche global: cualquier click en “Siguiente” estando en Zona
+document.addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('button, a[role="button"], input[type="submit"]');
+  if (!btn) return;
+
+  // ¿Es un “Siguiente” visible?
+  if (!isVisible(btn) || !textMatch(btn, /siguiente/i)) return;
+
+  // ¿Estamos en la pantalla de Zona?
+  if (!inZonaScreen()) return;
+
+  const tipoUsuario = (userSelections?.userType || '').toLowerCase();
+  if (tipoUsuario !== 'basico') return; // solo para Básico
+
+  // Intercepto la navegación normal y abro ENERGÍA
+  ev.preventDefault();
+  ev.stopPropagation();
+
+  try {
+    if (typeof initEnergyForBasic === 'function') {
+      await initEnergyForBasic();
+    }
+
+    // Mostrar energía sí o sí
+    document.querySelectorAll('.screen, [id$="-section"]').forEach(s => {
+      if (isVisible(s)) s.style.display = 'none';
+    });
+    const energia = document.getElementById('energia-section');
+    if (energia) {
+      energia.style.display = '';
+      energia.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      console.error('[ENERGIA] No existe #energia-section en el DOM.');
+    }
+
+    // En Básico, el botón “Siguiente” de Energía debe generar informe
+    const nextBtn = document.getElementById('next-to-paneles');
+    if (nextBtn && !nextBtn.__hookGenInforme) {
+      nextBtn.__hookGenInforme = true;
+      nextBtn.addEventListener('click', async (e2) => {
+        e2.preventDefault();
+        if (typeof recalcEnergySummary === 'function') recalcEnergySummary();
+        await (typeof generarInformeDesdeFrontend === 'function'
+          ? generarInformeDesdeFrontend()
+          : Promise.resolve());
+      });
+    }
+  } catch (err) {
+    console.error('[ENERGIA] Error al abrir energía:', err);
+  }
+}, { capture: true });
