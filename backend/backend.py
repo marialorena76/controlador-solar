@@ -1073,8 +1073,8 @@ def health():
 @app.route('/api/ubicacion', methods=['POST'])
 def set_ubicacion():
     """
-    Versión rápida: guarda la ciudad en JSON y responde al instante.
-    El Excel se actualizará más tarde (en /api/generar_informe).
+    RÁPIDO: guarda la ciudad en JSON y responde al toque.
+    El Excel se actualizará más tarde, al generar el informe.
     """
     try:
         payload = request.get_json(force=True) or {}
@@ -1089,6 +1089,42 @@ def set_ubicacion():
         print("[/api/ubicacion] ERROR:", e, flush=True)
         print(traceback.format_exc(), flush=True)
         return jsonify({'error': str(e)}), 500
+
+def _escribir_ciudad_en_excel_si_pendiente():
+    """Escribe B7 si hay ciudad pendiente en el JSON. Debe llamarse bajo excel_lock."""
+    from uuid import uuid4
+    import shutil
+
+    ciudad_pend = _leer_ciudad_rapido()
+    if not ciudad_pend:
+        return False
+
+    wb = load_workbook(EXCEL_FILE_PATH, data_only=False, read_only=False, keep_vba=False, keep_links=False)
+    try:
+        sheet_name = 'Datos de Entrada'  # ajustá si difiere
+        if sheet_name not in wb.sheetnames:
+            raise KeyError(f"Hoja no encontrada: '{sheet_name}' (disponibles: {wb.sheetnames})")
+
+        ws = wb[sheet_name]
+        actual = (ws['B7'].value or '').strip()
+        if actual == ciudad_pend:
+            return False
+
+        ws['B7'] = ciudad_pend
+
+        # guardar en RAM si existe (mucho más rápido) y reemplazar
+        tmp_dir = '/dev/shm' if os.path.isdir('/dev/shm') else os.path.dirname(EXCEL_FILE_PATH)
+        tmp_path = os.path.join(tmp_dir, f'tmp_{uuid4().hex}.xlsx')
+        wb.save(tmp_path)
+        wb.close()
+        shutil.move(tmp_path, EXCEL_FILE_PATH)
+        return True
+    finally:
+        try:
+            wb.close()
+        except Exception:
+            pass
+
 
 
 
