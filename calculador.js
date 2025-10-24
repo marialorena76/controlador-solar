@@ -48,7 +48,58 @@ const userSelections = {
   }
 };
 
-window.userSelections = userSelections;
+wind
+let appliancesCache = null;
+
+// Cargar el JSON solo una vez
+async function ensureAppliancesLoaded() {
+  if (appliancesCache) { renderAppliances(appliancesCache); return; }
+  try {
+    const res = await fetch('/consumos_electrodomesticos.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    appliancesCache = await res.json();
+    renderAppliances(appliancesCache);
+  } catch (err) {
+    console.error('No se pudo cargar consumos_electrodomesticos.json:', err);
+    const cont = document.getElementById('appliance-list');
+    if (cont) cont.innerHTML = `<div class="city-error">No se pudieron cargar los electrodomésticos.</div>`;
+  }
+}
+
+// Pintar la lista en la pantalla de Energía
+function renderAppliances(data) {
+  const cont = document.getElementById('appliance-list'); // Asegurate que exista en el HTML
+  if (!cont) return;
+  cont.innerHTML = '';
+
+  (data || []).forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'appliance-item';
+    // Ajustá las propiedades según tu JSON (nombre / kwh_mes / etc.)
+    row.innerHTML = `
+      <label class="appliance-row">
+        <input type="checkbox" class="appliance-check" data-kwh="${item.kwh_mes || item.kwhMes || 0}">
+        <span>${item.nombre || item.name}</span>
+      </label>
+    `;
+    cont.appendChild(row);
+  });
+
+  // (opcional) recalcular consumo cuando el usuario tilda
+  cont.addEventListener('change', handleApplianceChange, { once: true });
+}
+
+function handleApplianceChange() {
+  const checks = [...document.querySelectorAll('.appliance-check:checked')];
+  const kwhMes = checks.reduce((acc, el) => acc + Number(el.dataset.kwh || 0), 0);
+  const kwhAnio = Math.round(kwhMes * 12);
+
+  // Mostrarlos en los campos que ves en la captura
+  const mesEl  = document.querySelector('#energia-mensual'); // id del input mensual
+  const anioEl = document.querySelector('#energia-anual');   // id del input anual
+  if (mesEl)  mesEl.value  = (Math.round(kwhMes * 100) / 100).toString();
+  if (anioEl) anioEl.value = kwhAnio.toString();
+}
 
 function loadSavedLocation() {
   try {
@@ -553,3 +604,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 });
+
