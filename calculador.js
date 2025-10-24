@@ -221,9 +221,14 @@ function initializeMap() {
 
   map = L.map('map').setView([defaultLat, defaultLng], 5);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+
+// Diagnóstico si hubiera bloqueo de tiles
+map.on('load', () => console.log('Leaflet map load OK'));
+map.eachLayer(l => l.on?.('tileerror', e => console.error('Tile error', e)));
 
   geocoderCtrl = L.Control.geocoder({
     defaultMarkGeocode: false,
@@ -244,7 +249,7 @@ function initializeMap() {
       geocoderContainer.removeChild(geocoderContainer.firstChild);
     }
 
-    geocoderCtrl.addTo(map);
+   // geocoderCtrl.addTo(map);
     const geocoderEl = mapContainer.querySelector('.leaflet-control-geocoder');
     if (geocoderEl && geocoderEl.parentNode !== geocoderContainer) {
       geocoderContainer.appendChild(geocoderEl);
@@ -466,6 +471,9 @@ document.addEventListener('DOMContentLoaded', () => {
   setupZonaInstalacionStep();
   showScreen('map-screen');
   showMapScreenFormSection('map-container-section');
+  const mapScreen = document.getElementById('map-screen');
+  if (mapScreen) mapScreen.style.display = 'block';
+  requestAnimationFrame(() => {
   initializeMap(); 
   setTimeout(() => {        // por si el contenedor se pintó oculto
     if (window.map && map.invalidateSize) map.invalidateSize();
