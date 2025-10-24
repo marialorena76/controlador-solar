@@ -249,7 +249,7 @@ map.eachLayer(l => l.on?.('tileerror', e => console.error('Tile error', e)));
       geocoderContainer.removeChild(geocoderContainer.firstChild);
     }
 
-   // geocoderCtrl.addTo(map);
+    geocoderCtrl.addTo(map);
     const geocoderEl = mapContainer.querySelector('.leaflet-control-geocoder');
     if (geocoderEl && geocoderEl.parentNode !== geocoderContainer) {
       geocoderContainer.appendChild(geocoderEl);
