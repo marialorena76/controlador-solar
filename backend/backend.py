@@ -204,6 +204,7 @@ def get_electrodomesticos_consumos():
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
+
 # --- Ruta para generar informe (EXISTENTE) ---
 @app.route('/api/generar_informe', methods=['POST'])
 def generar_informe():
@@ -217,22 +218,20 @@ def generar_informe():
             return jsonify({"error": "No se recibieron datos"}), 400
 
         print("Calling calculation engine...")
-        # El motor de cálculo accede al mismo archivo Excel que la ruta de
-        # actualización, por lo que ambas operaciones comparten el mismo lock
-        # para evitar condiciones de carrera. La sección crítica se mantiene al
-        # mínimo, limitándose a la llamada del motor.
-with excel_lock:
-    # 1) asegurar B7 actualizado si hay ciudad pendiente
-    try:
-        _escribir_ciudad_en_excel_si_pendiente()
-    except Exception as e:
-        print(f"WARN: No se pudo escribir B7 antes del motor: {e}")
 
-    # 2) correr el motor
-    resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
+        # Sección crítica: primero escribimos B7 si hay ciudad pendiente,
+        # luego corremos el motor. Todo bajo el mismo lock.
+        with excel_lock:
+            try:
+                _escribir_ciudad_en_excel_si_pendiente()
+            except Exception as e:
+                print(f"WARN: No se pudo escribir B7 antes del motor: {e}")
+
+            resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
+
         print("Engine call successful.")
 
-        # Clean NaN values before returning the JSON response.
+        # Limpiar NaN antes de responder
         resultados_calculo_clean = clean_nan_in_data(resultados_calculo)
 
         if "error" in resultados_calculo_clean:
@@ -247,6 +246,7 @@ with excel_lock:
         error_info = traceback.format_exc()
         print(f"UNEXPECTED CRASH in /api/generar_informe: {e}\n{error_info}")
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
+
 
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
 @app.route('/')
