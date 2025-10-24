@@ -5,8 +5,8 @@ window.__CS_LOADED__ = true;
 
 const API_BASE = "/api";
 
-window.map ??= null;               // en vez de: let map;
-window.marker ??= null;  
+let map = null;
+let marker = null; 
 let geocoderCtrl = null;
 let userLocation = { lat: -34.6037, lng: -58.3816 };
 
@@ -253,81 +253,73 @@ function initializeMap() {
     return;
   }
 
-  if (map) {
-    try { map.off(); } catch (error) { console.warn('No se pudo quitar eventos previos del mapa:', error); }
-    try { map.remove(); } catch (error) { console.warn('No se pudo remover el mapa previo:', error); }
-    map = null;
+  // Cerrar/limpiar mapa previo sin romper si 'map' no es de Leaflet
+  if (map && typeof map.remove === 'function') {
+    try { map.off(); } catch (e) { /* nada */ }
+    try { map.remove(); } catch (e) { /* nada */ }
   }
+  map = null;
   marker = null;
   geocoderCtrl = null;
 
+  // Esperar a que el contenedor exista y tenga dimensiones
   const mapContainer = document.getElementById('map');
   if (!mapContainer) {
     console.warn('Contenedor del mapa no encontrado.');
     return;
   }
 
-  const confirmBtn = document.getElementById('confirm-location-btn');
-  if (confirmBtn) {
-    confirmBtn.disabled = !userSelections.city;
+  // A veces el contenedor existe pero aún no tiene layout; forzá el init al próximo frame
+  if (mapContainer.offsetWidth === 0 || mapContainer.offsetHeight === 0) {
+    requestAnimationFrame(initializeMap);
+    return;
   }
 
-  const defaultLat = typeof userLocation.lat === 'number' ? userLocation.lat : -34.6037;
-  const defaultLng = typeof userLocation.lng === 'number' ? userLocation.lng : -58.3816;
+  // Crear mapa y capa base
+  map = L.map('map').setView(
+    [ (userLocation?.lat ?? -34.6037), (userLocation?.lng ?? -58.3816) ],
+    13
+  );
 
-  map = L.map('map').setView([defaultLat, defaultLng], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
 
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-  maxZoom: 19
-}).addTo(map);
-
-// Diagnóstico si hubiera bloqueo de tiles
-map.on('load', () => console.log('Leaflet map load OK'));
-map.eachLayer(l => l.on?.('tileerror', e => console.error('Tile error', e)));
-
+  // Geocoder
   geocoderCtrl = L.Control.geocoder({
     defaultMarkGeocode: false,
     placeholder: 'Buscar ciudad o dirección...',
     showResultIcons: true
-  });
-
-  geocoderCtrl.on('markgeocode', (e) => {
+  })
+  .on('markgeocode', (e) => {
     const center = e.geocode.center;
     const cityName = e.geocode.name || e.geocode.properties?.display_name || null;
     map.setView(center, 13);
-    handleLocationSelected(center, cityName);
-  });
+    handleLocationSelected(center, cityName); // tu función actual
+  })
+  .addTo(map);
 
+  // Si querés mover el geocoder a tu contenedor custom
   const geocoderContainer = document.getElementById('geocoder-container');
   if (geocoderContainer) {
-    while (geocoderContainer.firstChild) {
-      geocoderContainer.removeChild(geocoderContainer.firstChild);
-    }
-
-    geocoderCtrl.addTo(map);
-    const geocoderEl = mapContainer.querySelector('.leaflet-control-geocoder');
+    const geocoderEl = document.querySelector('.leaflet-control-geocoder');
     if (geocoderEl && geocoderEl.parentNode !== geocoderContainer) {
       geocoderContainer.appendChild(geocoderEl);
-
-      const form = geocoderEl.querySelector('.leaflet-control-geocoder-form');
-      if (form) {
-        let submitBtn = form.querySelector('button');
-        if (!submitBtn) {
-          submitBtn = document.createElement('button');
-          submitBtn.type = 'submit';
-          form.appendChild(submitBtn);
-        }
-        submitBtn.textContent = 'Buscar';
-      }
     }
-  } else {
-    geocoderCtrl.addTo(map);
   }
 
-  map.on('click', (e) => handleLocationSelected(e.latlng));
+  // Marker inicial (si tenés userLocation)
+  if (userLocation?.lat && userLocation?.lng) {
+    marker = L.marker([userLocation.lat, userLocation.lng]).addTo(map);
+  }
 
-  handleLocationSelected({ lat: defaultLat, lng: defaultLng }, userSelections.city);
+  // Click en el mapa → actualizar selección
+  map.on('click', (e) => {
+    const latlng = e.latlng;
+    if (!marker) marker = L.marker(latlng).addTo(map);
+    else marker.setLatLng(latlng);
+    handleLocationSelected(latlng, null); // vos resolvés el nombre vía backend o reverse
+  });
 }
 
 function initMap() {

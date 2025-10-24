@@ -69,8 +69,7 @@
 
 
  /* Altura visible del mapa */
-  #map { width:100%; height:600px; border-radius:10px; border:1px solid var(--border-color); }
-
+  #map { width: 100%; height: 520px; min-height: 520px; }
 
   /* El contenedor del geocoder va sobre el mapa */
   #map-container-section { position: relative; }
@@ -709,24 +708,30 @@
             border-bottom: 1px solid #555;
             padding-bottom: 5px;
         }
-        * === Posición del buscador del mapa === */
-    #map-container-section { 
-      position: relative; 
-    }
-#geocoder-container{
-    position: absolute;
-    left: 50%;
-    bottom: 14px;
-    transform: translateX(-50%);
-    z-index: 1000;
-    width: min(700px, 90%);
-    pointer-events: none;            /* <- clave: no bloquear clics del mapa */
+/* === Posición del buscador del mapa === */
+#map-container-section {
+  position: relative;
 }
 
-/* Solo el control del geocoder vuelve a aceptar interacción */
-#geocoder-container .leaflet-control-geocoder,
-#geocoder-container .leaflet-control-geocoder *{
+#geocoder-container {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: min(700px, 90%);
+  pointer-events: none;   /* no bloquea clics del mapa */
+}
+
+/* Habilitar interacción solo dentro del control */
+#geocoder-container .leaflet-control-geocoder {
   pointer-events: auto;
+}
+
+/* Tamaño del mapa (si aún no lo agregaste) */
+#map {
+  height: 600px;
+  width: 100%;
 }
 
 /* seguridad: el mapa debajo */
