@@ -221,16 +221,15 @@ def generar_informe():
         # actualización, por lo que ambas operaciones comparten el mismo lock
         # para evitar condiciones de carrera. La sección crítica se mantiene al
         # mínimo, limitándose a la llamada del motor.
-        with excel_lock:
-          # 1) asegurar B7 actualizado si hay ciudad pendiente
-        try:
-            _escribir_ciudad_en_excel_si_pendiente()
-        except Exception as e:
-            print(f"WARN: No se pudo escribir B7 antes del motor: {e}")
+with excel_lock:
+    # 1) asegurar B7 actualizado si hay ciudad pendiente
+    try:
+        _escribir_ciudad_en_excel_si_pendiente()
+    except Exception as e:
+        print(f"WARN: No se pudo escribir B7 antes del motor: {e}")
 
-        # 2) correr el motor
-        resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
-
+    # 2) correr el motor
+    resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
         print("Engine call successful.")
 
         # Clean NaN values before returning the JSON response.
