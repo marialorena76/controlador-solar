@@ -382,10 +382,6 @@ function setupNavigationButtons() {
 }
 
 function setupZonaInstalacionStep() {
-
-
-
-main
   const zonaRadios = Array.from(
     document.querySelectorAll('input[name="zona-instalacion"], input[name="zonaInstalacionNewScreen"]')
   );
@@ -405,55 +401,32 @@ main
     'metodo-calculo-section'
   ];
 
-
-  const zonaRadios = Array.from(document.querySelectorAll('input[name="zona-instalacion"]'));
-  const nextButton = document.getElementById('btn-zona-siguiente');
-
-
   const updateSelectionState = () => {
     const selectedRadio = zonaRadios.find((radio) => radio.checked);
     if (selectedRadio) {
       userSelections.selectedZonaInstalacion = selectedRadio.value;
-      if (nextButton) {
-        nextButton.disabled = false;
-      }
+      if (nextButton) nextButton.disabled = false;
     } else {
       userSelections.selectedZonaInstalacion = null;
-      if (nextButton) {
-        nextButton.disabled = true;
-      }
+      if (nextButton) nextButton.disabled = true;
     }
   };
 
   zonaRadios.forEach((radio) => {
-    radio.addEventListener('change', () => {
-      updateSelectionState();
-    });
+    radio.addEventListener('change', updateSelectionState);
   });
 
   if (nextButton) {
-
     nextButton.disabled = true;
-
-
-
     nextButton.addEventListener('click', (event) => {
-      if (typeof event?.preventDefault === 'function') {
-        event.preventDefault();
-      }
-
-
-
-
-    nextButton.addEventListener('click', () => {
-
+      event?.preventDefault?.();
 
       if (!userSelections.selectedZonaInstalacion) {
         alert('Seleccioná una zona antes de continuar.');
         return;
       }
 
-
+      // Ocultar secciones intermedias
       sectionsToHide.forEach((sectionId) => {
         const sectionEl = document.getElementById(sectionId);
         if (sectionEl && sectionEl !== energiaSection) {
@@ -461,49 +434,31 @@ main
         }
       });
 
+      // Mostrar pantalla/section de energía
       if (energiaSection) {
         energiaSection.style.display = 'block';
-        if (typeof energiaSection.scrollIntoView === 'function') {
-          energiaSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        energiaSection.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
       } else {
         console.warn('Pantalla de energía no encontrada.');
       }
 
+      // Ocultar la sección actual (si existe)
       if (zonaSection) {
         zonaSection.style.display = 'none';
+      }
 
-      const stepScreens = document.querySelectorAll('.step-screen');
-      stepScreens.forEach((screen) => {
-        if (screen instanceof HTMLElement) {
-          screen.style.display = 'none';
-        }
+      // Si usás pantallas por clase
+      document.querySelectorAll('.step-screen').forEach((screen) => {
+        if (screen instanceof HTMLElement) screen.style.display = 'none';
       });
-
-
-      const dataMeteorologicosSection = document.getElementById('data-meteorologicos-section');
-      if (dataMeteorologicosSection) {
-        dataMeteorologicosSection.style.display = 'none';
-      }
-
-      const energiaScreen =
-        document.getElementById('energia-screen') || document.getElementById('energia-section');
-      if (energiaScreen) {
-        energiaScreen.style.display = '';
-      } else {
-        console.warn('Pantalla de energía no encontrada.');
-
       const energiaScreen = document.getElementById('energia-screen');
-      if (energiaScreen) {
-        energiaScreen.style.display = '';
-
-
-      }
+      if (energiaScreen) energiaScreen.style.display = '';
     });
   }
 
   updateSelectionState();
 }
+
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSavedLocation();
@@ -511,6 +466,11 @@ document.addEventListener('DOMContentLoaded', () => {
   setupZonaInstalacionStep();
   showScreen('map-screen');
   showMapScreenFormSection('map-container-section');
+  initializeMap(); 
+  setTimeout(() => {        // por si el contenedor se pintó oculto
+    if (window.map && map.invalidateSize) map.invalidateSize();
+  }, 200);
+  });
   initMap();
 
   const confirmBtn = document.getElementById('confirm-location-btn');

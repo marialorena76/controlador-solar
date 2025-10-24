@@ -6,8 +6,9 @@
     <title>Calculador Solar</title>
     <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./styles.css?v=prod2">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css">
+    
     <style>
         :root {
             --color-primary: #FF8442;
@@ -67,6 +68,21 @@
         .logo-small { max-height: 40px; width: auto; }
 
 
+ /* Altura visible del mapa */
+  #map { width: 100%; height: 520px; min-height: 520px; }
+
+  /* El contenedor del geocoder va sobre el mapa */
+  #map-container-section { position: relative; }
+  #geocoder-container {
+    position: absolute;
+    left: 50%;
+    bottom: 14px;
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: min(700px, 90%);
+    pointer-events: none; /* no tapar clics del mapa */
+  }
+  #geocoder-container .leaflet-control { pointer-events: auto; }
 
 #map-screen {
     width: 100%;
@@ -1151,9 +1167,12 @@
     <div id="resultados-informe" class="basic-report-summary-container"></div>
 
     <script src="reportTableHelper.js?v=prod1" defer></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-    <script src="calculador.js?v=prod6" defer></script>
+
+    <!-- Tu script principal (ajustá la ruta si es distinta) -->
+    <script src="calculador.js"></script>
 
     <footer>
         <div class="footer-logos">
