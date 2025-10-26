@@ -375,103 +375,107 @@ function showMapScreenFormSection(sectionIdToShow) {
 }
 
 function setupNavigationButtons() {
-    const mainContainer = document.getElementById('data-form-screen');
-    const sidebar = mainContainer ? mainContainer.querySelector('.sidebar') : null;
+  const confirmBtn = document.getElementById('confirm-location-btn');
+  const basicUserBtn = document.getElementById('basic-user-button');
+  const expertUserBtn = document.getElementById('expert-user-button');
+  const residentialBtn = document.getElementById('residential-button');
+  const commercialBtn = document.getElementById('commercial-button');
+  const pymeBtn = document.getElementById('pyme-button');
+  const incomeHighBtn = document.getElementById('income-high-button');
+  const incomeMediumBtn = document.getElementById('income-medium-button');
+  const incomeLowBtn = document.getElementById('income-low-button');
+  const sidebar = document.querySelector('#data-form-screen .sidebar');
 
-    document.getElementById('basic-user-button')?.addEventListener('click', () => {
-        userSelections.userType = 'Basico';
-        if (sidebar) sidebar.classList.add('hidden');
-        showMapScreenFormSection('supply-section');
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', () => {
+      if (!userSelections.location.lat) {
+        alert('Por favor, selecciona una ubicación en el mapa.');
+        return;
+      }
+      showMapScreenFormSection('user-type-section');
     });
+  }
 
-    document.getElementById('expert-user-button')?.addEventListener('click', () => {
-        userSelections.userType = 'Experto';
-        if (sidebar) sidebar.classList.remove('hidden');
-        showMapScreenFormSection('supply-section');
+  if (basicUserBtn) {
+    basicUserBtn.addEventListener('click', () => {
+      userSelections.userType = 'Basico';
+      if(sidebar) sidebar.classList.add('hidden');
+      showMapScreenFormSection('supply-section');
     });
+  }
 
-    document.getElementById('residential-button')?.addEventListener('click', () => {
-        userSelections.installationType = 'Residencial';
-        showMapScreenFormSection('income-section');
+  if (expertUserBtn) {
+    expertUserBtn.addEventListener('click', () => {
+      userSelections.userType = 'Experto';
+      if(sidebar) sidebar.classList.remove('hidden');
+      showMapScreenFormSection('supply-section');
     });
+  }
 
-    // Helper para manejar botones de Nivel de Ingreso
-    const handleIncomeSelection = (incomeLevel) => {
-        userSelections.incomeLevel = incomeLevel;
-        if (userSelections.userType === 'Basico') {
-            showScreen('data-form-screen');
-            document.getElementById('data-meteorologicos-section').classList.remove('hidden');
-            document.getElementById('energia-section').classList.add('hidden');
-            showMapScreenFormSection('data-meteorologicos-section');
-        } else {
-            showScreen('data-form-screen');
-        }
-    };
+  if (residentialBtn) {
+    residentialBtn.addEventListener('click', () => {
+      userSelections.installationType = 'Residencial';
+      showMapScreenFormSection('income-section');
+    });
+  }
 
-    document.getElementById('income-high-button')?.addEventListener('click', () => handleIncomeSelection('ALTO'));
-    document.getElementById('income-low-button')?.addEventListener('click', () => handleIncomeSelection('BAJO'));
-
-    // Botones para usuarios no residenciales (flujo experto)
-    const goToDataScreen = (type) => {
-        userSelections.installationType = type;
+  if (commercialBtn) {
+      commercialBtn.addEventListener('click', () => {
+        userSelections.installationType = 'Comercial';
         if (sidebar) sidebar.classList.remove('hidden');
         showScreen('data-form-screen');
-    };
+      });
+  }
 
-    document.getElementById('commercial-button')?.addEventListener('click', () => goToDataScreen('Comercial'));
-    document.getElementById('pyme-button')?.addEventListener('click', () => goToDataScreen('PYME'));
-    document.getElementById('income-medium-button')?.addEventListener('click', () => handleIncomeSelection('MEDIO'));
+  if (pymeBtn) {
+      pymeBtn.addEventListener('click', () => {
+        userSelections.installationType = 'PYME';
+        if (sidebar) sidebar.classList.remove('hidden');
+        showScreen('data-form-screen');
+      });
+  }
+
+  const handleIncomeSelection = (level) => {
+    userSelections.incomeLevel = level;
+    if (userSelections.userType === 'Basico') {
+      showScreen('data-form-screen');
+      document.getElementById('data-meteorologicos-section').classList.remove('hidden');
+      document.getElementById('energia-section').classList.add('hidden');
+    } else {
+      showScreen('data-form-screen');
+    }
+  };
+
+  if (incomeHighBtn) incomeHighBtn.addEventListener('click', () => handleIncomeSelection('ALTO'));
+  if (incomeMediumBtn) incomeMediumBtn.addEventListener('click', () => handleIncomeSelection('MEDIO'));
+  if (incomeLowBtn) incomeLowBtn.addEventListener('click', () => handleIncomeSelection('BAJO'));
 }
 
 function setupZonaInstalacionStep() {
-  const zonaRadios = Array.from(
-    document.querySelectorAll('input[name="zona-instalacion"], input[name="zonaInstalacionNewScreen"]')
-  );
-  const nextButton =
-    document.getElementById('btn-zona-siguiente') || document.getElementById('next-to-energia');
-
-  const zonaSection = document.getElementById('data-meteorologicos-section');
-    const energiaSection = document.getElementById('energia-section');
+    const nextButton = document.getElementById('next-to-energia');
     const backButton = document.getElementById('back-to-income-from-zona');
-
-    const updateSelectionState = () => {
-        const selectedRadio = zonaRadios.find(radio => radio.checked);
-        if (selectedRadio) {
-            userSelections.zonaInstalacionBasic = selectedRadio.value;
-            if (nextButton) nextButton.disabled = false;
-        } else {
-            if (nextButton) nextButton.disabled = true;
-        }
-    };
-
-    zonaRadios.forEach(radio => {
-        radio.addEventListener('change', updateSelectionState);
-    });
+    const zonaSection = document.getElementById('data-meteorologicos-section');
+    const energiaSection = document.getElementById('energia-section');
 
     if (nextButton) {
         nextButton.addEventListener('click', () => {
-            if (userSelections.userType === 'Basico') {
-                if (!userSelections.zonaInstalacionBasic) {
-                    alert('Por favor, selecciona una zona de instalación.');
-                    return;
-                }
-                zonaSection.classList.add('hidden');
-                energiaSection.classList.remove('hidden');
-            } else {
-                // Lógica para el usuario experto
+            const selectedZona = document.querySelector('input[name="zonaInstalacionNewScreen"]:checked');
+            if (!selectedZona) {
+                alert('Por favor, selecciona una zona de instalación.');
+                return;
             }
+            userSelections.zonaInstalacionBasic = selectedZona.value;
+            zonaSection.classList.add('hidden');
+            energiaSection.classList.remove('hidden');
         });
     }
 
     if (backButton) {
         backButton.addEventListener('click', () => {
-            zonaSection.classList.add('hidden');
+            showScreen('map-screen');
             showMapScreenFormSection('income-section');
         });
     }
-
-    // Inicializar el estado del botón
-    updateSelectionState();
 }
 
 // === Config ===
@@ -653,7 +657,7 @@ document.getElementById('btn-zona-next')?.addEventListener('click', async () => 
 
 async function generarInformeDesdeFrontend() {
     // Validaciones
-    if (!userSelections.location || userSelections.location.lat === null) {
+    if (!userSelections.location || !userSelections.location.lat) {
         alert("Por favor, selecciona tu ubicación en el mapa antes de generar el informe.");
         return;
     }
@@ -777,7 +781,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (userSelections.userType === 'Basico') {
                 generarInformeDesdeFrontend();
             } else {
-                showScreen('paneles-section');
+                // Flujo experto
+                const dataMeteorologicosSection = document.getElementById('data-meteorologicos-section');
+                const panelesSection = document.getElementById('paneles-section');
+                if (dataMeteorologicosSection) dataMeteorologicosSection.classList.add('hidden');
+                if (panelesSection) panelesSection.classList.remove('hidden');
             }
         });
     }
