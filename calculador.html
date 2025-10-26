@@ -336,20 +336,8 @@
             font-weight: 700;
         }
 
-        #data-form-screen.basic-user-mode .sidebar .sidebar-item {
-            display: none;
-        }
-        #data-form-screen.basic-user-mode .sidebar .sidebar-item.active,
-        #data-form-screen.basic-user-mode .sidebar .sidebar-item:last-child {
-            display: flex;
-        }
-
-        #data-form-screen.basic-user-mode .sidebar-item {
-            display: none;
-        }
-        #data-form-screen.basic-user-mode .sidebar-item.active,
-        #data-form-screen.basic-user-mode .sidebar-item:last-child {
-            display: flex;
+        .hidden {
+            display: none !important;
         }
         .data-form-screen .sidebar-item:hover:not(.active) {
             background-color: var(--bg-light);
@@ -847,7 +835,7 @@
             </div>
             <div class="main-content">
                 <div id="selection-summary" class="selection-summary"></div>
-                <div id="data-meteorologicos-section">
+                <div id="data-meteorologicos-section" class="hidden">
                     <h1>¿En qué zona se encuentra la instalación?</h1>
                     <p class="form-description">Indicá en qué entorno estará ubicada la instalación (urbano, suburbano o rural). Esto influye en el grado de ensuciamiento de los paneles y afecta su rendimiento.</p>
                     <div class="form-group">
@@ -867,10 +855,11 @@
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button type="button" id="back-to-map-from-zona" class="back-button">Atrás</button>
-                        <button type="submit" id="next-to-energia">Siguiente</button>
+                        <button type="button" id="back-to-income-from-zona" class="back-button">Atrás</button>
+                        <button type="button" id="next-to-energia">Siguiente</button>
                     </div>
                 </div>
+                <!-- Fin de la sección de Zona para Básico -->
                 <!-- Nueva sección para Superficie Rodea -->
                 <div id="superficie-section" style="display:none;">
                     <h1>¿Qué superficie rodea el lugar de la instalación?</h1>
@@ -980,11 +969,12 @@
                     </div>
                 </div>
                 <!-- Fin de la sección combinada -->
-                <div id="energia-section" style="display:none;">
-                    <h1>Tu consumo de energía</h1> <!-- This title is now dynamically changed by calculador.js -->
-                    <p></p> <!-- This description is now dynamically changed by calculador.js -->
 
-                    <div id="energia-modo-seleccion-container" style="display:none;"> <!-- Initially hidden, JS will show for experts -->
+                <div id="energia-section" class="hidden">
+                    <h1></h1>
+                    <p class="form-description"></p>
+
+                    <div id="energia-modo-seleccion-container" style="display:none;">
                         <h2>¿Cómo querés ingresar los datos de consumo?</h2>
                         <div class="radio-group">
                             <label>
@@ -1043,8 +1033,8 @@
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button type="button" id="back-to-data-meteorologicos" class="back-button">Atrás</button>
-                        <button type="submit" id="next-to-paneles">Siguiente</button>
+                        <button type="button" id="back-to-zona-from-energia" class="back-button">Atrás</button>
+                        <button type="button" id="next-to-paneles">Siguiente</button>
                     </div>
                 </div>
 

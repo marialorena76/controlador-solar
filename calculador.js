@@ -375,64 +375,52 @@ function showMapScreenFormSection(sectionIdToShow) {
 }
 
 function setupNavigationButtons() {
-  const basicUserButton = document.getElementById('basic-user-button');
-  if (basicUserButton) {
-    basicUserButton.addEventListener('click', () => {
-      userSelections.userType = 'basico';
-      showMapScreenFormSection('supply-section');
+    const mainContainer = document.getElementById('data-form-screen');
+    const sidebar = mainContainer ? mainContainer.querySelector('.sidebar') : null;
+
+    document.getElementById('basic-user-button')?.addEventListener('click', () => {
+        userSelections.userType = 'Basico';
+        if (sidebar) sidebar.classList.add('hidden');
+        showMapScreenFormSection('supply-section');
     });
-  }
 
-  const expertUserButton = document.getElementById('expert-user-button');
-  if (expertUserButton) {
-    expertUserButton.addEventListener('click', () => {
-      userSelections.userType = 'experto';
-      showMapScreenFormSection('supply-section');
+    document.getElementById('expert-user-button')?.addEventListener('click', () => {
+        userSelections.userType = 'Experto';
+        if (sidebar) sidebar.classList.remove('hidden');
+        showMapScreenFormSection('supply-section');
     });
-  }
 
-  const residentialButton = document.getElementById('residential-button');
-  if (residentialButton) {
-    residentialButton.addEventListener('click', () => {
-      userSelections.installationType = 'Residencial';
-      showMapScreenFormSection('income-section');
+    document.getElementById('residential-button')?.addEventListener('click', () => {
+        userSelections.installationType = 'Residencial';
+        showMapScreenFormSection('income-section');
     });
-  }
 
-  const goToDataScreen = (type) => {
-    userSelections.installationType = type;
-    showScreen('data-form-screen');
-  };
+    // Helper para manejar botones de Nivel de Ingreso
+    const handleIncomeSelection = (incomeLevel) => {
+        userSelections.incomeLevel = incomeLevel;
+        if (userSelections.userType === 'Basico') {
+            showScreen('data-form-screen');
+            document.getElementById('data-meteorologicos-section').classList.remove('hidden');
+            document.getElementById('energia-section').classList.add('hidden');
+            showMapScreenFormSection('data-meteorologicos-section');
+        } else {
+            showScreen('data-form-screen');
+        }
+    };
 
-  const commercialButton = document.getElementById('commercial-button');
-  if (commercialButton) {
-    commercialButton.addEventListener('click', () => goToDataScreen('Comercial'));
-  }
+    document.getElementById('income-high-button')?.addEventListener('click', () => handleIncomeSelection('ALTO'));
+    document.getElementById('income-low-button')?.addEventListener('click', () => handleIncomeSelection('BAJO'));
 
-  const pymeButton = document.getElementById('pyme-button');
-  if (pymeButton) {
-    pymeButton.addEventListener('click', () => goToDataScreen('PYME'));
-  }
+    // Botones para usuarios no residenciales (flujo experto)
+    const goToDataScreen = (type) => {
+        userSelections.installationType = type;
+        if (sidebar) sidebar.classList.remove('hidden');
+        showScreen('data-form-screen');
+    };
 
-  const registerIncome = (level) => {
-    userSelections.incomeLevel = level;
-    showScreen('data-form-screen');
-  };
-
-  const incomeHighButton = document.getElementById('income-high-button');
-  if (incomeHighButton) {
-    incomeHighButton.addEventListener('click', () => registerIncome('ALTO'));
-  }
-
-  const incomeMediumButton = document.getElementById('income-medium-button');
-  if (incomeMediumButton) {
-    incomeMediumButton.addEventListener('click', () => registerIncome('MEDIO'));
-  }
-
-  const incomeLowButton = document.getElementById('income-low-button');
-  if (incomeLowButton) {
-    incomeLowButton.addEventListener('click', () => registerIncome('BAJO'));
-  }
+    document.getElementById('commercial-button')?.addEventListener('click', () => goToDataScreen('Comercial'));
+    document.getElementById('pyme-button')?.addEventListener('click', () => goToDataScreen('PYME'));
+    document.getElementById('income-medium-button')?.addEventListener('click', () => handleIncomeSelection('MEDIO'));
 }
 
 function setupZonaInstalacionStep() {
@@ -443,74 +431,47 @@ function setupZonaInstalacionStep() {
     document.getElementById('btn-zona-siguiente') || document.getElementById('next-to-energia');
 
   const zonaSection = document.getElementById('data-meteorologicos-section');
-  const energiaSection =
-    document.getElementById('energia-screen') || document.getElementById('energia-section');
+    const energiaSection = document.getElementById('energia-section');
+    const backButton = document.getElementById('back-to-income-from-zona');
 
-  const sectionsToHide = [
-    'data-meteorologicos-section',
-    'superficie-section',
-    'rugosidad-section',
-    'rotacion-section',
-    'altura-instalacion-section',
-    'metodo-calculo-section'
-  ];
-
-  const updateSelectionState = () => {
-    const selectedRadio = zonaRadios.find((radio) => radio.checked);
-    if (selectedRadio) {
-      userSelections.selectedZonaInstalacion = selectedRadio.value;
-      if (nextButton) nextButton.disabled = false;
-    } else {
-      userSelections.selectedZonaInstalacion = null;
-      if (nextButton) nextButton.disabled = true;
-    }
-  };
-
-  zonaRadios.forEach((radio) => {
-    radio.addEventListener('change', updateSelectionState);
-  });
-
-  if (nextButton) {
-    nextButton.disabled = true;
-    nextButton.addEventListener('click', (event) => {
-      event?.preventDefault?.();
-
-      if (!userSelections.selectedZonaInstalacion) {
-        alert('Seleccioná una zona antes de continuar.');
-        return;
-      }
-
-      // Ocultar secciones intermedias
-      sectionsToHide.forEach((sectionId) => {
-        const sectionEl = document.getElementById(sectionId);
-        if (sectionEl && sectionEl !== energiaSection) {
-          sectionEl.style.display = 'none';
+    const updateSelectionState = () => {
+        const selectedRadio = zonaRadios.find(radio => radio.checked);
+        if (selectedRadio) {
+            userSelections.zonaInstalacionBasic = selectedRadio.value;
+            if (nextButton) nextButton.disabled = false;
+        } else {
+            if (nextButton) nextButton.disabled = true;
         }
-      });
+    };
 
-      // Mostrar pantalla/section de energía
-      if (energiaSection) {
-        energiaSection.style.display = 'block';
-        energiaSection.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-      } else {
-        console.warn('Pantalla de energía no encontrada.');
-      }
-
-      // Ocultar la sección actual (si existe)
-      if (zonaSection) {
-        zonaSection.style.display = 'none';
-      }
-
-      // Si usás pantallas por clase
-      document.querySelectorAll('.step-screen').forEach((screen) => {
-        if (screen instanceof HTMLElement) screen.style.display = 'none';
-      });
-      const energiaScreen = document.getElementById('energia-screen');
-      if (energiaScreen) energiaScreen.style.display = '';
+    zonaRadios.forEach(radio => {
+        radio.addEventListener('change', updateSelectionState);
     });
-  }
 
-  updateSelectionState();
+    if (nextButton) {
+        nextButton.addEventListener('click', () => {
+            if (userSelections.userType === 'Basico') {
+                if (!userSelections.zonaInstalacionBasic) {
+                    alert('Por favor, selecciona una zona de instalación.');
+                    return;
+                }
+                zonaSection.classList.add('hidden');
+                energiaSection.classList.remove('hidden');
+            } else {
+                // Lógica para el usuario experto
+            }
+        });
+    }
+
+    if (backButton) {
+        backButton.addEventListener('click', () => {
+            zonaSection.classList.add('hidden');
+            showMapScreenFormSection('income-section');
+        });
+    }
+
+    // Inicializar el estado del botón
+    updateSelectionState();
 }
 
 // === Config ===
@@ -691,110 +652,143 @@ document.getElementById('btn-zona-next')?.addEventListener('click', async () => 
 });
 
 async function generarInformeDesdeFrontend() {
-  try {
-    const res = await fetch('/api/generar_informe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userSelections),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error al generar el informe');
-    console.log('Informe generado:', data);
-    alert('✅ Informe generado correctamente');
-  } catch (err) {
-    console.error('Error generando informe:', err);
-    alert('❌ No se pudo generar el informe.');
-  }
-}
-
-
-document.addEventListener('DOMContentLoaded', () => {
-  loadSavedLocation();
-  setupNavigationButtons();
-  setupZonaInstalacionStep();
-  showScreen('map-screen');
-  showMapScreenFormSection('map-container-section');
-  const mapScreen = document.getElementById('map-screen');
-  if (mapScreen) mapScreen.style.display = 'block';
-  requestAnimationFrame(() => {
-  initializeMap(); 
-  setTimeout(() => {        // por si el contenedor se pintó oculto
-    if (window.map && map.invalidateSize) map.invalidateSize();
-  }, 200);
-  });
-  initMap();
-
-  const confirmBtn = document.getElementById('confirm-location-btn');
-  if (confirmBtn) {
-    confirmBtn.addEventListener('click', async () => {
-      if (!userSelections.city) {
-        alert('Elegí una ubicación o buscá una ciudad antes de confirmar.');
+    // Validaciones
+    if (!userSelections.location || userSelections.location.lat === null) {
+        alert("Por favor, selecciona tu ubicación en el mapa antes de generar el informe.");
         return;
-      }
+    }
+    if (userSelections.totalAnnualConsumption <= 0) {
+        alert("Por favor, ingresa tu consumo de energía antes de generar el informe.");
+        return;
+    }
 
-      try {
-        const response = await fetch(`${API_BASE}/ubicacion`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ city: userSelections.city })
+    try {
+        const response = await fetch('/api/generar_informe', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userSelections),
         });
 
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || data?.ok !== true) {
-          throw new Error(data?.error || 'No se pudo guardar la ubicación');
+        if (!response.ok) {
+            throw new Error(`Error del servidor: ${response.status}`);
         }
 
-        const savedCity = typeof data.city === 'string' && data.city.trim()
-          ? data.city.trim()
-          : userSelections.city;
+        const results = await response.json();
 
-        try {
-          localStorage.setItem('ubicacionSeleccionada', JSON.stringify({
-            lat: userLocation.lat,
-            lng: userLocation.lng,
-            address: savedCity
-          }));
-        } catch (error) {
-          console.warn('No se pudo guardar la ubicación seleccionada:', error);
-        }
+        // Ocultar la pantalla de datos y mostrar la de resultados
+        showScreen('resultados-informe');
+        const resultadosContainer = document.getElementById('resultados-informe');
 
-        const locationDisplay = document.getElementById('location-display');
-        if (locationDisplay) {
-          locationDisplay.textContent = `Ubicación guardada: ${savedCity}`;
-          locationDisplay.style.backgroundColor = '#e9f5e9';
+        // Renderizar los resultados (ejemplo simple)
+        if (typeof renderReportData === 'function') {
+            renderReportData(results, 'resultados-informe');
+        } else {
+            let html = '<h1>Resultados del Informe</h1>';
+            for (const key in results) {
+                html += `<p><strong>${key}:</strong> ${results[key]}</p>`;
+            }
+            resultadosContainer.innerHTML = html;
         }
+        resultadosContainer.classList.remove('hidden');
 
-        // Navegación: Ocultar la sección del mapa y mostrar la sección de tipo de usuario
-        showMapScreenFormSection('user-type-section');
-        
-        // Ocultar el encabezado y el texto de ayuda de la sección del mapa
-        const mapAreaTitle = document.querySelector('.map-area h2');
-        const mapAreaHelpText = document.querySelector('.map-area .help-text');
-        if (mapAreaTitle) {
-            mapAreaTitle.style.display = 'none';
-        }
-        if (mapAreaHelpText) {
-            mapAreaHelpText.style.display = 'none';
-        }
-      } catch (error) {
-        console.error('Error al guardar la ubicación:', error);
-        const locationDisplay = document.getElementById('location-display');
-        if (locationDisplay) {
-          locationDisplay.textContent = 'Error al guardar la ubicación.';
-          locationDisplay.style.backgroundColor = '#fbe9e7';
-        }
-        alert('Error guardando la ubicación: ' + error.message);
-      }
-    });
-  }
-
-  if (typeof cargarElectrodomesticosJSON === 'function') {
-    try {
-      cargarElectrodomesticosJSON();
     } catch (error) {
-      console.error('Error al cargar electrodomésticos:', error);
+        console.error('Error al generar el informe:', error);
+        alert('Hubo un error al generar el informe. Por favor, intenta de nuevo.');
     }
-  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadSavedLocation();
+    setupNavigationButtons();
+    setupZonaInstalacionStep();
+    showScreen('map-screen');
+    showMapScreenFormSection('map-container-section');
+
+    const mapScreen = document.getElementById('map-screen');
+    if (mapScreen) mapScreen.style.display = 'block';
+
+    requestAnimationFrame(() => {
+        initializeMap();
+        setTimeout(() => {
+            if (window.map && map.invalidateSize) map.invalidateSize();
+        }, 200);
+    });
+
+    initMap();
+
+    const confirmBtn = document.getElementById('confirm-location-btn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', async () => {
+            if (!userSelections.location || userSelections.location.lat === null) {
+                alert("Por favor, selecciona tu ubicación en el mapa antes de continuar.");
+                return;
+            }
+            if (!userSelections.city) {
+                alert('Elegí una ubicación o buscá una ciudad antes de confirmar.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/ubicacion`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ city: userSelections.city })
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || data?.ok !== true) {
+                    throw new Error(data?.error || 'No se pudo guardar la ubicación');
+                }
+
+                const savedCity = typeof data.city === 'string' && data.city.trim()
+                    ? data.city.trim()
+                    : userSelections.city;
+
+                try {
+                    localStorage.setItem('ubicacionSeleccionada', JSON.stringify({
+                        lat: userLocation.lat,
+                        lng: userLocation.lng,
+                        address: savedCity
+                    }));
+                } catch (error) {
+                    console.warn('No se pudo guardar la ubicación seleccionada:', error);
+                }
+
+                showMapScreenFormSection('user-type-section');
+
+                const mapAreaTitle = document.querySelector('.map-area h2');
+                const mapAreaHelpText = document.querySelector('.map-area .help-text');
+                if (mapAreaTitle) mapAreaTitle.style.display = 'none';
+                if (mapAreaHelpText) mapAreaHelpText.style.display = 'none';
+
+            } catch (error) {
+                console.error('Error al guardar la ubicación:', error);
+                alert('Error guardando la ubicación: ' + error.message);
+            }
+        });
+    }
+
+    const nextToPanelesButton = document.getElementById('next-to-paneles');
+    if (nextToPanelesButton) {
+        nextToPanelesButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (userSelections.userType === 'Basico') {
+                generarInformeDesdeFrontend();
+            } else {
+                showScreen('paneles-section');
+            }
+        });
+    }
+
+    const backToZonaButton = document.getElementById('back-to-zona-from-energia');
+    if (backToZonaButton) {
+        backToZonaButton.addEventListener('click', () => {
+            document.getElementById('energia-section').classList.add('hidden');
+            document.getElementById('data-meteorologicos-section').classList.remove('hidden');
+        });
+    }
 });
 
 // ===== Hook universal para pasar de ZONA → ENERGÍA (usuario BÁSICO) =====
