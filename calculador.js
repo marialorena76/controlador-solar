@@ -372,16 +372,14 @@ function setupNavigationButtons() {
   if (commercialBtn) {
       commercialBtn.addEventListener('click', () => {
         userSelections.installationType = 'Comercial';
-        if (sidebar) sidebar.classList.remove('hidden');
-        showScreen('data-form-screen');
+        showMapScreenFormSection('income-section');
       });
   }
 
   if (pymeBtn) {
       pymeBtn.addEventListener('click', () => {
         userSelections.installationType = 'PYME';
-        if (sidebar) sidebar.classList.remove('hidden');
-        showScreen('data-form-screen');
+        showMapScreenFormSection('income-section');
       });
   }
 
