@@ -56,56 +56,6 @@ const userSelections = {
 
 window.appliancesCache ??= null; 
 
-// Cargar el JSON solo una vez
-async function ensureAppliancesLoaded() {
-  if (appliancesCache) { renderAppliances(appliancesCache); return; }
-  try {
-    const res = await fetch('/consumos_electrodomesticos.json', { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    appliancesCache = await res.json();
-    renderAppliances(appliancesCache);
-  } catch (err) {
-    console.error('No se pudo cargar consumos_electrodomesticos.json:', err);
-    const cont = document.getElementById('appliance-list');
-    if (cont) cont.innerHTML = `<div class="city-error">No se pudieron cargar los electrodomésticos.</div>`;
-  }
-}
-
-// Pintar la lista en la pantalla de Energía
-function renderAppliances(data) {
-  const cont = document.getElementById('appliance-list'); // Asegurate que exista en el HTML
-  if (!cont) return;
-  cont.innerHTML = '';
-
-  (data || []).forEach(item => {
-    const row = document.createElement('div');
-    row.className = 'appliance-item';
-    // Ajustá las propiedades según tu JSON (nombre / kwh_mes / etc.)
-    row.innerHTML = `
-      <label class="appliance-row">
-        <input type="checkbox" class="appliance-check" data-kwh="${item.kwh_mes || item.kwhMes || 0}">
-        <span>${item.nombre || item.name}</span>
-      </label>
-    `;
-    cont.appendChild(row);
-  });
-
-  // (opcional) recalcular consumo cuando el usuario tilda
-  cont.addEventListener('change', handleApplianceChange, { once: true });
-}
-
-function handleApplianceChange() {
-  const checks = [...document.querySelectorAll('.appliance-check:checked')];
-  const kwhMes = checks.reduce((acc, el) => acc + Number(el.dataset.kwh || 0), 0);
-  const kwhAnio = Math.round(kwhMes * 12);
-
-  // Mostrarlos en los campos que ves en la captura
-  const mesEl  = document.querySelector('#energia-mensual'); // id del input mensual
-  const anioEl = document.querySelector('#energia-anual');   // id del input anual
-  if (mesEl)  mesEl.value  = (Math.round(kwhMes * 100) / 100).toString();
-  if (anioEl) anioEl.value = kwhAnio.toString();
-}
-
 function loadSavedLocation() {
   try {
     const stored = localStorage.getItem('ubicacionSeleccionada');
@@ -467,6 +417,7 @@ function setupZonaInstalacionStep() {
             userSelections.zonaInstalacionBasic = selectedZona.value;
             zonaSection.classList.add('hidden');
             energiaSection.classList.remove('hidden');
+            initEnergyForBasic();
         });
     }
 
@@ -491,7 +442,7 @@ function hide(el) { if (el) el.style.display = 'none'; }
 
 // Referencias a elementos de ENERGÍA (coinciden con tu HTML)
 const energiaSectionEl          = document.getElementById('energia-section');
-const listaElectrodomesticosEl = document.getElementById('electrodomesticos-list');
+const listaElectrodomesticosEl = document.getElementById('electrodomesticos-categorias');
 const facturaMensualEl         = document.getElementById('consumo-factura-section');
 const promedioMensualEl        = document.getElementById('consumo-promedio-section'); // lo dejamos oculto salvo que lo uses
 const totalMensualEl           = document.getElementById('totalConsumoMensual');
@@ -526,58 +477,129 @@ async function initEnergyForBasic() {
   energiaSectionEl.scrollIntoView({ behavior: 'smooth' });
 }
 
-// ---------- Carga del JSON de electrodomésticos ----------
+// ---------- Carga de electrodomésticos vía API ----------
 async function ensureAppliancesLoaded() {
   if (appliancesCache) return;
   try {
-    const res = await fetch(APPLIANCES_JSON_URL, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE}/electrodomesticos`);
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    appliancesCache = await res.json();
+    const data = await res.json();
+    appliancesCache = data.categorias; // API envuelve en "categorias"
   } catch (err) {
-    console.error('No se pudo cargar consumos_electrodomesticos.json:', err);
-    if (listaElectrodomesticosEl) {
-      listaElectrodomesticosEl.innerHTML =
-        `<div class="city-error">No se pudieron cargar los electrodomésticos.</div>`;
+    console.error('No se pudo cargar los datos de electrodomésticos desde la API:', err);
+    const container = document.getElementById('electrodomesticos-categorias');
+    if (container) {
+      container.innerHTML = `<div class="city-error">No se pudieron cargar los electrodomésticos.</div>`;
     }
   }
 }
 
 // ---------- Render de electrodomésticos (residencial) ----------
 function renderAppliances(data) {
-  if (!listaElectrodomesticosEl) return;
-  listaElectrodomesticosEl.innerHTML = '';
+    const container = document.getElementById('electrodomesticos-categorias');
+    if (!container) return;
+    container.innerHTML = '';
 
-  (data || []).forEach(item => {
-    // Ajustá claves según tu JSON (dejo kwh_mes como principal)
-    const kwhMes  = Number(item.kwh_mes ?? item.kwhMes ?? 0);
-    const nombre  = item.nombre ?? item.name ?? 'Item';
+    if (!data || typeof data !== 'object') {
+        console.error("No appliance data or incorrect format:", data);
+        return;
+    }
 
-    const row = document.createElement('div');
-    row.className = 'appliance-item';
-    row.innerHTML = `
-      <label class="appliance-row" style="display:flex;gap:.6rem;align-items:center;">
-        <input type="checkbox" class="appliance-check" data-kwh="${kwhMes}">
-        <span style="flex:1">${nombre}</span>
-        <small title="Consumo de referencia">(≈ ${kwhMes} kWh/mes)</small>
-      </label>
-    `;
-    listaElectrodomesticosEl.appendChild(row);
-  });
+    // `data` is now the object of categories, e.g., {"Cocina": [...]}
+    for (const category in data) {
+        const items = data[category];
+        if (!Array.isArray(items)) continue;
 
-  // Recalcular cada vez que el usuario tilda/ destilda algo
-  listaElectrodomesticosEl.addEventListener('change', () => {
-    recalcEnergyFromAppliances();
-    recalcEnergySummary();
-  }, { once: true });
+        const categoryId = category.replace(/\s+/g, '-').toLowerCase();
+        const categorySection = document.createElement('div');
+        categorySection.className = 'accordion-item';
+        categorySection.innerHTML = `
+            <h2 class="accordion-header" id="heading-${categoryId}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${categoryId}" aria-expanded="false" aria-controls="collapse-${categoryId}">
+                    ${category}
+                </button>
+            </h2>
+            <div id="collapse-${categoryId}" class="accordion-collapse collapse" aria-labelledby="heading-${categoryId}" data-bs-parent="#electrodomesticos-categorias">
+                <div class="accordion-body"></div>
+            </div>
+        `;
+
+        const accordionBody = categorySection.querySelector('.accordion-body');
+        items.forEach(item => {
+            const kwhMes = (Number(item.consumo_diario_kwh || 0) * 30.4).toFixed(2);
+            const nombre = item.name || 'Item';
+            const watts = item.watts || 0;
+
+            const itemEl = document.createElement('div');
+            itemEl.className = 'appliance-item-row d-flex justify-content-between align-items-center mb-2';
+            itemEl.innerHTML = `
+                <label class="form-check-label">${nombre}</label>
+                <div class="quantity-control d-flex align-items-center" style="width: 120px;">
+                    <button type="button" class="btn btn-outline-secondary btn-sm quantity-btn" data-action="decrease">-</button>
+                    <input type="number" class="form-control form-control-sm text-center appliance-quantity" value="0" min="0" data-item-name="${nombre}" data-watts="${watts}" data-kwh-mes="${kwhMes}">
+                    <button type="button" class="btn btn-outline-secondary btn-sm quantity-btn" data-action="increase">+</button>
+                </div>
+            `;
+            accordionBody.appendChild(itemEl);
+        });
+        container.appendChild(categorySection);
+    }
+
+    container.addEventListener('click', (event) => {
+        if (event.target.classList.contains('quantity-btn')) {
+            const action = event.target.dataset.action;
+            const input = event.target.parentElement.querySelector('.appliance-quantity');
+            let currentValue = parseInt(input.value, 10);
+            if (action === 'increase') {
+                currentValue++;
+            } else if (action === 'decrease' && currentValue > 0) {
+                currentValue--;
+            }
+            input.value = currentValue;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    });
+
+    container.addEventListener('change', (event) => {
+        if (event.target.classList.contains('appliance-quantity')) {
+            calcularConsumoTotal();
+        }
+    });
+
+    // Initial calculation
+    calcularConsumoTotal();
 }
 
-// Suma los kWh/mes de los items tildados (residencial)
-function recalcEnergyFromAppliances() {
-  const checks = [...document.querySelectorAll('.appliance-check:checked')];
-  const kwhMes = checks.reduce((acc, el) => acc + Number(el.dataset.kwh || 0), 0);
-  // Guardamos en userSelections por si lo usás luego
-  userSelections.totalMonthlyKwh = kwhMes;
-  userSelections.totalYearlyKwh  = Math.round(kwhMes * 12);
+// Suma los kWh/mes de los items según cantidad
+function calcularConsumoTotal() {
+    let totalKwhMes = 0;
+    const inputs = document.querySelectorAll('.appliance-quantity');
+    userSelections.electrodomesticos = {}; // Reset
+
+    inputs.forEach(input => {
+        const quantity = parseInt(input.value, 10);
+        const itemName = input.dataset.itemName;
+        if (quantity > 0) {
+            const kwhMes = parseFloat(input.dataset.kwhMes);
+            totalKwhMes += quantity * kwhMes;
+            userSelections.electrodomesticos[itemName] = quantity;
+        } else {
+            delete userSelections.electrodomesticos[itemName];
+        }
+    });
+
+    userSelections.totalMonthlyConsumption = totalKwhMes;
+    userSelections.totalAnnualConsumption = totalKwhMes * 12;
+
+    const totalMensualEl = document.getElementById('totalConsumoMensual');
+    const totalAnualEl = document.getElementById('totalConsumoAnual');
+
+    if (totalMensualEl) {
+        totalMensualEl.value = userSelections.totalMonthlyConsumption.toFixed(2);
+    }
+    if (totalAnualEl) {
+        totalAnualEl.value = userSelections.totalAnnualConsumption.toFixed(2);
+    }
 }
 
 // ---------- Handlers para inputs de 12 meses (comercial/pyme) ----------
@@ -627,33 +649,6 @@ function recalcEnergySummary() {
   if (totalMensualEl) totalMensualEl.value = kwhMes.toString();
   if (totalAnualEl)   totalAnualEl.value   = kwhAnio.toString();
 }
-
-document.getElementById('btn-zona-next')?.addEventListener('click', async () => {
-  // (validaciones de zona, etc.)
-  const tipoUsuario = (userSelections.userType || '').toLowerCase();
-
-  if (tipoUsuario === 'basico') {
-    // Mostrar la sección de energía con el modo correcto
-    await initEnergyForBasic();
-
-    // ⚠️ Cuando termina la sección de energía, el botón "Siguiente"
-    // ya no lleva a paneles, sino a generar el informe.
-    const btnNext = document.getElementById('next-to-paneles');
-    if (btnNext) {
-      btnNext.addEventListener('click', async (e) => {
-        e.preventDefault();
-        // Calcula el consumo final y genera el informe automáticamente
-        recalcEnergySummary();
-        console.log('Generando informe para usuario básico...');
-        await generarInformeDesdeFrontend(); // 👈 función que tenés o agregamos abajo
-      });
-    }
-
-  } else {
-    // Flujo Avanzado (lo que ya tenías)
-    // showScreen('paneles-section');  // o como se llame tu siguiente pantalla
-  }
-});
 
 async function generarInformeDesdeFrontend() {
     // Validaciones
@@ -798,106 +793,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
-// ===== Hook universal para pasar de ZONA → ENERGÍA (usuario BÁSICO) =====
-
-// Helpers mínimos
-function isVisible(el) {
-  if (!el) return false;
-  const s = getComputedStyle(el);
-  if (s.display === 'none' || s.visibility === 'hidden' || s.opacity === '0') return false;
-  const r = el.getBoundingClientRect();
-  return r.width > 0 && r.height > 0;
-}
-function textMatch(el, re) {
-  return el && re.test((el.textContent || '').trim());
-}
-function inZonaScreen() {
-  // Heurísticas: cualquiera que dé true ya alcanza
-  // 1) contenedor con id típico de zona
-  const candidates = [
-    '#zona-section', '#zona-instalacion-section', '#zona-inst-section',
-    '[data-step="zona"]', '.zona-section'
-  ];
-  if (candidates.some(sel => isVisible(document.querySelector(sel)))) return true;
-
-  // 2) hay radios/inputs de zona visibles
-  if ([...document.querySelectorAll('input[name="selectedZonaInstalacion"]')].some(isVisible)) return true;
-
-  // 3) hay un título típico
-  const h = [...document.querySelectorAll('h1,h2,h3')]
-    .find(x => /zona.*instalaci[oó]n/i.test(x.textContent || ''));
-  if (isVisible(h)) return true;
-
-  return false;
-}
-
-// Generar informe (si no tenés una función propia)
-async function generarInformeDesdeFrontend() {
-  try {
-    const res = await fetch('/api/generar_informe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userSelections),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error al generar el informe');
-    alert('✅ Informe generado correctamente');
-    console.log('Informe:', data);
-  } catch (err) {
-    console.error(err);
-    alert('❌ No se pudo generar el informe.');
-  }
-}
-
-// Enganche global: cualquier click en “Siguiente” estando en Zona
-document.addEventListener('click', async (ev) => {
-  const btn = ev.target.closest('button, a[role="button"], input[type="submit"]');
-  if (!btn) return;
-
-  // ¿Es un “Siguiente” visible?
-  if (!isVisible(btn) || !textMatch(btn, /siguiente/i)) return;
-
-  // ¿Estamos en la pantalla de Zona?
-  if (!inZonaScreen()) return;
-
-  const tipoUsuario = (userSelections?.userType || '').toLowerCase();
-  if (tipoUsuario !== 'basico') return; // solo para Básico
-
-  // Intercepto la navegación normal y abro ENERGÍA
-  ev.preventDefault();
-  ev.stopPropagation();
-
-  try {
-    if (typeof initEnergyForBasic === 'function') {
-      await initEnergyForBasic();
-    }
-
-    // Mostrar energía sí o sí
-    document.querySelectorAll('.screen, [id$="-section"]').forEach(s => {
-      if (isVisible(s)) s.style.display = 'none';
-    });
-    const energia = document.getElementById('energia-section');
-    if (energia) {
-      energia.style.display = '';
-      energia.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      console.error('[ENERGIA] No existe #energia-section en el DOM.');
-    }
-
-    // En Básico, el botón “Siguiente” de Energía debe generar informe
-    const nextBtn = document.getElementById('next-to-paneles');
-    if (nextBtn && !nextBtn.__hookGenInforme) {
-      nextBtn.__hookGenInforme = true;
-      nextBtn.addEventListener('click', async (e2) => {
-        e2.preventDefault();
-        if (typeof recalcEnergySummary === 'function') recalcEnergySummary();
-        await (typeof generarInformeDesdeFrontend === 'function'
-          ? generarInformeDesdeFrontend()
-          : Promise.resolve());
-      });
-    }
-  } catch (err) {
-    console.error('[ENERGIA] Error al abrir energía:', err);
-  }
-}, { capture: true });
