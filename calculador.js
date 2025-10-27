@@ -9,6 +9,9 @@ let map = null;
 let marker = null; 
 let geocoderCtrl = null;
 let userLocation = { lat: -34.6037, lng: -58.3816 };
+// --- Datos electrodomésticos ---
+let electrodomesticosCategorias = {};
+let appliancesCache = null; 
 
 const userSelections = {
   userType: null,
@@ -52,6 +55,17 @@ const userSelections = {
     factorPerdidas: 0
   }
 };
+const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');
+const totalConsumoAnualDisplay   = document.getElementById('totalConsumoAnual');
+// === REFERENCIAS SECCIÓN ENERGÍA ===
+const energiaSectionEl         = document.getElementById('energia-section');           // ya lo tenés
+const listaElectrodomesticosEl = document.getElementById('electrodomesticos-list');    // tu contenedor real
+const facturaMensualEl         = document.getElementById('factura-mensual');           // si no existe, se queda null
+const promedioMensualEl        = document.getElementById('promedio-mensual');          // si no existe, se queda null
+
+// helpers show/hide si no los tenés aún:
+function show(el){ if(el) el.classList.remove('hidden'); }
+function hide(el){ if(el) el.classList.add('hidden'); }
 
 
 window.appliancesCache ??= null; 
@@ -324,6 +338,112 @@ function showMapScreenFormSection(sectionIdToShow) {
   });
 }
 
+async function cargarElectrodomesticosJSON() {
+  try {
+    if (appliancesCache) { electrodomesticosCategorias = appliancesCache; return; }
+    const res = await fetch('consumos_electrodomesticos.json');
+    const data = await res.json();
+    electrodomesticosCategorias = data;
+    appliancesCache = data;
+  } catch (e) {
+    console.error('Error cargando consumos_electrodomesticos.json:', e);
+  }
+}
+
+function renderCategoriasAcordeon() {
+  // Acepta ambos IDs: el tuyo (electrodomesticos-list) y el que usábamos antes
+  const contenedor =
+    document.getElementById('electrodomesticos-categorias') ||
+    document.getElementById('electrodomesticos-list');
+
+  if (!contenedor) {
+    console.warn('No encontré contenedor para electrodomésticos (#electrodomesticos-categorias o #electrodomesticos-list).');
+    return;
+  }
+
+  contenedor.innerHTML = '';
+
+  Object.entries(electrodomesticosCategorias).forEach(([categoria, items]) => {
+    // Botón de categoría
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'acordeon-categoria';
+    btn.textContent = categoria;
+    btn.style = `
+      width:100%; padding:10px 16px; margin:10px 0 0 0;
+      background:#e2e8f0; border:none; border-radius:6px; font-weight:600;
+      text-align:left; cursor:pointer;
+    `;
+
+    // Contenedor de items
+    const itemsDiv = document.createElement('div');
+    itemsDiv.className = 'acordeon-items';
+    itemsDiv.style = 'display:none; padding:12px 16px; background:#f9fafb; border-radius:0 0 6px 6px;';
+
+    btn.onclick = () => {
+      const open = itemsDiv.style.display === 'block';
+      // cerrar otros
+      document.querySelectorAll('.acordeon-items').forEach(d => d.style.display = 'none');
+      document.querySelectorAll('.acordeon-categoria').forEach(b => b.setAttribute('aria-expanded','false'));
+      // abrir este
+      if (!open) { itemsDiv.style.display = 'block'; btn.setAttribute('aria-expanded','true'); }
+    };
+
+    // Filas de electrodomésticos
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.style = 'display:flex; align-items:center; justify-content:space-between; gap:16px; margin:10px 0;';
+
+      const name = document.createElement('span');
+      name.textContent = item.name;
+
+      // consumo diario (kWh/día) como referencia
+      const consumoDiario = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
+      const info = document.createElement('span');
+      info.textContent = `${consumoDiario.toFixed(3)} kWh/día`;
+
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = '0';
+      input.value = (userSelections.electrodomesticos?.[item.name] || 0);
+      input.style = 'width:70px; text-align:right;';
+      input.oninput = (e) => {
+        const cant = parseInt(e.target.value) || 0;
+        userSelections.electrodomesticos[item.name] = cant;
+        calcularConsumo();
+      };
+
+      row.appendChild(name);
+      row.appendChild(info);
+      row.appendChild(input);
+      itemsDiv.appendChild(row);
+    });
+
+    contenedor.appendChild(btn);
+    contenedor.appendChild(itemsDiv);
+  });
+}
+
+function calcularConsumo() {
+  let totalMensual = 0;
+
+  for (const categoria in electrodomesticosCategorias) {
+    electrodomesticosCategorias[categoria].forEach(item => {
+      const cant = userSelections.electrodomesticos?.[item.name] || 0;
+      const kWhDia = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
+      const diasMes = item.daysPerMonth ?? 30; // usa tu campo del JSON si está, si no 30
+      totalMensual += kWhDia * diasMes * cant;
+    });
+  }
+
+  const totalAnual = totalMensual * 12;
+
+  userSelections.totalMonthlyConsumption = totalMensual;
+  userSelections.totalAnnualConsumption  = totalAnual;
+
+  if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = totalMensual.toFixed(2);
+  if (totalConsumoAnualDisplay)   totalConsumoAnualDisplay.value   = totalAnual.toFixed(2);
+}
 function setupNavigationButtons() {
   const confirmBtn = document.getElementById('confirm-location-btn');
   const basicUserBtn = document.getElementById('basic-user-button');
@@ -431,8 +551,6 @@ function setupZonaInstalacionStep() {
 // URL del JSON (debe existir en la raíz pública del sitio)
 const APPLIANCES_JSON_URL = '/consumos_electrodomesticos.json';
 
-// Cache en memoria del JSON
-let appliancesCache = null;
 
 // Helpers de UI mínimos usados aquí
 function show(el) { if (el) el.style.display = ''; }
@@ -477,127 +595,106 @@ async function initEnergyForBasic() {
 
 // ---------- Carga de electrodomésticos vía API ----------
 async function ensureAppliancesLoaded() {
-  if (appliancesCache) return;
-  try {
-    const res = await fetch(`${API_BASE}/electrodomesticos`);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    appliancesCache = data.categorias; // API envuelve en "categorias"
-  } catch (err) {
-    console.error('No se pudo cargar los datos de electrodomésticos desde la API:', err);
-    const container = document.getElementById('electrodomesticos-categorias');
-    if (container) {
-      container.innerHTML = `<div class="city-error">No se pudieron cargar los electrodomésticos.</div>`;
-    }
-  }
+  if (appliancesCache) return appliancesCache;
+  const res = await fetch('consumos_electrodomesticos.json');
+  const data = await res.json();
+  appliancesCache = data;
+  electrodomesticosCategorias = data;
+  return data;
 }
+
 
 // ---------- Render de electrodomésticos (residencial) ----------
 function renderAppliances(data) {
-    const container = document.getElementById('electrodomesticos-categorias');
-    if (!container) return;
-    container.innerHTML = '';
+  if (!listaElectrodomesticosEl) {
+    console.warn('No existe #electrodomesticos-list para renderizar');
+    return;
+  }
+  listaElectrodomesticosEl.innerHTML = '';
 
-    if (!data || typeof data !== 'object') {
-        console.error("No appliance data or incorrect format:", data);
-        return;
-    }
+  // data = { "Cocina": [ {name, watts, hoursPerDay, daysPerMonth?}, ... ], ... }
+  Object.entries(data).forEach(([categoria, items]) => {
+    // Header acordeón
+    const header = document.createElement('button');
+    header.type = 'button';
+    header.className = 'acordeon-categoria';
+    header.textContent = categoria;
+    header.style = `
+      width:100%; padding:10px 16px; margin:10px 0 0 0;
+      background:#e2e8f0; border:none; border-radius:6px; font-weight:600; text-align:left; cursor:pointer;
+    `;
 
-    // `data` is now the object of categories, e.g., {"Cocina": [...]}
-    for (const category in data) {
-        const items = data[category];
-        if (!Array.isArray(items)) continue;
+    const panel = document.createElement('div');
+    panel.className = 'acordeon-items';
+    panel.style = 'display:none; padding:12px 16px; background:#f9fafb; border-radius:0 0 6px 6px;';
 
-        const categoryId = category.replace(/\s+/g, '-').toLowerCase();
-        const categorySection = document.createElement('div');
-        categorySection.className = 'accordion-item';
-        categorySection.innerHTML = `
-            <h2 class="accordion-header" id="heading-${categoryId}">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${categoryId}" aria-expanded="false" aria-controls="collapse-${categoryId}">
-                    ${category}
-                </button>
-            </h2>
-            <div id="collapse-${categoryId}" class="accordion-collapse collapse" aria-labelledby="heading-${categoryId}" data-bs-parent="#electrodomesticos-categorias">
-                <div class="accordion-body"></div>
-            </div>
-        `;
+    header.onclick = () => {
+      const open = panel.style.display === 'block';
+      document.querySelectorAll('.acordeon-items').forEach(d => d.style.display = 'none');
+      document.querySelectorAll('.acordeon-categoria').forEach(b => b.setAttribute('aria-expanded','false'));
+      if (!open) { panel.style.display = 'block'; header.setAttribute('aria-expanded','true'); }
+    };
 
-        const accordionBody = categorySection.querySelector('.accordion-body');
-        items.forEach(item => {
-            const kwhMes = (Number(item.consumo_diario_kwh || 0) * 30.4).toFixed(2);
-            const nombre = item.name || 'Item';
-            const watts = item.watts || 0;
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.style = 'display:flex; align-items:center; justify-content:space-between; gap:16px; margin:10px 0;';
 
-            const itemEl = document.createElement('div');
-            itemEl.className = 'appliance-item-row d-flex justify-content-between align-items-center mb-2';
-            itemEl.innerHTML = `
-                <label class="form-check-label">${nombre}</label>
-                <div class="quantity-control d-flex align-items-center" style="width: 120px;">
-                    <button type="button" class="btn btn-outline-secondary btn-sm quantity-btn" data-action="decrease">-</button>
-                    <input type="number" class="form-control form-control-sm text-center appliance-quantity" value="0" min="0" data-item-name="${nombre}" data-watts="${watts}" data-kwh-mes="${kwhMes}">
-                    <button type="button" class="btn btn-outline-secondary btn-sm quantity-btn" data-action="increase">+</button>
-                </div>
-            `;
-            accordionBody.appendChild(itemEl);
-        });
-        container.appendChild(categorySection);
-    }
+      const name = document.createElement('span');
+      name.textContent = item.name;
 
-    container.addEventListener('click', (event) => {
-        if (event.target.classList.contains('quantity-btn')) {
-            const action = event.target.dataset.action;
-            const input = event.target.parentElement.querySelector('.appliance-quantity');
-            let currentValue = parseInt(input.value, 10);
-            if (action === 'increase') {
-                currentValue++;
-            } else if (action === 'decrease' && currentValue > 0) {
-                currentValue--;
-            }
-            input.value = currentValue;
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-        }
+      const kWhDia = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
+      const info = document.createElement('span');
+      info.textContent = `${kWhDia.toFixed(3)} kWh/día`;
+
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = '0';
+      input.value = (userSelections.electrodomesticos?.[item.name] || 0);
+      input.style = 'width:70px; text-align:right;';
+      input.oninput = (e) => {
+        const cant = parseInt(e.target.value) || 0;
+        if (!userSelections.electrodomesticos) userSelections.electrodomesticos = {};
+        userSelections.electrodomesticos[item.name] = cant;
+        recalcEnergySummary(data);          // actualiza totales
+      };
+
+      row.appendChild(name);
+      row.appendChild(info);
+      row.appendChild(input);
+      panel.appendChild(row);
     });
 
-    container.addEventListener('change', (event) => {
-        if (event.target.classList.contains('appliance-quantity')) {
-            calcularConsumoTotal();
-        }
-    });
-
-    // Initial calculation
-    calcularConsumoTotal();
+    listaElectrodomesticosEl.appendChild(header);
+    listaElectrodomesticosEl.appendChild(panel);
+  });
 }
 
-// Suma los kWh/mes de los items según cantidad
-function calcularConsumoTotal() {
-    let totalKwhMes = 0;
-    const inputs = document.querySelectorAll('.appliance-quantity');
-    userSelections.electrodomesticos = {}; // Reset
+const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');  // opcional si lo tenés en HTML
+const totalConsumoAnualDisplay   = document.getElementById('totalConsumoAnual');    // opcional si lo tenés en HTML
 
-    inputs.forEach(input => {
-        const quantity = parseInt(input.value, 10);
-        const itemName = input.dataset.itemName;
-        if (quantity > 0) {
-            const kwhMes = parseFloat(input.dataset.kwhMes);
-            totalKwhMes += quantity * kwhMes;
-            userSelections.electrodomesticos[itemName] = quantity;
-        } else {
-            delete userSelections.electrodomesticos[itemName];
-        }
+function recalcEnergySummary(dataRef) {
+  const data = dataRef || appliancesCache || electrodomesticosCategorias;
+  if (!data) return;
+
+  let totalMensual = 0;
+
+  for (const categoria in data) {
+    data[categoria].forEach(item => {
+      const cant = (userSelections.electrodomesticos?.[item.name] || 0);
+      const kWhDia = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
+      const diasMes = item.daysPerMonth ?? 30;    // usa tu campo del JSON si viene; default 30
+      totalMensual += kWhDia * diasMes * cant;
     });
+  }
 
-    userSelections.totalMonthlyConsumption = totalKwhMes;
-    userSelections.totalAnnualConsumption = totalKwhMes * 12;
+  const totalAnual = totalMensual * 12;
 
-    const totalMensualEl = document.getElementById('totalConsumoMensual');
-    const totalAnualEl = document.getElementById('totalConsumoAnual');
+  userSelections.totalMonthlyConsumption = totalMensual;
+  userSelections.totalAnnualConsumption  = totalAnual;
 
-    if (totalMensualEl) {
-        totalMensualEl.value = userSelections.totalMonthlyConsumption.toFixed(2);
-    }
-    if (totalAnualEl) {
-        totalAnualEl.value = userSelections.totalAnnualConsumption.toFixed(2);
-    }
+  // si existen, actualizá inputs de resumen
+  if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = totalMensual.toFixed(2);
+  if (totalConsumoAnualDisplay)   totalConsumoAnualDisplay.value   = totalAnual.toFixed(2);
 }
 
 // ---------- Handlers para inputs de 12 meses (comercial/pyme) ----------

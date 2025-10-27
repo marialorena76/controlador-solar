@@ -858,6 +858,40 @@
                         <button type="button" id="back-to-income-from-zona" class="back-button">Atrás</button>
                         <button type="button" id="next-to-energia">Siguiente</button>
                     </div>
+                    <!-- ============================= -->
+                    <!-- SECCIÓN DE ENERGÍA (BÁSICO) -->
+                    <!-- ============================= -->
+                    <div id="energia-section" class="hidden" style="display:none;">
+                        <h1>Consumo energético de tu hogar</h1>
+                        <p class="form-description">
+                        Ingresá cuántos electrodomésticos tenés de cada tipo para calcular el consumo mensual y anual.
+                        </p>
+
+                        <!-- Contenedor del acordeón dinámico -->
+                        <div id="electrodomesticos-categorias"></div>
+
+                        <!-- Resumen de consumo debajo del acordeón -->
+                        <div class="energy-summary" style="margin-top:20px; display:flex; gap:24px; flex-wrap:wrap;">
+                            <div>
+                                <label for="totalConsumoMensual"><strong>Consumo mensual estimado (kWh/mes):</strong></label><br>
+                                <input type="text" id="totalConsumoMensual" readonly value="0" style="width:140px; text-align:right;">
+                            </div>
+                        <div>
+                            <label for="totalConsumoAnual"><strong>Consumo anual estimado (kWh/año):</strong></label><br>
+                            <input type="text" id="totalConsumoAnual" readonly value="0" style="width:140px; text-align:right;">
+                        </div>
+                    </div>
+
+                    <!-- Botones de navegación -->
+                    <div class="form-actions" style="margin-top:30px; display:flex; justify-content:space-between;">
+                        <button type="button" id="back-to-datos" class="back-button">Atrás</button>
+                        <button type="button" id="next-to-paneles" class="next-button">Siguiente</button>
+                    </div>
+                </div>
+<!-- ============================= -->
+<!-- FIN SECCIÓN DE ENERGÍA -->
+<!-- ============================= -->
+
                 </div>
                 <!-- Fin de la sección de Zona para Básico -->
                 <div id="energia-section" class="hidden">
