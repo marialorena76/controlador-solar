@@ -489,7 +489,7 @@
         }
 
         /* Styles for Electrodomesticos List */
-        #electrodomesticos-list {
+        #electrodomesticos-categorias {
             background-color: #f9f9f9;
             border-radius: 8px;
             padding: 1rem;
@@ -497,7 +497,7 @@
             box-shadow: var(--shadow-subtle, 0 1px 3px rgba(0,0,0,0.1));
         }
 
-        #electrodomesticos-list h2 { /* Category headers */
+        #electrodomesticos-categorias h2 { /* Category headers */
             font-family: var(--font-heading, 'Bebas Neue', sans-serif);
             font-size: 1.2rem; /* Reduced font size for category titles */
             color: var(--color-tertiary, #5884D6);
@@ -506,7 +506,7 @@
             padding-bottom: 0.5rem;
             border-bottom: 2px solid var(--color-secondary, #6BBE66);
         }
-        #electrodomesticos-list h2:first-of-type {
+        #electrodomesticos-categorias h2:first-of-type {
             margin-top: 0;
         }
 
@@ -861,63 +861,9 @@
                     <!-- ============================= -->
                     <!-- SECCIÓN DE ENERGÍA (BÁSICO) -->
                     <!-- ============================= -->
-                    <div id="energia-section" class="hidden" style="display:none;">
-                        <h1>Consumo energético de tu hogar</h1>
-                        <p class="form-description">
-                        Ingresá cuántos electrodomésticos tenés de cada tipo para calcular el consumo mensual y anual.
-                        </p>
-
-                        <!-- Contenedor del acordeón dinámico -->
-                        <div id="electrodomesticos-categorias"></div>
-
-                        <!-- Resumen de consumo debajo del acordeón -->
-                        <div class="energy-summary" style="margin-top:20px; display:flex; gap:24px; flex-wrap:wrap;">
-                            <div>
-                                <label for="totalConsumoMensual"><strong>Consumo mensual estimado (kWh/mes):</strong></label><br>
-                                <input type="text" id="totalConsumoMensual" readonly value="0" style="width:140px; text-align:right;">
-                            </div>
-                        <div>
-                            <label for="totalConsumoAnual"><strong>Consumo anual estimado (kWh/año):</strong></label><br>
-                            <input type="text" id="totalConsumoAnual" readonly value="0" style="width:140px; text-align:right;">
-                        </div>
-                    </div>
-
-                    <!-- Botones de navegación -->
-                    <div class="form-actions" style="margin-top:30px; display:flex; justify-content:space-between;">
-                        <button type="button" id="back-to-datos" class="back-button">Atrás</button>
-                        <button type="button" id="next-to-paneles" class="next-button">Siguiente</button>
-                    </div>
-                </div>
-<!-- ============================= -->
-<!-- FIN SECCIÓN DE ENERGÍA -->
-<!-- ============================= -->
 
                 </div>
                 <!-- Fin de la sección de Zona para Básico -->
-                <div id="energia-section" class="hidden">
-                    <h1></h1>
-                    <p class="form-description"></p>
-                    <div class="form-group">
-                        <div class="radio-group">
-                            <label>
-                                <input type="radio" name="zonaInstalacionNewScreen" value="Urbana" required>
-                                Urbana
-                            </label>
-                            <label>
-                                <input type="radio" name="zonaInstalacionNewScreen" value="Suburbana">
-                                Suburbana
-                            </label>
-                            <label>
-                                <input type="radio" name="zonaInstalacionNewScreen" value="Rural">
-                                Rural
-                            </label>
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" id="back-to-income-from-zona" class="back-button">Atrás</button>
-                        <button type="button" id="next-to-energia">Siguiente</button>
-                    </div>
-                </div>
                 <!-- Fin de la sección de Zona para Básico -->
                 <!-- Nueva sección para Superficie Rodea -->
                 <div id="superficie-section" style="display:none;">
@@ -1030,10 +976,12 @@
                 <!-- Fin de la sección combinada -->
 
                 <div id="energia-section" class="hidden">
-                    <h1></h1>
-                    <p class="form-description"></p>
+                    <h1>Consumo energético de tu hogar</h1>
+                    <p class="form-description">Ingresá cuántos electrodomésticos tenés de cada tipo para estimar tu consumo mensual y anual.</p>
 
-                    <div id="energia-modo-seleccion-container" style="display:none;">
+                    <div id="electrodomesticos-categorias"></div>
+
+                    <div id="energia-modo-seleccion-container" class="hidden">
                         <h2>¿Cómo querés ingresar los datos de consumo?</h2>
                         <div class="radio-group">
                             <label>
@@ -1049,12 +997,10 @@
                                 INGRESO DE DETALLE DE CONSUMO EN EL HOGAR (ARTEFACTOS Y HORAS DE USO)
                             </label>
                         </div>
-                        <hr style="margin-top: 1.5rem; margin-bottom: 1.5rem;"> <!-- Optional separator -->
+                        <hr style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
                     </div>
 
-                    <div id="electrodomesticos-list"></div>
-                    <!-- Nueva sección para Consumo por Factura (AHORA ANIDADA) -->
-                    <div id="consumo-promedio-section" style="display:none; margin-top: 1.5rem;">
+                    <div id="consumo-promedio-section" class="hidden" style="margin-top: 1.5rem;">
                         <hr>
                         <h3>Ingreso de Consumo Mensual Según Boleta de Energía Eléctrica (Boleta de luz)</h3>
                         <div class="form-group">
@@ -1063,7 +1009,7 @@
                         </div>
                     </div>
 
-                    <div id="consumo-factura-section" style="display:none; margin-top: 1.5rem;">
+                    <div id="consumo-factura-section" class="hidden" style="margin-top: 1.5rem;">
                         <hr>
                         <div class="form-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); row-gap: 1rem; column-gap: 2.5rem;">
                             <div class="form-group"><label for="consumo-enero">Enero:</label><input type="number" min="0" id="consumo-enero" name="consumo-enero" class="form-control"></div>
@@ -1079,20 +1025,14 @@
                             <div class="form-group"><label for="consumo-noviembre">Noviembre:</label><input type="number" min="0" id="consumo-noviembre" name="consumo-noviembre" class="form-control"></div>
                             <div class="form-group"><label for="consumo-diciembre">Diciembre:</label><input type="number" min="0" id="consumo-diciembre" name="consumo-diciembre" class="form-control"></div>
                         </div>
-                        <!-- Los botones de acción para esta sub-sección se manejan en JS o se pueden dejar aquí si su lógica no interfiere -->
                     </div>
+
                     <div class="energy-summary">
-                        <div>
-                            <label for="totalConsumoMensual">Consumo Mensual Estimado (kWh/mes):</label>
-                            <input type="text" id="totalConsumoMensual" readonly value="0">
-                        </div>
-                        <div>
-                            <label for="totalConsumoAnual">Consumo Anual Estimado (kWh/año):</label>
-                            <input type="text" id="totalConsumoAnual" readonly value="0">
-                        </div>
+                        <input type="text" id="totalConsumoMensual" readonly value="0">
+                        <input type="text" id="totalConsumoAnual" readonly value="0">
                     </div>
                     <div class="form-actions">
-                        <button type="button" id="back-to-zona-from-energia" class="back-button">Atrás</button>
+                        <button type="button" id="back-to-datos" class="back-button">Atrás</button>
                         <button type="button" id="next-to-paneles">Siguiente</button>
                     </div>
                 </div>

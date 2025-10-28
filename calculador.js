@@ -55,13 +55,12 @@ const userSelections = {
     factorPerdidas: 0
   }
 };
+const energiaSectionEl         = document.getElementById('energia-section');
+const listaElectrodomesticosEl = document.getElementById('electrodomesticos-categorias');
 const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');
 const totalConsumoAnualDisplay   = document.getElementById('totalConsumoAnual');
-// === REFERENCIAS SECCIÓN ENERGÍA ===
-const energiaSectionEl         = document.getElementById('energia-section');           // ya lo tenés
-const listaElectrodomesticosEl = document.getElementById('electrodomesticos-list');    // tu contenedor real
-const facturaMensualEl         = document.getElementById('factura-mensual');           // si no existe, se queda null
-const promedioMensualEl        = document.getElementById('promedio-mensual');          // si no existe, se queda null
+const consumoFacturaSectionEl    = document.getElementById('consumo-factura-section');
+const consumoPromedioSectionEl   = document.getElementById('consumo-promedio-section');
 
 // helpers show/hide si no los tenés aún:
 function show(el){ if(el) el.classList.remove('hidden'); }
@@ -338,112 +337,6 @@ function showMapScreenFormSection(sectionIdToShow) {
   });
 }
 
-async function cargarElectrodomesticosJSON() {
-  try {
-    if (appliancesCache) { electrodomesticosCategorias = appliancesCache; return; }
-    const res = await fetch('consumos_electrodomesticos.json');
-    const data = await res.json();
-    electrodomesticosCategorias = data;
-    appliancesCache = data;
-  } catch (e) {
-    console.error('Error cargando consumos_electrodomesticos.json:', e);
-  }
-}
-
-function renderCategoriasAcordeon() {
-  // Acepta ambos IDs: el tuyo (electrodomesticos-list) y el que usábamos antes
-  const contenedor =
-    document.getElementById('electrodomesticos-categorias') ||
-    document.getElementById('electrodomesticos-list');
-
-  if (!contenedor) {
-    console.warn('No encontré contenedor para electrodomésticos (#electrodomesticos-categorias o #electrodomesticos-list).');
-    return;
-  }
-
-  contenedor.innerHTML = '';
-
-  Object.entries(electrodomesticosCategorias).forEach(([categoria, items]) => {
-    // Botón de categoría
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'acordeon-categoria';
-    btn.textContent = categoria;
-    btn.style = `
-      width:100%; padding:10px 16px; margin:10px 0 0 0;
-      background:#e2e8f0; border:none; border-radius:6px; font-weight:600;
-      text-align:left; cursor:pointer;
-    `;
-
-    // Contenedor de items
-    const itemsDiv = document.createElement('div');
-    itemsDiv.className = 'acordeon-items';
-    itemsDiv.style = 'display:none; padding:12px 16px; background:#f9fafb; border-radius:0 0 6px 6px;';
-
-    btn.onclick = () => {
-      const open = itemsDiv.style.display === 'block';
-      // cerrar otros
-      document.querySelectorAll('.acordeon-items').forEach(d => d.style.display = 'none');
-      document.querySelectorAll('.acordeon-categoria').forEach(b => b.setAttribute('aria-expanded','false'));
-      // abrir este
-      if (!open) { itemsDiv.style.display = 'block'; btn.setAttribute('aria-expanded','true'); }
-    };
-
-    // Filas de electrodomésticos
-    items.forEach(item => {
-      const row = document.createElement('div');
-      row.style = 'display:flex; align-items:center; justify-content:space-between; gap:16px; margin:10px 0;';
-
-      const name = document.createElement('span');
-      name.textContent = item.name;
-
-      // consumo diario (kWh/día) como referencia
-      const consumoDiario = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
-      const info = document.createElement('span');
-      info.textContent = `${consumoDiario.toFixed(3)} kWh/día`;
-
-      const input = document.createElement('input');
-      input.type = 'number';
-      input.min = '0';
-      input.value = (userSelections.electrodomesticos?.[item.name] || 0);
-      input.style = 'width:70px; text-align:right;';
-      input.oninput = (e) => {
-        const cant = parseInt(e.target.value) || 0;
-        userSelections.electrodomesticos[item.name] = cant;
-        calcularConsumo();
-      };
-
-      row.appendChild(name);
-      row.appendChild(info);
-      row.appendChild(input);
-      itemsDiv.appendChild(row);
-    });
-
-    contenedor.appendChild(btn);
-    contenedor.appendChild(itemsDiv);
-  });
-}
-
-function calcularConsumo() {
-  let totalMensual = 0;
-
-  for (const categoria in electrodomesticosCategorias) {
-    electrodomesticosCategorias[categoria].forEach(item => {
-      const cant = userSelections.electrodomesticos?.[item.name] || 0;
-      const kWhDia = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
-      const diasMes = item.daysPerMonth ?? 30; // usa tu campo del JSON si está, si no 30
-      totalMensual += kWhDia * diasMes * cant;
-    });
-  }
-
-  const totalAnual = totalMensual * 12;
-
-  userSelections.totalMonthlyConsumption = totalMensual;
-  userSelections.totalAnnualConsumption  = totalAnual;
-
-  if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = totalMensual.toFixed(2);
-  if (totalConsumoAnualDisplay)   totalConsumoAnualDisplay.value   = totalAnual.toFixed(2);
-}
 function setupNavigationButtons() {
   const confirmBtn = document.getElementById('confirm-location-btn');
   const basicUserBtn = document.getElementById('basic-user-button');
@@ -523,8 +416,6 @@ function setupZonaInstalacionStep() {
     const nextButton = document.getElementById('next-to-energia');
     const backButton = document.getElementById('back-to-income-from-zona');
     const zonaSection = document.getElementById('data-meteorologicos-section');
-    const energiaSection = document.getElementById('energia-section');
-
     if (nextButton) {
         nextButton.addEventListener('click', () => {
             const selectedZona = document.querySelector('input[name="zonaInstalacionNewScreen"]:checked');
@@ -533,8 +424,9 @@ function setupZonaInstalacionStep() {
                 return;
             }
             userSelections.zonaInstalacionBasic = selectedZona.value;
+            userSelections.installationType = 'Residencial';
             zonaSection.classList.add('hidden');
-            energiaSection.classList.remove('hidden');
+            if (energiaSectionEl) energiaSectionEl.classList.remove('hidden');
             initEnergyForBasic();
         });
     }
@@ -547,74 +439,72 @@ function setupZonaInstalacionStep() {
     }
 }
 
-// === Config ===
-// URL del JSON (debe existir en la raíz pública del sitio)
-const APPLIANCES_JSON_URL = '/consumos_electrodomesticos.json';
-
-
-// Helpers de UI mínimos usados aquí
-function show(el) { if (el) el.style.display = ''; }
-function hide(el) { if (el) el.style.display = 'none'; }
-
-// Referencias a elementos de ENERGÍA (coinciden con tu HTML)
-const energiaSectionEl          = document.getElementById('energia-section');
-const listaElectrodomesticosEl = document.getElementById('electrodomesticos-categorias');
-const facturaMensualEl         = document.getElementById('consumo-factura-section');
-const promedioMensualEl        = document.getElementById('consumo-promedio-section'); // lo dejamos oculto salvo que lo uses
-const totalMensualEl           = document.getElementById('totalConsumoMensual');
-const totalAnualEl             = document.getElementById('totalConsumoAnual');
-const btnNextPaneles           = document.getElementById('next-to-paneles');
-
 // ---------- API de alto nivel que vas a llamar al entrar a Energía ----------
 async function initEnergyForBasic() {
-  if (!energiaSectionEl) return;
+  console.log('[ENERGIA] init for tipo =', (userSelections?.installationType || ''));
+  console.log('[ENERGIA] elementos:', { energiaSectionEl, listaElectrodomesticosEl });
 
-  // Modo en función del tipo de instalación
-  const tipo = (userSelections?.installationType || '').toLowerCase(); // 'residencial' | 'comercial' | 'pyme'...
-
-  if (tipo === 'residencial') {
-    // Mostrar electrodomésticos
-    await ensureAppliancesLoaded();
-    renderAppliances(appliancesCache);
-    show(listaElectrodomesticosEl);
-    hide(facturaMensualEl);
-    hide(promedioMensualEl);
-  } else {
-    // Mostrar inputs de factura (12 meses)
-    ensureMonthlyInputsHandlers();
-    hide(listaElectrodomesticosEl);
-    show(facturaMensualEl);
-    hide(promedioMensualEl);
+  if (!energiaSectionEl || !listaElectrodomesticosEl) {
+    console.warn('[ENERGIA] Faltan elementos requeridos para iniciar la sección de energía.');
+    return;
   }
 
-  // Actualizar el resumen por si algo ya estaba tildado/completado
-  recalcEnergySummary();
+  const tipo = (userSelections?.installationType || '').toLowerCase();
+
+  if (tipo === 'residencial') {
+    try {
+      const data = await ensureAppliancesLoaded();
+      renderAppliances(data);
+      recalcEnergySummary(data);
+      show(listaElectrodomesticosEl);
+      hide(consumoFacturaSectionEl);
+      hide(consumoPromedioSectionEl);
+    } catch (error) {
+      console.error('[ENERGIA] No se pudo inicializar el detalle de electrodomésticos:', error);
+      listaElectrodomesticosEl.innerHTML = '<p class="energy-error">No se pudo cargar la información de electrodomésticos.</p>';
+    }
+  } else {
+    ensureMonthlyInputsHandlers();
+    hide(listaElectrodomesticosEl);
+    show(consumoFacturaSectionEl);
+    hide(consumoPromedioSectionEl);
+    recalcEnergySummaryFromMonthlyInputsUI();
+  }
+
   show(energiaSectionEl);
   energiaSectionEl.scrollIntoView({ behavior: 'smooth' });
 }
 
 // ---------- Carga de electrodomésticos vía API ----------
-async function ensureAppliancesLoaded() {
+async function ensureAppliancesLoaded(){
   if (appliancesCache) return appliancesCache;
-  const res = await fetch('consumos_electrodomesticos.json');
-  const data = await res.json();
-  appliancesCache = data;
-  electrodomesticosCategorias = data;
-  return data;
+  const url = 'consumos_electrodomesticos.json';
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(`No se pudo cargar ${url} (HTTP ${res.status})`);
+  appliancesCache = await res.json();
+  console.log('[ENERGIA] JSON cargado correctamente:', url);
+  electrodomesticosCategorias = appliancesCache;
+  return appliancesCache;
 }
 
 
 // ---------- Render de electrodomésticos (residencial) ----------
 function renderAppliances(data) {
   if (!listaElectrodomesticosEl) {
-    console.warn('No existe #electrodomesticos-list para renderizar');
+    console.warn('No existe #electrodomesticos-categorias para renderizar');
     return;
   }
+
   listaElectrodomesticosEl.innerHTML = '';
 
-  // data = { "Cocina": [ {name, watts, hoursPerDay, daysPerMonth?}, ... ], ... }
+  if (!data || Object.keys(data).length === 0) {
+    listaElectrodomesticosEl.innerHTML = '<p class="energy-error">No hay datos de electrodomésticos disponibles.</p>';
+    return;
+  }
+
+  console.log('[ENERGIA] renderAppliances data keys =', Object.keys(data).length);
+
   Object.entries(data).forEach(([categoria, items]) => {
-    // Header acordeón
     const header = document.createElement('button');
     header.type = 'button';
     header.className = 'acordeon-categoria';
@@ -630,9 +520,12 @@ function renderAppliances(data) {
 
     header.onclick = () => {
       const open = panel.style.display === 'block';
-      document.querySelectorAll('.acordeon-items').forEach(d => d.style.display = 'none');
-      document.querySelectorAll('.acordeon-categoria').forEach(b => b.setAttribute('aria-expanded','false'));
-      if (!open) { panel.style.display = 'block'; header.setAttribute('aria-expanded','true'); }
+      document.querySelectorAll('.acordeon-items').forEach(d => (d.style.display = 'none'));
+      document.querySelectorAll('.acordeon-categoria').forEach(b => b.setAttribute('aria-expanded', 'false'));
+      if (!open) {
+        panel.style.display = 'block';
+        header.setAttribute('aria-expanded', 'true');
+      }
     };
 
     items.forEach(item => {
@@ -641,10 +534,12 @@ function renderAppliances(data) {
 
       const name = document.createElement('span');
       name.textContent = item.name;
+      name.style = 'flex:1 1 auto; font-weight:500;';
 
-      const kWhDia = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
       const info = document.createElement('span');
-      info.textContent = `${kWhDia.toFixed(3)} kWh/día`;
+      const consumoDiario = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
+      info.textContent = `${consumoDiario.toFixed(3)} kWh/día`;
+      info.style = 'flex:0 0 140px; color:#475569; font-size:0.9rem; text-align:right;';
 
       const input = document.createElement('input');
       input.type = 'number';
@@ -652,10 +547,10 @@ function renderAppliances(data) {
       input.value = (userSelections.electrodomesticos?.[item.name] || 0);
       input.style = 'width:70px; text-align:right;';
       input.oninput = (e) => {
-        const cant = parseInt(e.target.value) || 0;
+        const cant = parseInt(e.target.value, 10) || 0;
         if (!userSelections.electrodomesticos) userSelections.electrodomesticos = {};
         userSelections.electrodomesticos[item.name] = cant;
-        recalcEnergySummary(data);          // actualiza totales
+        recalcEnergySummary(data);
       };
 
       row.appendChild(name);
@@ -668,9 +563,6 @@ function renderAppliances(data) {
     listaElectrodomesticosEl.appendChild(panel);
   });
 }
-
-const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');  // opcional si lo tenés en HTML
-const totalConsumoAnualDisplay   = document.getElementById('totalConsumoAnual');    // opcional si lo tenés en HTML
 
 function recalcEnergySummary(dataRef) {
   const data = dataRef || appliancesCache || electrodomesticosCategorias;
@@ -712,7 +604,7 @@ function ensureMonthlyInputsHandlers() {
     if (el) {
       el.addEventListener('input', () => {
         recalcEnergyFromMonthlyInputs();
-        recalcEnergySummary();
+        recalcEnergySummaryFromMonthlyInputsUI();
       });
     }
   });
@@ -735,14 +627,15 @@ function recalcEnergyFromMonthlyInputs() {
   const promedioMes = sum / 12; // usamos promedio anual / 12; si querés promedio de meses cargados, usa (sum / count) con guardas
   userSelections.totalMonthlyKwh = Math.round(promedioMes * 100) / 100;
   userSelections.totalYearlyKwh  = Math.round(sum);
+  recalcEnergySummaryFromMonthlyInputsUI();
 }
 
 // ---------- Actualiza los 2 campos del resumen ----------
-function recalcEnergySummary() {
+function recalcEnergySummaryFromMonthlyInputsUI(){
   const kwhMes  = Number(userSelections.totalMonthlyKwh || 0);
   const kwhAnio = Number(userSelections.totalYearlyKwh  || Math.round(kwhMes * 12));
-  if (totalMensualEl) totalMensualEl.value = kwhMes.toString();
-  if (totalAnualEl)   totalAnualEl.value   = kwhAnio.toString();
+  if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = kwhMes.toString();
+  if (totalConsumoAnualDisplay)   totalConsumoAnualDisplay.value   = kwhAnio.toString();
 }
 
 async function generarInformeDesdeFrontend() {
@@ -880,7 +773,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const backToZonaButton = document.getElementById('back-to-zona-from-energia');
+    const backToZonaButton = document.getElementById('back-to-datos');
     if (backToZonaButton) {
         backToZonaButton.addEventListener('click', () => {
             document.getElementById('energia-section').classList.add('hidden');
