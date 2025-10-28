@@ -216,82 +216,85 @@ def generar_informe():
         try:
             total_mes = float(payload.get("totalMonthlyConsumption", 0) or 0)
             total_anio = float(payload.get("totalAnnualConsumption", 0) or 0)
-        except (TypeError, ValueError):
-            return jsonify({"error": "Consumos numéricos no válidos"}), 400
+        except (TypeError, ValueError) as exc:  # noqa: BLE001
+            return jsonify({"error": f"Consumos no válidos: {exc}"}), 400
 
-        raw_zona = payload.get("zonaInstalacionBasic")
-        zona = str(raw_zona).strip() if raw_zona is not None else ""
-        raw_ciudad = payload.get("ciudad") or payload.get("city")
-        ciudad = str(raw_ciudad).strip() if raw_ciudad else ""
-        moneda = payload.get("selectedCurrency") or "Pesos argentinos"
+        zona = str(payload.get("zonaInstalacionBasic") or "").strip()
+
+        def _extraer_ciudad(data):
+            if isinstance(data, dict):
+                for key in ("nombre", "name", "ciudad"):
+                    valor = data.get(key)
+                    if valor:
+                        return valor
+                return ""
+            return data
+
+        ciudad_valor = _extraer_ciudad(payload.get("ciudad"))
+        if not ciudad_valor:
+            ciudad_valor = _extraer_ciudad(payload.get("city"))
+        ciudad = str(ciudad_valor or "").strip()
 
         if total_anio <= 0:
-            return jsonify({"error": "Consumo anual no válido"}), 400
-
-        if not os.path.exists(EXCEL_PATH):
-            raise FileNotFoundError
+            return jsonify({"error": "Consumo anual no válido (<= 0)"}), 400
 
         with excel_lock:
-            try:
-                wb = load_workbook(EXCEL_PATH)
-            except FileNotFoundError:
-                raise
-
+            wb = load_workbook(EXCEL_PATH)
             try:
                 ws_in = wb["Datos de Entrada"]
             except KeyError:
                 wb.close()
-                return jsonify({"error": "La hoja 'Datos de Entrada' no existe en el Excel."}), 500
+                return jsonify({"error": "No se encuentra la hoja 'Datos de Entrada'"}), 500
 
             try:
-                ws_in["B7"] = ciudad
-            except Exception:
-                pass
-
-            try:
-                ws_in["B9"] = zona
-            except Exception:
-                pass
-
-            try:
+                if ciudad:
+                    ws_in["B7"] = ciudad
+                if zona:
+                    ws_in["B9"] = zona
                 ws_in["B11"] = float(total_mes)
                 ws_in["B12"] = float(total_anio)
-            except Exception:
-                pass
+                wb.save(EXCEL_PATH)
+            except Exception as exc:  # noqa: BLE001
+                wb.close()
+                return jsonify({"error": f"Error escribiendo celdas de entrada: {exc}"}), 500
 
-            wb.save(EXCEL_PATH)
             wb.close()
 
+            wb2 = load_workbook(EXCEL_PATH, data_only=True)
             try:
-                wb_resultados = load_workbook(EXCEL_PATH, data_only=True)
-            except FileNotFoundError:
-                raise
+                try:
+                    ws_out = wb2["Resultados"]
+                except KeyError:
+                    return jsonify({"error": "No se encuentra la hoja 'Resultados'"}), 500
 
-            try:
-                ws_out = wb_resultados["Resultados"]
-            except KeyError:
-                wb_resultados.close()
-                return jsonify({"error": "La hoja 'Resultados' no existe en el Excel."}), 500
+                datos = [
+                    list(row)
+                    for row in ws_out.iter_rows(
+                        min_row=3,
+                        max_row=50,
+                        min_col=2,
+                        max_col=12,
+                        values_only=True,
+                    )
+                ]
+            finally:
+                wb2.close()
 
-            datos = []
-            for row in ws_out.iter_rows(min_row=3, max_row=50, min_col=2, max_col=12, values_only=True):
-                datos.append([("" if cell is None else cell) for cell in row])
-
-            wb_resultados.close()
-
-        respuesta = {
-            "status": "ok",
-            "moneda": moneda,
-            "resumen": {
-                "consumo_mensual_kwh": total_mes,
-                "consumo_anual_kwh": total_anio,
-                "zona": zona,
-                "ciudad": ciudad,
-            },
-            "tabla_resultados": datos,
-        }
-
-        return jsonify(respuesta), 200
+        return (
+            jsonify(
+                {
+                    "status": "ok",
+                    "resumen": {
+                        "ciudad": ciudad or None,
+                        "zona": zona or None,
+                        "consumo_mensual_kwh": total_mes,
+                        "consumo_anual_kwh": total_anio,
+                    },
+                    "tabla_resultados": datos,
+                }
+            ),
+            200,
+        )
 
     except FileNotFoundError:
         return jsonify({"error": f"No se encontró el Excel en {EXCEL_PATH}"}), 500
