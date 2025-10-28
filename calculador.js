@@ -642,64 +642,6 @@ function recalcEnergySummaryFromMonthlyInputsUI(){
   if (totalConsumoAnualDisplay)   totalConsumoAnualDisplay.value   = kwhAnio.toString();
 }
 
-async function generarInformeDesdeFrontend() {
-  const target = document.getElementById('resultados-informe') || (() => {
-    const d = document.createElement('div');
-    d.id = 'resultados-informe';
-    document.getElementById('energia-section')?.appendChild(d);
-    return d;
-  })();
-
-  const btn = document.getElementById('next-to-paneles');
-  if (btn) btn.disabled = true;
-  target.innerHTML = '<div style="padding:12px">Generando informe…</div>';
-
-  try {
-    const res = await fetch('/api/generar_informe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userSelections)
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`Error del servidor: ${res.status} ${text}`);
-    }
-
-    const data = await res.json();
-    if (data.error) {
-      target.innerHTML = `<div style="color:#b91c1c">${data.error}</div>`;
-      return;
-    }
-
-    let tablaHTML = '';
-    if (Array.isArray(data.tabla_resultados)) {
-      tablaHTML = `
-        <div style="overflow:auto; max-height:340px; border:1px solid #e5e7eb; margin-top:8px">
-          <table style="width:100%; border-collapse:collapse">
-            ${data.tabla_resultados.map(r =>
-              `<tr>${(r || []).map(c => `<td style="border:1px solid #e5e7eb; padding:6px;">${c ?? ''}</td>`).join('')}</tr>`
-            ).join('')}
-          </table>
-        </div>`;
-    }
-
-    target.innerHTML = `
-      <h2>Informe generado</h2>
-      <p><b>Ciudad:</b> ${data.resumen?.ciudad ?? '-'}</p>
-      <p><b>Zona:</b> ${data.resumen?.zona ?? '-'}</p>
-      <p><b>Consumo mensual:</b> ${Number(data.resumen?.consumo_mensual_kwh || 0).toFixed(2)} kWh</p>
-      <p><b>Consumo anual:</b> ${Number(data.resumen?.consumo_anual_kwh || 0).toFixed(2)} kWh</p>
-      ${tablaHTML}
-    `;
-    target.scrollIntoView({ behavior: 'smooth' });
-  } catch (err) {
-    target.innerHTML = `<div style="color:#b91c1c">Error al generar el informe: ${err.message}</div>`;
-  } finally {
-    if (btn) btn.disabled = false;
-  }
-}
-
 (function wireNextFromEnergia() {
   const btn = document.getElementById('next-to-paneles');
   if (!btn) return;
@@ -709,26 +651,18 @@ async function generarInformeDesdeFrontend() {
 
   nextBtn.addEventListener('click', async (e) => {
     e.preventDefault();
+    console.log('[ENERGIA] Click en Siguiente');
 
-    if (typeof calcularConsumoTotal === 'function') {
-      calcularConsumoTotal();
-    } else if (typeof recalcEnergySummary === 'function') {
-      await ensureAppliancesLoaded?.();
-      recalcEnergySummary(appliancesCache);
-    }
+    const utype = (userSelections.userType || '').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
 
+    if (typeof calcularConsumoTotal === 'function') calcularConsumoTotal();
     const anual = Number(userSelections.totalAnnualConsumption || 0);
     if (!anual || anual <= 0) {
-      alert('Por favor, ingresa cantidades de electrodomésticos (el consumo anual es 0).');
+      alert('Por favor, ingresa electrodomésticos antes de continuar.');
       return;
     }
 
-    if (!userSelections.location || typeof userSelections.location.lat !== 'number' || typeof userSelections.location.lng !== 'number') {
-      alert('Falta confirmar la ubicación en el mapa (lat/lng).');
-      return;
-    }
-
-    if ((userSelections.userType || '').toLowerCase() === 'basico') {
+    if (utype === 'basico') {
       await generarInformeDesdeFrontend();
       return;
     }
@@ -737,6 +671,54 @@ async function generarInformeDesdeFrontend() {
     document.getElementById('paneles-section')?.classList.remove('hidden');
   });
 })();
+
+async function generarInformeDesdeFrontend() {
+  const target = document.getElementById('resultados-informe') || (() => {
+    const d = document.createElement('div');
+    d.id = 'resultados-informe';
+    document.getElementById('energia-section')?.appendChild(d);
+    return d;
+  })();
+
+  const btn = document.getElementById('next-to-paneles');
+  btn && (btn.disabled = true);
+  target.innerHTML = '<div style="padding:12px">Generando informe…</div>';
+
+  try {
+    const res = await fetch('/api/generar_informe', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(userSelections)
+    });
+
+    if (!res.ok) throw new Error(`Error del servidor: ${res.status}`);
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    let tablaHTML = '';
+    if (Array.isArray(data.tabla_resultados)) {
+      tablaHTML = `<table>${data.tabla_resultados
+        .map(r => `<tr>${r.map(c => `<td>${c ?? ''}</td>`).join('')}</tr>`)
+        .join('')}</table>`;
+    }
+
+    target.innerHTML = `
+      <h2>Informe generado</h2>
+      <p><b>Ciudad:</b> ${data.resumen?.ciudad || '-'}</p>
+      <p><b>Zona:</b> ${data.resumen?.zona || '-'}</p>
+      <p><b>Consumo mensual:</b> ${data.resumen?.consumo_mensual_kwh.toFixed(2)} kWh</p>
+      <p><b>Consumo anual:</b> ${data.resumen?.consumo_anual_kwh.toFixed(2)} kWh</p>
+      ${tablaHTML}
+    `;
+    target.scrollIntoView({behavior:'smooth'});
+  } catch (err) {
+    console.error('Error al generar el informe:', err);
+    target.innerHTML = `<div style="color:red">${err.message}</div>`;
+  } finally {
+    btn && (btn.disabled = false);
+  }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSavedLocation();
