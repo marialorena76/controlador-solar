@@ -10,10 +10,13 @@ from openpyxl import load_workbook
 #from . import engine
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-EXCEL_FILE_PATH = os.path.join(
-    BASE_DIR,
-    "Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx"
-)
+SCRIPT_DIR = BASE_DIR
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+
+DEFAULT_EXCEL_FILENAME = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_4.xlsx'
+EXCEL_RELATIVE_DIR = 'backend'
+EXCEL_FILE_PATH = os.path.join(SCRIPT_DIR, EXCEL_RELATIVE_DIR, DEFAULT_EXCEL_FILENAME)
+EXCEL_PATH = EXCEL_FILE_PATH
 
 excel_lock = Lock()
 # Nota: este candado se reutiliza tanto para la escritura directa en el archivo
@@ -37,12 +40,6 @@ def clean_nan_in_data(obj):
         return None
     return obj
 
-# --- Setup robust paths relative to this script ---
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
-
-DEFAULT_EXCEL_FILENAME = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx'
-EXCEL_FILE_PATH = os.path.join(SCRIPT_DIR, DEFAULT_EXCEL_FILENAME)
 CONSUMOS_JSON_PATH = os.path.join(PROJECT_ROOT, 'consumos_electrodomesticos.json')
 
 
@@ -142,103 +139,73 @@ def get_electrodomesticos_consumos():
         print(traceback.format_exc())
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
-# --- Ruta para generar informe (EXISTENTE) ---
+# --- Ruta para generar informe (actualizada) ---
 @app.route('/api/generar_informe', methods=['POST'])
 def generar_informe():
-    """Genera el informe básico tomando los datos desde el Excel compartido."""
     try:
         payload = request.get_json(force=True) or {}
+        app.logger.info(f"Payload recibido: {payload}")
 
-        try:
-            total_mes = float(payload.get("totalMonthlyConsumption", 0) or 0)
-            total_anio = float(payload.get("totalAnnualConsumption", 0) or 0)
-        except (TypeError, ValueError) as exc:  # noqa: BLE001
-            return jsonify({"error": f"Consumos no válidos: {exc}"}), 400
+        if not os.path.exists(EXCEL_PATH):
+            return jsonify({"error": f"No se encontró el archivo Excel en {EXCEL_PATH}"}), 500
 
-        zona = str(payload.get("zonaInstalacionBasic") or "").strip()
-
-        def _extraer_ciudad(data):
-            if isinstance(data, dict):
-                for key in ("nombre", "name", "ciudad"):
-                    valor = data.get(key)
-                    if valor:
-                        return valor
-                return ""
-            return data
-
-        ciudad_valor = _extraer_ciudad(payload.get("ciudad"))
-        if not ciudad_valor:
-            ciudad_valor = _extraer_ciudad(payload.get("city"))
-        ciudad = str(ciudad_valor or "").strip()
+        ciudad = (payload.get("ciudad") or payload.get("city") or "").strip()
+        zona = (payload.get("zonaInstalacionBasic") or "").strip()
+        total_mes = float(payload.get("totalMonthlyConsumption", 0) or 0)
+        total_anio = float(payload.get("totalAnnualConsumption", 0) or 0)
 
         if total_anio <= 0:
-            return jsonify({"error": "Consumo anual no válido (<= 0)"}), 400
+            return jsonify({"error": "Consumo anual inválido (0 o negativo)"}), 400
 
-        with excel_lock:
-            wb = load_workbook(EXCEL_FILE_PATH)
-            try:
-                ws_in = wb["Datos de Entrada"]
-            except KeyError:
-                wb.close()
-                return jsonify({"error": "No se encuentra la hoja 'Datos de Entrada'"}), 500
-
-            try:
-                if ciudad:
-                    ws_in["B7"] = ciudad
-                if zona:
-                    ws_in["B9"] = zona
-                ws_in["B11"] = float(total_mes)
-                ws_in["B12"] = float(total_anio)
-                wb.save(EXCEL_FILE_PATH)
-            except Exception as exc:  # noqa: BLE001
-                wb.close()
-                return jsonify({"error": f"Error escribiendo celdas de entrada: {exc}"}), 500
-
+        # Abrir el Excel y escribir datos en la hoja de entrada
+        wb = load_workbook(EXCEL_PATH)
+        if "Datos de Entrada" not in wb.sheetnames:
             wb.close()
+            return jsonify({"error": "No se encontró la hoja 'Datos de Entrada'"}), 500
+        ws_in = wb["Datos de Entrada"]
 
-            wb2 = load_workbook(EXCEL_FILE_PATH, data_only=True)
-            try:
-                try:
-                    ws_out = wb2["Resultados"]
-                except KeyError:
-                    return jsonify({"error": "No se encuentra la hoja 'Resultados'"}), 500
+        try:
+            if ciudad:
+                ws_in["B7"] = ciudad
+            if zona:
+                ws_in["B9"] = zona
+            ws_in["B11"] = total_mes
+            ws_in["B12"] = total_anio
+        except Exception as e:
+            wb.close()
+            app.logger.exception("Error escribiendo celdas")
+            return jsonify({"error": f"Error al escribir celdas: {str(e)}"}), 500
 
-                datos = [
-                    list(row)
-                    for row in ws_out.iter_rows(
-                        min_row=3,
-                        max_row=50,
-                        min_col=2,
-                        max_col=12,
-                        values_only=True,
-                    )
-                ]
-            finally:
-                wb2.close()
+        wb.save(EXCEL_PATH)
+        wb.close()
 
-        return (
-            jsonify(
-                {
-                    "status": "ok",
-                    "resumen": {
-                        "ciudad": ciudad or None,
-                        "zona": zona or None,
-                        "consumo_mensual_kwh": total_mes,
-                        "consumo_anual_kwh": total_anio,
-                    },
-                    "tabla_resultados": datos,
-                }
-            ),
-            200,
-        )
+        # Reabrir con data_only=True para leer fórmulas calculadas
+        wb2 = load_workbook(EXCEL_PATH, data_only=True)
+        if "Resultados" not in wb2.sheetnames:
+            wb2.close()
+            return jsonify({"error": "No se encontró la hoja 'Resultados'"}), 500
 
-    except FileNotFoundError:
-        return jsonify({"error": f"No se encontró el Excel en {EXCEL_FILE_PATH}"}), 500
-    except Exception as exc:  # noqa: BLE001
-        import traceback
-        print(f"ERROR en /api/generar_informe: {exc}")
-        print(traceback.format_exc())
-        return jsonify({"error": f"Excepción en generar_informe: {exc}"}), 500
+        ws_out = wb2["Resultados"]
+        datos = []
+        for row in ws_out.iter_rows(min_row=3, max_row=50, min_col=2, max_col=12, values_only=True):
+            datos.append(list(row))
+        wb2.close()
+
+        app.logger.info("Informe generado correctamente.")
+        return jsonify({
+            "status": "ok",
+            "resumen": {
+                "ciudad": ciudad or None,
+                "zona": zona or None,
+                "consumo_mensual_kwh": total_mes,
+                "consumo_anual_kwh": total_anio
+            },
+            "tabla_resultados": datos
+        }), 200
+
+    except Exception as e:
+        app.logger.exception("Excepción en generar_informe")
+        return jsonify({"error": f"Excepción en generar_informe: {str(e)}"}), 500
 
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
 @app.route('/')
