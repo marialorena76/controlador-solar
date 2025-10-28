@@ -643,8 +643,16 @@ function recalcEnergySummaryFromMonthlyInputsUI(){
 }
 
 async function generarInformeDesdeFrontend() {
-  const ui = document.getElementById('resultados-informe');
-  if (ui) ui.innerHTML = '<b>Generando informe...</b>';
+  const target = document.getElementById('resultados-informe') || (() => {
+    const d = document.createElement('div');
+    d.id = 'resultados-informe';
+    document.getElementById('energia-section')?.appendChild(d);
+    return d;
+  })();
+
+  const btn = document.getElementById('next-to-paneles');
+  if (btn) btn.disabled = true;
+  target.innerHTML = '<div style="padding:12px">Generando informe…</div>';
 
   try {
     const res = await fetch('/api/generar_informe', {
@@ -654,44 +662,81 @@ async function generarInformeDesdeFrontend() {
     });
 
     if (!res.ok) {
-      throw new Error(`Error del servidor: ${res.status}`);
+      const text = await res.text().catch(() => '');
+      throw new Error(`Error del servidor: ${res.status} ${text}`);
     }
 
     const data = await res.json();
-    if (ui) {
-      if (data.error) {
-        ui.innerHTML = `<span style="color:#b91c1c;">${data.error}</span>`;
-      } else {
-        const tabla = (data.tabla_resultados || [])
-          .map(row => {
-            const cells = row
-              .map(col => `<td style="border:1px solid #e5e7eb; padding:6px;">${col ?? ''}</td>`)
-              .join('');
-            return `<tr>${cells}</tr>`;
-          })
-          .join('');
-
-        ui.innerHTML = `
-          <h2>Informe generado</h2>
-          <p><b>Moneda:</b> ${data.moneda ?? '-'}</p>
-          <p><b>Zona:</b> ${data.resumen?.zona ?? '-'}</p>
-          <p><b>Consumo mensual:</b> ${data.resumen?.consumo_mensual_kwh ?? '-'} kWh</p>
-          <p><b>Consumo anual:</b> ${data.resumen?.consumo_anual_kwh ?? '-'} kWh</p>
-          <h3>Resultados (B3:L50)</h3>
-          <div style="overflow:auto; max-height:340px; border:1px solid #e5e7eb;">
-            <table style="width:100%; border-collapse:collapse;">
-              ${tabla}
-            </table>
-          </div>
-        `;
-        ui.scrollIntoView({ behavior: 'smooth' });
-      }
+    if (data.error) {
+      target.innerHTML = `<div style="color:#b91c1c">${data.error}</div>`;
+      return;
     }
+
+    let tablaHTML = '';
+    if (Array.isArray(data.tabla_resultados)) {
+      tablaHTML = `
+        <div style="overflow:auto; max-height:340px; border:1px solid #e5e7eb; margin-top:8px">
+          <table style="width:100%; border-collapse:collapse">
+            ${data.tabla_resultados.map(r =>
+              `<tr>${(r || []).map(c => `<td style="border:1px solid #e5e7eb; padding:6px;">${c ?? ''}</td>`).join('')}</tr>`
+            ).join('')}
+          </table>
+        </div>`;
+    }
+
+    target.innerHTML = `
+      <h2>Informe generado</h2>
+      <p><b>Ciudad:</b> ${data.resumen?.ciudad ?? '-'}</p>
+      <p><b>Zona:</b> ${data.resumen?.zona ?? '-'}</p>
+      <p><b>Consumo mensual:</b> ${Number(data.resumen?.consumo_mensual_kwh || 0).toFixed(2)} kWh</p>
+      <p><b>Consumo anual:</b> ${Number(data.resumen?.consumo_anual_kwh || 0).toFixed(2)} kWh</p>
+      ${tablaHTML}
+    `;
+    target.scrollIntoView({ behavior: 'smooth' });
   } catch (err) {
-    console.error('Error al generar el informe:', err);
-    if (ui) ui.innerHTML = `<span style="color:#b91c1c;">Error al generar el informe: ${err.message}</span>`;
+    target.innerHTML = `<div style="color:#b91c1c">Error al generar el informe: ${err.message}</div>`;
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
+
+(function wireNextFromEnergia() {
+  const btn = document.getElementById('next-to-paneles');
+  if (!btn) return;
+
+  btn.replaceWith(btn.cloneNode(true));
+  const nextBtn = document.getElementById('next-to-paneles');
+
+  nextBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+
+    if (typeof calcularConsumoTotal === 'function') {
+      calcularConsumoTotal();
+    } else if (typeof recalcEnergySummary === 'function') {
+      await ensureAppliancesLoaded?.();
+      recalcEnergySummary(appliancesCache);
+    }
+
+    const anual = Number(userSelections.totalAnnualConsumption || 0);
+    if (!anual || anual <= 0) {
+      alert('Por favor, ingresa cantidades de electrodomésticos (el consumo anual es 0).');
+      return;
+    }
+
+    if (!userSelections.location || typeof userSelections.location.lat !== 'number' || typeof userSelections.location.lng !== 'number') {
+      alert('Falta confirmar la ubicación en el mapa (lat/lng).');
+      return;
+    }
+
+    if ((userSelections.userType || '').toLowerCase() === 'basico') {
+      await generarInformeDesdeFrontend();
+      return;
+    }
+
+    document.getElementById('energia-section')?.classList.add('hidden');
+    document.getElementById('paneles-section')?.classList.remove('hidden');
+  });
+})();
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSavedLocation();
@@ -762,31 +807,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Error guardando la ubicación: ' + error.message);
             }
         });
-    }
-
-    const nextToPanelesButton = document.getElementById('next-to-paneles');
-    if (nextToPanelesButton) {
-        nextToPanelesButton.onclick = async (e) => {
-            e.preventDefault();
-            calcularConsumo();
-            if ((userSelections.totalAnnualConsumption || 0) <= 0) {
-                alert('Por favor, ingresa la cantidad de electrodomésticos para calcular el consumo de energía.');
-                return;
-            }
-
-            if (userSelections.userType === 'Basico') {
-                await generarInformeDesdeFrontend();
-            } else {
-                if (typeof showDataFormSubSection === 'function') {
-                    showDataFormSubSection('paneles-section');
-                } else {
-                    const dataMeteorologicosSection = document.getElementById('data-meteorologicos-section');
-                    const panelesSection = document.getElementById('paneles-section');
-                    if (dataMeteorologicosSection) dataMeteorologicosSection.classList.add('hidden');
-                    if (panelesSection) panelesSection.classList.remove('hidden');
-                }
-            }
-        };
     }
 
     const backToZonaButton = document.getElementById('back-to-datos');
