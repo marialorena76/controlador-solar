@@ -145,39 +145,100 @@ def get_electrodomesticos_consumos():
 # --- Ruta para generar informe (EXISTENTE) ---
 @app.route('/api/generar_informe', methods=['POST'])
 def generar_informe():
-    print("--- NEW /api/generar_informe REQUEST ---")
+    """Genera el informe básico tomando los datos desde el Excel compartido."""
     try:
-        user_data = request.json
-        print(f"Received user_data: {json.dumps(user_data, indent=2)}")
+        payload = request.get_json(force=True) or {}
 
-        if not user_data:
-            print("ERROR: No user_data received.")
-            return jsonify({"error": "No se recibieron datos"}), 400
+        try:
+            total_mes = float(payload.get("totalMonthlyConsumption", 0) or 0)
+            total_anio = float(payload.get("totalAnnualConsumption", 0) or 0)
+        except (TypeError, ValueError) as exc:  # noqa: BLE001
+            return jsonify({"error": f"Consumos no válidos: {exc}"}), 400
 
-        print("Calling calculation engine...")
-        # El motor de cálculo accede al mismo archivo Excel que la ruta de
-        # actualización, por lo que ambas operaciones comparten el mismo lock
-        # para evitar condiciones de carrera. La sección crítica se mantiene al
-        # mínimo, limitándose a la llamada del motor.
+        zona = str(payload.get("zonaInstalacionBasic") or "").strip()
+
+        def _extraer_ciudad(data):
+            if isinstance(data, dict):
+                for key in ("nombre", "name", "ciudad"):
+                    valor = data.get(key)
+                    if valor:
+                        return valor
+                return ""
+            return data
+
+        ciudad_valor = _extraer_ciudad(payload.get("ciudad"))
+        if not ciudad_valor:
+            ciudad_valor = _extraer_ciudad(payload.get("city"))
+        ciudad = str(ciudad_valor or "").strip()
+
+        if total_anio <= 0:
+            return jsonify({"error": "Consumo anual no válido (<= 0)"}), 400
+
         with excel_lock:
-            resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
-        print("Engine call successful.")
+            wb = load_workbook(EXCEL_FILE_PATH)
+            try:
+                ws_in = wb["Datos de Entrada"]
+            except KeyError:
+                wb.close()
+                return jsonify({"error": "No se encuentra la hoja 'Datos de Entrada'"}), 500
 
-        # Clean NaN values before returning the JSON response.
-        resultados_calculo_clean = clean_nan_in_data(resultados_calculo)
+            try:
+                if ciudad:
+                    ws_in["B7"] = ciudad
+                if zona:
+                    ws_in["B9"] = zona
+                ws_in["B11"] = float(total_mes)
+                ws_in["B12"] = float(total_anio)
+                wb.save(EXCEL_FILE_PATH)
+            except Exception as exc:  # noqa: BLE001
+                wb.close()
+                return jsonify({"error": f"Error escribiendo celdas de entrada: {exc}"}), 500
 
-        if "error" in resultados_calculo_clean:
-            print(f"Engine returned an error: {resultados_calculo_clean['error']}")
-            return jsonify(resultados_calculo_clean), 400
+            wb.close()
 
-        print("Successfully generated report. Returning results.")
-        return jsonify(resultados_calculo_clean)
+            wb2 = load_workbook(EXCEL_FILE_PATH, data_only=True)
+            try:
+                try:
+                    ws_out = wb2["Resultados"]
+                except KeyError:
+                    return jsonify({"error": "No se encuentra la hoja 'Resultados'"}), 500
 
-    except Exception as e:
+                datos = [
+                    list(row)
+                    for row in ws_out.iter_rows(
+                        min_row=3,
+                        max_row=50,
+                        min_col=2,
+                        max_col=12,
+                        values_only=True,
+                    )
+                ]
+            finally:
+                wb2.close()
+
+        return (
+            jsonify(
+                {
+                    "status": "ok",
+                    "resumen": {
+                        "ciudad": ciudad or None,
+                        "zona": zona or None,
+                        "consumo_mensual_kwh": total_mes,
+                        "consumo_anual_kwh": total_anio,
+                    },
+                    "tabla_resultados": datos,
+                }
+            ),
+            200,
+        )
+
+    except FileNotFoundError:
+        return jsonify({"error": f"No se encontró el Excel en {EXCEL_FILE_PATH}"}), 500
+    except Exception as exc:  # noqa: BLE001
         import traceback
-        error_info = traceback.format_exc()
-        print(f"UNEXPECTED CRASH in /api/generar_informe: {e}\n{error_info}")
-        return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
+        print(f"ERROR en /api/generar_informe: {exc}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Excepción en generar_informe: {exc}"}), 500
 
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
 @app.route('/')
