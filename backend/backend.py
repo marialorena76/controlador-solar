@@ -12,8 +12,9 @@ from . import engine
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EXCEL_FILE_PATH = os.path.join(
     BASE_DIR,
-    "Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx"
+    "Calculador Solar - web 06-24_con ayuda - modificaciones 2025_4.xlsx"
 )
+EXCEL_PATH = EXCEL_FILE_PATH
 
 excel_lock = Lock()
 # Nota: este candado se reutiliza tanto para la escritura directa en el archivo
@@ -41,7 +42,7 @@ def clean_nan_in_data(obj):
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 
-DEFAULT_EXCEL_FILENAME = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx'
+DEFAULT_EXCEL_FILENAME = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_4.xlsx'
 EXCEL_FILE_PATH = os.path.join(SCRIPT_DIR, DEFAULT_EXCEL_FILENAME)
 # === Persistencia rápida de la ciudad (JSON) ===
 STATE_PATH = os.path.join(SCRIPT_DIR, 'estado_ubicacion.json')
@@ -205,47 +206,100 @@ def get_electrodomesticos_consumos():
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
 
-# --- Ruta para generar informe (EXISTENTE) ---
+# --- Ruta para generar informe (actualizada) ---
 @app.route('/api/generar_informe', methods=['POST'])
 def generar_informe():
-    print("--- NEW /api/generar_informe REQUEST ---")
+    """Genera el informe básico tomando los datos desde el Excel compartido."""
     try:
-        user_data = request.json
-        print(f"Received user_data: {json.dumps(user_data, indent=2)}")
+        payload = request.get_json(force=True) or {}
 
-        if not user_data:
-            print("ERROR: No user_data received.")
-            return jsonify({"error": "No se recibieron datos"}), 400
+        try:
+            total_mes = float(payload.get("totalMonthlyConsumption", 0) or 0)
+            total_anio = float(payload.get("totalAnnualConsumption", 0) or 0)
+        except (TypeError, ValueError):
+            return jsonify({"error": "Consumos numéricos no válidos"}), 400
 
-        print("Calling calculation engine...")
+        raw_zona = payload.get("zonaInstalacionBasic")
+        zona = str(raw_zona).strip() if raw_zona is not None else ""
+        raw_ciudad = payload.get("ciudad") or payload.get("city")
+        ciudad = str(raw_ciudad).strip() if raw_ciudad else ""
+        moneda = payload.get("selectedCurrency") or "Pesos argentinos"
 
-        # Sección crítica: primero escribimos B7 si hay ciudad pendiente,
-        # luego corremos el motor. Todo bajo el mismo lock.
+        if total_anio <= 0:
+            return jsonify({"error": "Consumo anual no válido"}), 400
+
+        if not os.path.exists(EXCEL_PATH):
+            raise FileNotFoundError
+
         with excel_lock:
             try:
-                _escribir_ciudad_en_excel_si_pendiente()
-            except Exception as e:
-                print(f"WARN: No se pudo escribir B7 antes del motor: {e}")
+                wb = load_workbook(EXCEL_PATH)
+            except FileNotFoundError:
+                raise
 
-            resultados_calculo = engine.run_calculation_engine(user_data, EXCEL_FILE_PATH)
+            try:
+                ws_in = wb["Datos de Entrada"]
+            except KeyError:
+                wb.close()
+                return jsonify({"error": "La hoja 'Datos de Entrada' no existe en el Excel."}), 500
 
-        print("Engine call successful.")
+            try:
+                ws_in["B7"] = ciudad
+            except Exception:
+                pass
 
-        # Limpiar NaN antes de responder
-        resultados_calculo_clean = clean_nan_in_data(resultados_calculo)
+            try:
+                ws_in["B9"] = zona
+            except Exception:
+                pass
 
-        if "error" in resultados_calculo_clean:
-            print(f"Engine returned an error: {resultados_calculo_clean['error']}")
-            return jsonify(resultados_calculo_clean), 400
+            try:
+                ws_in["B11"] = float(total_mes)
+                ws_in["B12"] = float(total_anio)
+            except Exception:
+                pass
 
-        print("Successfully generated report. Returning results.")
-        return jsonify(resultados_calculo_clean)
+            wb.save(EXCEL_PATH)
+            wb.close()
 
-    except Exception as e:
+            try:
+                wb_resultados = load_workbook(EXCEL_PATH, data_only=True)
+            except FileNotFoundError:
+                raise
+
+            try:
+                ws_out = wb_resultados["Resultados"]
+            except KeyError:
+                wb_resultados.close()
+                return jsonify({"error": "La hoja 'Resultados' no existe en el Excel."}), 500
+
+            datos = []
+            for row in ws_out.iter_rows(min_row=3, max_row=50, min_col=2, max_col=12, values_only=True):
+                datos.append([("" if cell is None else cell) for cell in row])
+
+            wb_resultados.close()
+
+        respuesta = {
+            "status": "ok",
+            "moneda": moneda,
+            "resumen": {
+                "consumo_mensual_kwh": total_mes,
+                "consumo_anual_kwh": total_anio,
+                "zona": zona,
+                "ciudad": ciudad,
+            },
+            "tabla_resultados": datos,
+        }
+
+        return jsonify(respuesta), 200
+
+    except FileNotFoundError:
+        return jsonify({"error": f"No se encontró el Excel en {EXCEL_PATH}"}), 500
+    except Exception as exc:  # noqa: BLE001
         import traceback
-        error_info = traceback.format_exc()
-        print(f"UNEXPECTED CRASH in /api/generar_informe: {e}\n{error_info}")
-        return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
+        print(f"ERROR en /api/generar_informe: {exc}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Excepción en generar_informe: {exc}"}), 500
 
 
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
@@ -1036,8 +1090,9 @@ from openpyxl import load_workbook
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EXCEL_FILE_PATH = os.path.join(
     BASE_DIR,
-    "Calculador Solar - web 06-24_con ayuda - modificaciones 2025_5.xlsx"   # <-- usa el nombre exacto de TU archivo bueno
+    "Calculador Solar - web 06-24_con ayuda - modificaciones 2025_4.xlsx"   # <-- usa el nombre exacto de TU archivo bueno
 )
+EXCEL_PATH = EXCEL_FILE_PATH
 
 def _open_wb():
     """Abrir workbook sin evaluar fórmulas (rápido) y con logs."""

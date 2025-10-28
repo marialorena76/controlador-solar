@@ -589,6 +589,10 @@ function recalcEnergySummary(dataRef) {
   if (totalConsumoAnualDisplay)   totalConsumoAnualDisplay.value   = totalAnual.toFixed(2);
 }
 
+function calcularConsumo() {
+  recalcEnergySummary();
+}
+
 // ---------- Handlers para inputs de 12 meses (comercial/pyme) ----------
 let monthlyInputsWired = false;
 function ensureMonthlyInputsHandlers() {
@@ -639,51 +643,54 @@ function recalcEnergySummaryFromMonthlyInputsUI(){
 }
 
 async function generarInformeDesdeFrontend() {
-    // Validaciones
-    if (!userSelections.location || !userSelections.location.lat) {
-        alert("Por favor, selecciona tu ubicación en el mapa antes de generar el informe.");
-        return;
+  const ui = document.getElementById('resultados-informe');
+  if (ui) ui.innerHTML = '<b>Generando informe...</b>';
+
+  try {
+    const res = await fetch('/api/generar_informe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userSelections)
+    });
+
+    if (!res.ok) {
+      throw new Error(`Error del servidor: ${res.status}`);
     }
-    if (userSelections.totalAnnualConsumption <= 0) {
-        alert("Por favor, ingresa tu consumo de energía antes de generar el informe.");
-        return;
+
+    const data = await res.json();
+    if (ui) {
+      if (data.error) {
+        ui.innerHTML = `<span style="color:#b91c1c;">${data.error}</span>`;
+      } else {
+        const tabla = (data.tabla_resultados || [])
+          .map(row => {
+            const cells = row
+              .map(col => `<td style="border:1px solid #e5e7eb; padding:6px;">${col ?? ''}</td>`)
+              .join('');
+            return `<tr>${cells}</tr>`;
+          })
+          .join('');
+
+        ui.innerHTML = `
+          <h2>Informe generado</h2>
+          <p><b>Moneda:</b> ${data.moneda ?? '-'}</p>
+          <p><b>Zona:</b> ${data.resumen?.zona ?? '-'}</p>
+          <p><b>Consumo mensual:</b> ${data.resumen?.consumo_mensual_kwh ?? '-'} kWh</p>
+          <p><b>Consumo anual:</b> ${data.resumen?.consumo_anual_kwh ?? '-'} kWh</p>
+          <h3>Resultados (B3:L50)</h3>
+          <div style="overflow:auto; max-height:340px; border:1px solid #e5e7eb;">
+            <table style="width:100%; border-collapse:collapse;">
+              ${tabla}
+            </table>
+          </div>
+        `;
+        ui.scrollIntoView({ behavior: 'smooth' });
+      }
     }
-
-    try {
-        const response = await fetch('/api/generar_informe', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(userSelections),
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error del servidor: ${response.status}`);
-        }
-
-        const results = await response.json();
-
-        // Ocultar la pantalla de datos y mostrar la de resultados
-        showScreen('resultados-informe');
-        const resultadosContainer = document.getElementById('resultados-informe');
-
-        // Renderizar los resultados (ejemplo simple)
-        if (typeof renderReportData === 'function') {
-            renderReportData(results, 'resultados-informe');
-        } else {
-            let html = '<h1>Resultados del Informe</h1>';
-            for (const key in results) {
-                html += `<p><strong>${key}:</strong> ${results[key]}</p>`;
-            }
-            resultadosContainer.innerHTML = html;
-        }
-        resultadosContainer.classList.remove('hidden');
-
-    } catch (error) {
-        console.error('Error al generar el informe:', error);
-        alert('Hubo un error al generar el informe. Por favor, intenta de nuevo.');
-    }
+  } catch (err) {
+    console.error('Error al generar el informe:', err);
+    if (ui) ui.innerHTML = `<span style="color:#b91c1c;">Error al generar el informe: ${err.message}</span>`;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -759,18 +766,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const nextToPanelesButton = document.getElementById('next-to-paneles');
     if (nextToPanelesButton) {
-        nextToPanelesButton.addEventListener('click', (e) => {
+        nextToPanelesButton.onclick = async (e) => {
             e.preventDefault();
-            if (userSelections.userType === 'Basico') {
-                generarInformeDesdeFrontend();
-            } else {
-                // Flujo experto
-                const dataMeteorologicosSection = document.getElementById('data-meteorologicos-section');
-                const panelesSection = document.getElementById('paneles-section');
-                if (dataMeteorologicosSection) dataMeteorologicosSection.classList.add('hidden');
-                if (panelesSection) panelesSection.classList.remove('hidden');
+            calcularConsumo();
+            if ((userSelections.totalAnnualConsumption || 0) <= 0) {
+                alert('Por favor, ingresa la cantidad de electrodomésticos para calcular el consumo de energía.');
+                return;
             }
-        });
+
+            if (userSelections.userType === 'Basico') {
+                await generarInformeDesdeFrontend();
+            } else {
+                if (typeof showDataFormSubSection === 'function') {
+                    showDataFormSubSection('paneles-section');
+                } else {
+                    const dataMeteorologicosSection = document.getElementById('data-meteorologicos-section');
+                    const panelesSection = document.getElementById('paneles-section');
+                    if (dataMeteorologicosSection) dataMeteorologicosSection.classList.add('hidden');
+                    if (panelesSection) panelesSection.classList.remove('hidden');
+                }
+            }
+        };
     }
 
     const backToZonaButton = document.getElementById('back-to-datos');
