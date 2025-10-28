@@ -5,7 +5,9 @@ import pandas as pd
 import os
 import json
 import math
+from numbers import Number
 from threading import Lock
+from typing import Any, Dict, List, Tuple
 from openpyxl import load_workbook
 from . import engine
 
@@ -207,102 +209,277 @@ def get_electrodomesticos_consumos():
 
 
 # --- Ruta para generar informe (actualizada) ---
+def _flatten_user_selections(data: Dict[str, Any]) -> List[Tuple[str, Any]]:
+    """Convierte userSelections en pares (ruta, valor) para guardar en Excel."""
+
+    flattened: List[Tuple[str, Any]] = []
+
+    def _walk(value: Any, path: str) -> None:
+        if isinstance(value, dict):
+            for key in value:
+                next_path = f"{path}.{key}" if path else str(key)
+                _walk(value[key], next_path)
+            if not value:
+                flattened.append((path or "__root__", "{}"))
+        elif isinstance(value, list):
+            if not value:
+                flattened.append((path or "__root__", "[]"))
+            for index, item in enumerate(value):
+                next_path = f"{path}[{index}]" if path else f"[{index}]"
+                _walk(item, next_path)
+        else:
+            flattened.append((path or "__root__", _normalize_excel_value(value)))
+
+    _walk(data, "")
+    return flattened
+
+
+def _normalize_excel_value(value: Any) -> Any:
+    """Convierte cualquier valor recibido en algo compatible con Excel."""
+
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, Number):
+        numeric_value = float(value)
+        if math.isnan(numeric_value):
+            return "nan"
+        return numeric_value
+    return str(value)
+
+
+def _clear_previous_user_selection_rows(
+    worksheet, start_row: int, key_col: int, value_col: int, rows_to_clear: int
+) -> None:
+    """Limpia el bloque destinado a userSelections antes de escribir nuevos datos."""
+
+    for offset in range(rows_to_clear):
+        row_index = start_row + offset
+        worksheet.cell(row=row_index, column=key_col, value=None)
+        worksheet.cell(row=row_index, column=value_col, value=None)
+
+
+def _write_user_selections_block(worksheet, user_data: Dict[str, Any]) -> None:
+    """Escribe el bloque userSelections (clave/valor) en la hoja Datos de Entrada."""
+
+    key_column_index = 27  # Columna AA
+    value_column_index = 28  # Columna AB
+    metadata_row = 1
+    header_row = 2
+
+    flattened = _flatten_user_selections(user_data)
+
+    # Determinar cuántas filas limpiar usando el conteo previo almacenado en AB1
+    previous_count_raw = worksheet.cell(row=metadata_row, column=value_column_index).value
+    try:
+        previous_count = int(previous_count_raw)
+    except (TypeError, ValueError):
+        previous_count = 0
+
+    rows_to_clear = max(previous_count, len(flattened)) + 5
+    _clear_previous_user_selection_rows(
+        worksheet,
+        start_row=header_row + 1,
+        key_col=key_column_index,
+        value_col=value_column_index,
+        rows_to_clear=rows_to_clear,
+    )
+
+    worksheet.cell(row=metadata_row, column=key_column_index, value="__userSelections_rows__")
+    worksheet.cell(row=metadata_row, column=value_column_index, value=len(flattened))
+    worksheet.cell(row=header_row, column=key_column_index, value="Campo userSelections")
+    worksheet.cell(row=header_row, column=value_column_index, value="Valor")
+
+    for index, (path, value) in enumerate(flattened, start=1):
+        row_number = header_row + index
+        worksheet.cell(row=row_number, column=key_column_index, value=path)
+        worksheet.cell(row=row_number, column=value_column_index, value=value)
+
+
+def _coerce_float(*values: Any) -> float | None:
+    """Devuelve el primer valor convertible a float dentro de values."""
+
+    for value in values:
+        if isinstance(value, (list, tuple, set)):
+            candidate = _coerce_float(*value)
+            if candidate is not None:
+                return candidate
+            continue
+
+        if value is None:
+            continue
+
+        if isinstance(value, Number) and not isinstance(value, bool):
+            numeric_value = float(value)
+            if math.isnan(numeric_value):
+                continue
+            return numeric_value
+
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                continue
+            stripped = stripped.replace(',', '.')
+            try:
+                return float(stripped)
+            except ValueError:
+                continue
+
+    return None
+
+
+def _extract_city(data: Dict[str, Any]) -> str:
+    """Obtiene una representación textual de la ciudad desde userSelections."""
+
+    for key in ("city", "ciudad"):
+        value = data.get(key)
+        if value:
+            if isinstance(value, dict):
+                for nested_key in ("name", "nombre", "label", "display_name"):
+                    nested_value = value.get(nested_key)
+                    if nested_value:
+                        return str(nested_value).strip()
+            else:
+                return str(value).strip()
+    return ""
+
+
+def _extract_zone(data: Dict[str, Any]) -> str:
+    """Obtiene la zona de instalación desde userSelections (si existe)."""
+
+    for key in (
+        "zonaInstalacionBasic",
+        "zonaInstalacion",
+        "zonaInstalacionExpert",
+        "zona",
+    ):
+        value = data.get(key)
+        if value:
+            return str(value).strip()
+    return ""
+
+
 @app.route('/api/generar_informe', methods=['POST'])
 def generar_informe():
     """Genera el informe básico tomando los datos desde el Excel compartido."""
+
     try:
-        payload = request.get_json(force=True) or {}
+        payload = request.get_json(force=True, silent=True) or {}
+        user_selections = payload.get("userSelections") if isinstance(payload, dict) else None
+        if isinstance(user_selections, dict):
+            request_data = user_selections
+        elif isinstance(payload, dict):
+            request_data = payload
+        else:
+            raise ValueError("Formato de datos no reconocido para userSelections.")
 
-        try:
-            total_mes = float(payload.get("totalMonthlyConsumption", 0) or 0)
-            total_anio = float(payload.get("totalAnnualConsumption", 0) or 0)
-        except (TypeError, ValueError) as exc:  # noqa: BLE001
-            return jsonify({"error": f"Consumos no válidos: {exc}"}), 400
+        if not isinstance(request_data, dict) or not request_data:
+            raise ValueError("Se esperaban datos en userSelections.")
 
-        zona = str(payload.get("zonaInstalacionBasic") or "").strip()
+        if not os.path.exists(EXCEL_PATH):
+            raise FileNotFoundError(f"No se encontró el archivo Excel en {EXCEL_PATH}")
+        if not os.access(EXCEL_PATH, os.R_OK):
+            raise PermissionError(f"Sin permisos de lectura para el Excel en {EXCEL_PATH}")
+        if not os.access(EXCEL_PATH, os.W_OK):
+            raise PermissionError(f"Sin permisos de escritura para el Excel en {EXCEL_PATH}")
 
-        def _extraer_ciudad(data):
-            if isinstance(data, dict):
-                for key in ("nombre", "name", "ciudad"):
-                    valor = data.get(key)
-                    if valor:
-                        return valor
-                return ""
-            return data
+        ciudad = _extract_city(request_data)
+        zona = _extract_zone(request_data)
 
-        ciudad_valor = _extraer_ciudad(payload.get("ciudad"))
-        if not ciudad_valor:
-            ciudad_valor = _extraer_ciudad(payload.get("city"))
-        ciudad = str(ciudad_valor or "").strip()
-
-        if total_anio <= 0:
-            return jsonify({"error": "Consumo anual no válido (<= 0)"}), 400
-
-        with excel_lock:
-            wb = load_workbook(EXCEL_PATH)
-            try:
-                ws_in = wb["Datos de Entrada"]
-            except KeyError:
-                wb.close()
-                return jsonify({"error": "No se encuentra la hoja 'Datos de Entrada'"}), 500
-
-            try:
-                if ciudad:
-                    ws_in["B7"] = ciudad
-                if zona:
-                    ws_in["B9"] = zona
-                ws_in["B11"] = float(total_mes)
-                ws_in["B12"] = float(total_anio)
-                wb.save(EXCEL_PATH)
-            except Exception as exc:  # noqa: BLE001
-                wb.close()
-                return jsonify({"error": f"Error escribiendo celdas de entrada: {exc}"}), 500
-
-            wb.close()
-
-            wb2 = load_workbook(EXCEL_PATH, data_only=True)
-            try:
-                try:
-                    ws_out = wb2["Resultados"]
-                except KeyError:
-                    return jsonify({"error": "No se encuentra la hoja 'Resultados'"}), 500
-
-                datos = [
-                    list(row)
-                    for row in ws_out.iter_rows(
-                        min_row=3,
-                        max_row=50,
-                        min_col=2,
-                        max_col=12,
-                        values_only=True,
-                    )
-                ]
-            finally:
-                wb2.close()
-
-        return (
-            jsonify(
-                {
-                    "status": "ok",
-                    "resumen": {
-                        "ciudad": ciudad or None,
-                        "zona": zona or None,
-                        "consumo_mensual_kwh": total_mes,
-                        "consumo_anual_kwh": total_anio,
-                    },
-                    "tabla_resultados": datos,
-                }
-            ),
-            200,
+        total_mes = _coerce_float(
+            request_data.get("totalMonthlyConsumption"),
+            request_data.get("totalMonthlyKwh"),
+            request_data.get("totalMonthlyKWh"),
+            request_data.get("totalMonthly"),
+            request_data.get("consumoMensual"),
+        )
+        total_anio = _coerce_float(
+            request_data.get("totalAnnualConsumption"),
+            request_data.get("totalYearlyKwh"),
+            request_data.get("totalAnualKwh"),
+            request_data.get("totalAnual"),
+            request_data.get("consumoAnual"),
         )
 
-    except FileNotFoundError:
-        return jsonify({"error": f"No se encontró el Excel en {EXCEL_PATH}"}), 500
+        with excel_lock:
+            wb = load_workbook(
+                EXCEL_PATH,
+                data_only=False,
+                read_only=False,
+                keep_vba=False,
+                keep_links=False,
+            )
+            try:
+                ws_in = wb["Datos de Entrada"]
+            except KeyError as exc:  # noqa: BLE001
+                wb.close()
+                raise KeyError("No se encuentra la hoja 'Datos de Entrada'") from exc
+
+            if ciudad:
+                ws_in["B7"] = ciudad
+            if zona:
+                ws_in["B9"] = zona
+            if total_mes is not None:
+                ws_in["B11"] = total_mes
+            if total_anio is not None:
+                ws_in["B12"] = total_anio
+
+            _write_user_selections_block(ws_in, request_data)
+
+            wb.save(EXCEL_PATH)
+            wb.close()
+
+            wb_data = load_workbook(
+                EXCEL_PATH,
+                data_only=True,
+                read_only=True,
+                keep_links=False,
+            )
+            try:
+                ws_out = wb_data["Resultados"]
+            except KeyError as exc:  # noqa: BLE001
+                wb_data.close()
+                raise KeyError("No se encuentra la hoja 'Resultados'") from exc
+
+            datos = [
+                list(row)
+                for row in ws_out.iter_rows(
+                    min_row=3,
+                    max_row=50,
+                    min_col=2,
+                    max_col=12,
+                    values_only=True,
+                )
+            ]
+
+            # Completar consumos con valores de la hoja si no vinieron en la solicitud
+            try:
+                ws_in_data_only = wb_data["Datos de Entrada"]
+                if total_mes is None:
+                    total_mes = _coerce_float(ws_in_data_only["B11"].value)
+                if total_anio is None:
+                    total_anio = _coerce_float(ws_in_data_only["B12"].value)
+            finally:
+                wb_data.close()
+
+        datos = clean_nan_in_data(datos)
+
+        resumen = {
+            "ciudad": ciudad or None,
+            "zona": zona or None,
+            "consumo_mensual_kwh": total_mes or 0.0,
+            "consumo_anual_kwh": total_anio or 0.0,
+        }
+
+        return jsonify({"ok": True, "resumen": resumen, "tabla_resultados": datos}), 200
+
     except Exception as exc:  # noqa: BLE001
         import traceback
+
         print(f"ERROR en /api/generar_informe: {exc}")
         print(traceback.format_exc())
-        return jsonify({"error": f"Excepción en generar_informe: {exc}"}), 500
+        return jsonify({"error": str(exc)}), 500
 
 
 # Opcional: Rutas para servir los archivos estáticos de tu frontend
