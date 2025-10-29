@@ -17,6 +17,8 @@ const userSelections = {
   userType: null,
   location: { lat: userLocation.lat, lng: userLocation.lng, address: null },
   city: null,
+  ciudad: null,
+  selectedCityName: null,
   installationType: null,
   incomeLevel: null,
   zonaInstalacionExpert: null,
@@ -60,7 +62,6 @@ const listaElectrodomesticosEl = document.getElementById('electrodomesticos-cate
 const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');
 const totalConsumoAnualDisplay   = document.getElementById('totalConsumoAnual');
 const consumoFacturaSectionEl    = document.getElementById('consumo-factura-section');
-const consumoPromedioSectionEl   = document.getElementById('consumo-promedio-section');
 
 // helpers show/hide si no los tenés aún:
 function show(el){ if(el) el.classList.remove('hidden'); }
@@ -83,7 +84,9 @@ function loadSavedLocation() {
         lng: parsed.lng,
         address: savedAddress
       };
-      userSelections.city = savedAddress && savedAddress.trim() ? savedAddress : null;
+      const normalized = savedAddress && savedAddress.trim() ? savedAddress : null;
+      userSelections.city = normalized;
+      userSelections.ciudad = normalized;
     }
   } catch (error) {
     console.warn('No se pudo cargar la ubicación guardada:', error);
@@ -135,6 +138,7 @@ function updateCitySelection(cityName) {
       : null;
 
   userSelections.city = normalizedCity;
+  userSelections.ciudad = normalizedCity;
   if (userSelections.location) {
     userSelections.location.address = normalizedCity;
   }
@@ -424,7 +428,6 @@ function setupZonaInstalacionStep() {
                 return;
             }
             userSelections.zonaInstalacionBasic = selectedZona.value;
-            userSelections.installationType = 'Residencial';
             zonaSection.classList.add('hidden');
             if (energiaSectionEl) energiaSectionEl.classList.remove('hidden');
             initEnergyForBasic();
@@ -449,6 +452,12 @@ async function initEnergyForBasic() {
     return;
   }
 
+  const resultadosInformeEl = document.getElementById('resultados-informe');
+  if (resultadosInformeEl) {
+    resultadosInformeEl.classList.add('hidden');
+    resultadosInformeEl.innerHTML = '';
+  }
+
   const tipo = (userSelections?.installationType || '').toLowerCase();
 
   if (tipo === 'residencial') {
@@ -458,17 +467,18 @@ async function initEnergyForBasic() {
       recalcEnergySummary(data);
       show(listaElectrodomesticosEl);
       hide(consumoFacturaSectionEl);
-      hide(consumoPromedioSectionEl);
     } catch (error) {
       console.error('[ENERGIA] No se pudo inicializar el detalle de electrodomésticos:', error);
       listaElectrodomesticosEl.innerHTML = '<p class="energy-error">No se pudo cargar la información de electrodomésticos.</p>';
     }
-  } else {
+  } else if (tipo === 'comercial' || tipo === 'pyme') {
     ensureMonthlyInputsHandlers();
     hide(listaElectrodomesticosEl);
     show(consumoFacturaSectionEl);
-    hide(consumoPromedioSectionEl);
-    recalcEnergySummaryFromMonthlyInputsUI();
+    recalcEnergyFromMonthlyInputs();
+  } else {
+    hide(listaElectrodomesticosEl);
+    hide(consumoFacturaSectionEl);
   }
 
   show(energiaSectionEl);
@@ -608,7 +618,6 @@ function ensureMonthlyInputsHandlers() {
     if (el) {
       el.addEventListener('input', () => {
         recalcEnergyFromMonthlyInputs();
-        recalcEnergySummaryFromMonthlyInputsUI();
       });
     }
   });
@@ -621,102 +630,100 @@ function recalcEnergyFromMonthlyInputs() {
     'consumo-mayo','consumo-junio','consumo-julio','consumo-agosto',
     'consumo-septiembre','consumo-octubre','consumo-noviembre','consumo-diciembre'
   ];
-  let sum = 0;
-  let count = 0;
-  ids.forEach(id => {
-    const v = Number(document.getElementById(id)?.value || 0);
-    sum += v;
-    if (!Number.isNaN(v) && v > 0) count++;
-  });
-  const promedioMes = sum / 12; // usamos promedio anual / 12; si querés promedio de meses cargados, usa (sum / count) con guardas
-  userSelections.totalMonthlyKwh = Math.round(promedioMes * 100) / 100;
-  userSelections.totalYearlyKwh  = Math.round(sum);
+  const valores = ids.map(id => Number(document.getElementById(id)?.value || 0));
+  const totalAnual = valores.reduce((acc, val) => acc + (Number.isFinite(val) ? val : 0), 0);
+  const promedioMensual = totalAnual / 12;
+
+  userSelections.totalMonthlyConsumption = Number.isFinite(promedioMensual) ? promedioMensual : 0;
+  userSelections.totalAnnualConsumption = Number.isFinite(totalAnual) ? totalAnual : 0;
   recalcEnergySummaryFromMonthlyInputsUI();
 }
 
 // ---------- Actualiza los 2 campos del resumen ----------
 function recalcEnergySummaryFromMonthlyInputsUI(){
-  const kwhMes  = Number(userSelections.totalMonthlyKwh || 0);
-  const kwhAnio = Number(userSelections.totalYearlyKwh  || Math.round(kwhMes * 12));
-  if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = kwhMes.toString();
-  if (totalConsumoAnualDisplay)   totalConsumoAnualDisplay.value   = kwhAnio.toString();
+  const kwhMes  = Number(userSelections.totalMonthlyConsumption || 0);
+  const kwhAnio = Number(userSelections.totalAnnualConsumption  || (kwhMes * 12));
+  if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = kwhMes.toFixed(2);
+  if (totalConsumoAnualDisplay)   totalConsumoAnualDisplay.value   = kwhAnio.toFixed(2);
 }
 
-(function wireNextFromEnergia() {
-  const btn = document.getElementById('next-to-paneles');
-  if (!btn) return;
+document.getElementById('next-to-paneles')?.addEventListener('click', async (e) => {
+  e.preventDefault();
 
-  btn.replaceWith(btn.cloneNode(true));
-  const nextBtn = document.getElementById('next-to-paneles');
+  if (typeof calcularConsumoTotal === 'function') calcularConsumoTotal();
 
-  nextBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    console.log('[ENERGIA] Click en Siguiente');
+  if (!userSelections.location || typeof userSelections.location.lat !== 'number') {
+    alert('Falta confirmar la ubicación (lat/lng).');
+    return;
+  }
+  if (!userSelections.ciudad && userSelections.selectedCityName) {
+    userSelections.ciudad = userSelections.selectedCityName;
+  }
+  if (!userSelections.ciudad && userSelections.city) {
+    userSelections.ciudad = userSelections.city;
+  }
 
-    const utype = (userSelections.userType || '').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+  const anual = Number(userSelections.totalAnnualConsumption || 0);
+  if (!anual || anual <= 0) {
+    alert('El consumo anual es 0. Ingresá cantidades.');
+    return;
+  }
 
-    if (typeof calcularConsumoTotal === 'function') calcularConsumoTotal();
-    const anual = Number(userSelections.totalAnnualConsumption || 0);
-    if (!anual || anual <= 0) {
-      alert('Por favor, ingresa electrodomésticos antes de continuar.');
-      return;
-    }
+  if ((userSelections.userType || '').toLowerCase() === 'basico') {
+    await generarInformeDesdeFrontend();
+    return;
+  }
 
-    if (utype === 'basico') {
-      await generarInformeDesdeFrontend();
-      return;
-    }
-
-    document.getElementById('energia-section')?.classList.add('hidden');
-    document.getElementById('paneles-section')?.classList.remove('hidden');
-  });
-})();
+  document.getElementById('energia-section')?.classList.add('hidden');
+  document.getElementById('paneles-section')?.classList.remove('hidden');
+});
 
 async function generarInformeDesdeFrontend() {
-  const target = document.getElementById('resultados-informe') || (() => {
-    const d = document.createElement('div');
-    d.id = 'resultados-informe';
-    document.getElementById('energia-section')?.appendChild(d);
-    return d;
-  })();
-
-  const btn = document.getElementById('next-to-paneles');
-  btn && (btn.disabled = true);
+  const target = document.getElementById('resultados-informe');
+  if (!target) return;
+  target.classList.remove('hidden');
   target.innerHTML = '<div style="padding:12px">Generando informe…</div>';
 
   try {
     const res = await fetch('/api/generar_informe', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify(userSelections)
     });
+    const text = await res.text().catch(()=>'');
 
-    if (!res.ok) throw new Error(`Error del servidor: ${res.status}`);
+    if (!res.ok) throw new Error(`Error del servidor: ${res.status} ${text}`);
 
-    const data = await res.json();
+    const data = JSON.parse(text);
     if (data.error) throw new Error(data.error);
 
+    // Render tabla B3:L50
     let tablaHTML = '';
     if (Array.isArray(data.tabla_resultados)) {
-      tablaHTML = `<table>${data.tabla_resultados
-        .map(r => `<tr>${r.map(c => `<td>${c ?? ''}</td>`).join('')}</tr>`)
-        .join('')}</table>`;
+      tablaHTML = `
+        <div style="overflow:auto; max-height:340px; border:1px solid #e5e7eb; margin-top:8px">
+          <table style="width:100%; border-collapse:collapse">
+            ${data.tabla_resultados.map(r =>
+              `<tr>${(r||[]).map(c=>`<td style="border:1px solid #e5e7eb; padding:6px;">${c ?? ''}</td>`).join('')}</tr>`
+            ).join('')}
+          </table>
+        </div>`;
     }
 
     target.innerHTML = `
       <h2>Informe generado</h2>
-      <p><b>Ciudad:</b> ${data.resumen?.ciudad || '-'}</p>
-      <p><b>Zona:</b> ${data.resumen?.zona || '-'}</p>
-      <p><b>Consumo mensual:</b> ${data.resumen?.consumo_mensual_kwh.toFixed(2)} kWh</p>
-      <p><b>Consumo anual:</b> ${data.resumen?.consumo_anual_kwh.toFixed(2)} kWh</p>
+      <p><b>Ciudad:</b> ${data.resumen?.ciudad ?? '-'}</p>
+      <p><b>Zona:</b> ${data.resumen?.zona ?? '-'}</p>
+      <p><b>Tipo:</b> ${data.resumen?.tipo ?? '-'}</p>
+      <p><b>Consumo mensual:</b> ${Number(data.resumen?.consumo_mensual_kwh || 0).toFixed(2)} kWh</p>
+      <p><b>Consumo anual:</b>   ${Number(data.resumen?.consumo_anual_kwh   || 0).toFixed(2)} kWh</p>
       ${tablaHTML}
     `;
     target.scrollIntoView({behavior:'smooth'});
+
   } catch (err) {
-    console.error('Error al generar el informe:', err);
-    target.innerHTML = `<div style="color:red">${err.message}</div>`;
-  } finally {
-    btn && (btn.disabled = false);
+    console.error('[INFORME] Error:', err);
+    target.innerHTML = `<div style="color:#b91c1c">${err.message}</div>`;
   }
 }
 
