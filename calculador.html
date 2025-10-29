@@ -977,64 +977,36 @@
 
                 <div id="energia-section" class="hidden">
                     <h1>Consumo energético de tu hogar</h1>
-                    <p class="form-description">Ingresá cuántos electrodomésticos tenés de cada tipo para estimar tu consumo mensual y anual.</p>
+                    <p class="form-description">Ingresá tu consumo energético para estimar tu informe.</p>
 
                     <div id="electrodomesticos-categorias"></div>
 
-                    <div id="energia-modo-seleccion-container" class="hidden">
-                        <h2>¿Cómo querés ingresar los datos de consumo?</h2>
-                        <div class="radio-group">
-                            <label>
-                                <input type="radio" name="metodoIngresoConsumo" value="detalleHogar" required>
-                                INGRESO DE DETALLE DE CONSUMOS EN EL HOGAR
-                            </label>
-                            <label>
-                                <input type="radio" name="metodoIngresoConsumo" value="boletaMensual">
-                                INGRESO DE CONSUMO MENSUAL SEGUN BOLETA DE ENERGIA ELECTRICA
-                            </label>
-                            <label>
-                                <input type="radio" name="metodoIngresoConsumo" value="detalleHogarHoras">
-                                INGRESO DE DETALLE DE CONSUMO EN EL HOGAR (ARTEFACTOS Y HORAS DE USO)
-                            </label>
-                        </div>
-                        <hr style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                    <div id="consumo-factura-section" class="hidden">
+                        <input id="consumo-enero" type="number" min="0">
+                        <input id="consumo-febrero" type="number" min="0">
+                        <input id="consumo-marzo" type="number" min="0">
+                        <input id="consumo-abril" type="number" min="0">
+                        <input id="consumo-mayo" type="number" min="0">
+                        <input id="consumo-junio" type="number" min="0">
+                        <input id="consumo-julio" type="number" min="0">
+                        <input id="consumo-agosto" type="number" min="0">
+                        <input id="consumo-septiembre" type="number" min="0">
+                        <input id="consumo-octubre" type="number" min="0">
+                        <input id="consumo-noviembre" type="number" min="0">
+                        <input id="consumo-diciembre" type="number" min="0">
                     </div>
 
-                    <div id="consumo-promedio-section" class="hidden" style="margin-top: 1.5rem;">
-                        <hr>
-                        <h3>Ingreso de Consumo Mensual Según Boleta de Energía Eléctrica (Boleta de luz)</h3>
-                        <div class="form-group">
-                            <label for="consumo-promedio-mes">Energía promedio consumida por mes (kWh/mes):</label>
-                            <input type="number" min="0" id="consumo-promedio-mes" name="consumo-promedio-mes" class="form-control">
-                        </div>
+                    <div class="resumen-consumo">
+                        <input id="totalConsumoMensual" readonly>
+                        <input id="totalConsumoAnual" readonly>
                     </div>
 
-                    <div id="consumo-factura-section" class="hidden" style="margin-top: 1.5rem;">
-                        <hr>
-                        <div class="form-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); row-gap: 1rem; column-gap: 2.5rem;">
-                            <div class="form-group"><label for="consumo-enero">Enero:</label><input type="number" min="0" id="consumo-enero" name="consumo-enero" class="form-control"></div>
-                            <div class="form-group"><label for="consumo-febrero">Febrero:</label><input type="number" min="0" id="consumo-febrero" name="consumo-febrero" class="form-control"></div>
-                            <div class="form-group"><label for="consumo-marzo">Marzo:</label><input type="number" min="0" id="consumo-marzo" name="consumo-marzo" class="form-control"></div>
-                            <div class="form-group"><label for="consumo-abril">Abril:</label><input type="number" min="0" id="consumo-abril" name="consumo-abril" class="form-control"></div>
-                            <div class="form-group"><label for="consumo-mayo">Mayo:</label><input type="number" min="0" id="consumo-mayo" name="consumo-mayo" class="form-control"></div>
-                            <div class="form-group"><label for="consumo-junio">Junio:</label><input type="number" min="0" id="consumo-junio" name="consumo-junio" class="form-control"></div>
-                            <div class="form-group"><label for="consumo-julio">Julio:</label><input type="number" min="0" id="consumo-julio" name="consumo-julio" class="form-control"></div>
-                            <div class="form-group"><label for="consumo-agosto">Agosto:</label><input type="number" min="0" id="consumo-agosto" name="consumo-agosto" class="form-control"></div>
-                            <div class="form-group"><label for="consumo-septiembre">Septiembre:</label><input type="number" min="0" id="consumo-septiembre" name="consumo-septiembre" class="form-control"></div>
-                            <div class="form-group"><label for="consumo-octubre">Octubre:</label><input type="number" min="0" id="consumo-octubre" name="consumo-octubre" class="form-control"></div>
-                            <div class="form-group"><label for="consumo-noviembre">Noviembre:</label><input type="number" min="0" id="consumo-noviembre" name="consumo-noviembre" class="form-control"></div>
-                            <div class="form-group"><label for="consumo-diciembre">Diciembre:</label><input type="number" min="0" id="consumo-diciembre" name="consumo-diciembre" class="form-control"></div>
-                        </div>
-                    </div>
-
-                    <div class="energy-summary">
-                        <input type="text" id="totalConsumoMensual" readonly value="0">
-                        <input type="text" id="totalConsumoAnual" readonly value="0">
-                    </div>
                     <div class="form-actions">
                         <button type="button" id="back-to-datos" class="back-button">Atrás</button>
                         <button type="button" id="next-to-paneles">Siguiente</button>
                     </div>
+
+                    <div id="resultados-informe" class="hidden"></div>
                 </div>
 
                 <div id="paneles-section" style="display:none;">
