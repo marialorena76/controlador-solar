@@ -11,7 +11,7 @@ let geocoderCtrl = null;
 let userLocation = { lat: -34.6037, lng: -58.3816 };
 // --- Datos electrodomésticos ---
 let electrodomesticosCategorias = {};
-let appliancesCache = null; 
+let appliancesCache = null;
 
 const userSelections = {
   userType: null,
@@ -59,16 +59,38 @@ const userSelections = {
 };
 const energiaSectionEl         = document.getElementById('energia-section');
 const listaElectrodomesticosEl = document.getElementById('electrodomesticos-categorias');
-const totalConsumoMensualDisplay = document.getElementById('totalConsumoMensual');
-const totalConsumoAnualDisplay   = document.getElementById('totalConsumoAnual');
-const consumoFacturaSectionEl    = document.getElementById('consumo-factura-section');
+const facturaMensualEl         = document.getElementById('consumo-factura-section');
+const totalMensualEl           = document.getElementById('totalConsumoMensual');
+const totalAnualEl             = document.getElementById('totalConsumoAnual');
+const resultadosInformeEl      = document.getElementById('resultados-informe');
 
 // helpers show/hide si no los tenés aún:
 function show(el){ if(el) el.classList.remove('hidden'); }
 function hide(el){ if(el) el.classList.add('hidden'); }
 
 
-window.appliancesCache ??= null; 
+// Guardar ubicación (POST /api/ubicacion)
+async function guardarUbicacion() {
+  try {
+    const payload = {
+      ciudad: userSelections.ciudad || userSelections.selectedCityName || '',
+      location: { lat: userSelections.location?.lat, lng: userSelections.location?.lng }
+    };
+    const res = await fetch('/api/ubicacion', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(()=> '');
+      throw new Error(`No se pudo guardar la ubicación${t ? ': ' + t : ''}`);
+    }
+  } catch (err) {
+    console.error('Error al guardar la ubicación:', err);
+    alert(`Error guardando la ubicación: ${err.message}`);
+  }
+}
+
 
 function loadSavedLocation() {
   try {
@@ -442,264 +464,190 @@ function setupZonaInstalacionStep() {
     }
 }
 
-// ---------- API de alto nivel que vas a llamar al entrar a Energía ----------
-async function initEnergyForBasic() {
-  console.log('[ENERGIA] init for tipo =', (userSelections?.installationType || ''));
-  console.log('[ENERGIA] elementos:', { energiaSectionEl, listaElectrodomesticosEl });
 
-  if (!energiaSectionEl || !listaElectrodomesticosEl) {
-    console.warn('[ENERGIA] Faltan elementos requeridos para iniciar la sección de energía.');
-    return;
-  }
 
-  const resultadosInformeEl = document.getElementById('resultados-informe');
-  if (resultadosInformeEl) {
-    resultadosInformeEl.classList.add('hidden');
+
+async function initEnergyForBasic(){
+  if(!energiaSectionEl) return;
+  if(resultadosInformeEl){
+    hide(resultadosInformeEl);
     resultadosInformeEl.innerHTML = '';
   }
-
   const tipo = (userSelections?.installationType || '').toLowerCase();
 
-  if (tipo === 'residencial') {
-    try {
-      const data = await ensureAppliancesLoaded();
-      renderAppliances(data);
-      recalcEnergySummary(data);
+  if(tipo === 'residencial'){
+    try{
+      await ensureAppliancesLoaded();
+      renderAppliances(appliancesCache);
       show(listaElectrodomesticosEl);
-      hide(consumoFacturaSectionEl);
-    } catch (error) {
-      console.error('[ENERGIA] No se pudo inicializar el detalle de electrodomésticos:', error);
-      listaElectrodomesticosEl.innerHTML = '<p class="energy-error">No se pudo cargar la información de electrodomésticos.</p>';
+      hide(facturaMensualEl);
+    }catch(err){
+      console.error('[ENERGIA] No se pudo cargar electrodomésticos:', err);
+      if(listaElectrodomesticosEl){
+        listaElectrodomesticosEl.innerHTML = '<p class="energy-error">No se pudo cargar la información de electrodomésticos.</p>';
+      }
     }
-  } else if (tipo === 'comercial' || tipo === 'pyme') {
+  }else{
     ensureMonthlyInputsHandlers();
     hide(listaElectrodomesticosEl);
-    show(consumoFacturaSectionEl);
-    recalcEnergyFromMonthlyInputs();
-  } else {
-    hide(listaElectrodomesticosEl);
-    hide(consumoFacturaSectionEl);
+    show(facturaMensualEl);
   }
 
   show(energiaSectionEl);
-  energiaSectionEl.scrollIntoView({ behavior: 'smooth' });
+  energiaSectionEl.scrollIntoView({behavior:'smooth'});
 }
 
-// ---------- Carga de electrodomésticos vía API ----------
 async function ensureAppliancesLoaded(){
-  if (appliancesCache) return appliancesCache;
-  const url = 'consumos_electrodomesticos.json';
-  const res = await fetch(url);
-  if(!res.ok) throw new Error(`No se pudo cargar ${url} (HTTP ${res.status})`);
-  appliancesCache = await res.json();
-  console.log('[ENERGIA] JSON cargado correctamente:', url);
+  if(appliancesCache) return appliancesCache;
+  const r = await fetch('consumos_electrodomesticos.json');
+  if(!r.ok) throw new Error(`No se pudo cargar consumos_electrodomesticos.json: ${r.status}`);
+  appliancesCache = await r.json();
   electrodomesticosCategorias = appliancesCache;
   return appliancesCache;
 }
 
-
-// ---------- Render de electrodomésticos (residencial) ----------
-function renderAppliances(data) {
-  if (!listaElectrodomesticosEl) {
-    console.warn('No existe #electrodomesticos-categorias para renderizar');
-    return;
-  }
-
+function renderAppliances(data){
+  if(!listaElectrodomesticosEl) return;
   listaElectrodomesticosEl.innerHTML = '';
+  for(const categoria in data){
+    const items = data[categoria] || [];
+    const cat = document.createElement('div');
+    cat.className = 'accordion-item';
+    const catId = categoria.replace(/\s+/g,'-').toLowerCase();
+    cat.innerHTML = `
+      <h2 class="accordion-header" id="heading-${catId}">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+          data-bs-target="#collapse-${catId}" aria-expanded="false" aria-controls="collapse-${catId}">
+          ${categoria}
+        </button>
+      </h2>
+      <div id="collapse-${catId}" class="accordion-collapse collapse" aria-labelledby="heading-${catId}"
+           data-bs-parent="#electrodomesticos-categorias">
+        <div class="accordion-body"></div>
+      </div>`;
+    const body = cat.querySelector('.accordion-body');
 
-  if (!data || Object.keys(data).length === 0) {
-    listaElectrodomesticosEl.innerHTML = '<p class="energy-error">No hay datos de electrodomésticos disponibles.</p>';
-    return;
-  }
-
-  console.log('[ENERGIA] renderAppliances data keys =', Object.keys(data).length);
-
-  Object.entries(data).forEach(([categoria, items]) => {
-    const header = document.createElement('button');
-    header.type = 'button';
-    header.className = 'acordeon-categoria';
-    header.textContent = categoria;
-    header.style = `
-      width:100%; padding:10px 16px; margin:10px 0 0 0;
-      background:#e2e8f0; border:none; border-radius:6px; font-weight:600; text-align:left; cursor:pointer;
-    `;
-
-    const panel = document.createElement('div');
-    panel.className = 'acordeon-items';
-    panel.style = 'display:none; padding:12px 16px; background:#f9fafb; border-radius:0 0 6px 6px;';
-
-    header.onclick = () => {
-      const open = panel.style.display === 'block';
-      document.querySelectorAll('.acordeon-items').forEach(d => (d.style.display = 'none'));
-      document.querySelectorAll('.acordeon-categoria').forEach(b => b.setAttribute('aria-expanded', 'false'));
-      if (!open) {
-        panel.style.display = 'block';
-        header.setAttribute('aria-expanded', 'true');
-      }
-    };
-
-    items.forEach(item => {
+    items.forEach(item=>{
+      const kwhMes = ((Number(item.watts||0) * Number(item.hoursPerDay||0))/1000) * (item.daysPerMonth ?? 30);
       const row = document.createElement('div');
-      row.style = 'display:flex; align-items:center; justify-content:space-between; gap:16px; margin:10px 0;';
-
-      const name = document.createElement('span');
-      name.textContent = item.name;
-      name.style = 'flex:1 1 auto; font-weight:500;';
-
-      const info = document.createElement('span');
-      const consumoDiario = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
-      info.textContent = `${consumoDiario.toFixed(3)} kWh/día`;
-      info.style = 'flex:0 0 140px; color:#475569; font-size:0.9rem; text-align:right;';
-
-      const input = document.createElement('input');
-      input.type = 'number';
-      input.min = '0';
-      input.value = (userSelections.electrodomesticos?.[item.name] || 0);
-      input.style = 'width:70px; text-align:right;';
-      input.oninput = (e) => {
-        const cant = parseInt(e.target.value, 10) || 0;
-        if (!userSelections.electrodomesticos) userSelections.electrodomesticos = {};
-        userSelections.electrodomesticos[item.name] = cant;
-        recalcEnergySummary(data);
-      };
-
-      row.appendChild(name);
-      row.appendChild(info);
-      row.appendChild(input);
-      panel.appendChild(row);
+      row.className = 'appliance-item-row d-flex justify-content-between align-items-center mb-2';
+      row.innerHTML = `
+        <label class="form-check-label">${item.name || 'Item'}</label>
+        <div class="quantity-control d-flex align-items-center" style="width: 120px;">
+          <button type="button" class="btn btn-outline-secondary btn-sm quantity-btn" data-action="decrease">-</button>
+          <input type="number" class="form-control form-control-sm text-center appliance-quantity"
+                 value="0" min="0"
+                 data-item-name="${item.name || ''}"
+                 data-kwh-mes="${kwhMes}">
+          <button type="button" class="btn btn-outline-secondary btn-sm quantity-btn" data-action="increase">+</button>
+        </div>`;
+      body.appendChild(row);
     });
 
-    listaElectrodomesticosEl.appendChild(header);
-    listaElectrodomesticosEl.appendChild(panel);
-  });
-}
-
-function recalcEnergySummary(dataRef) {
-  const data = dataRef || appliancesCache || electrodomesticosCategorias;
-  if (!data) return;
-
-  let totalMensual = 0;
-
-  for (const categoria in data) {
-    data[categoria].forEach(item => {
-      const cant = (userSelections.electrodomesticos?.[item.name] || 0);
-      const kWhDia = ((item.watts || 0) * (item.hoursPerDay || 0)) / 1000;
-      const diasMes = item.daysPerMonth ?? 30;    // usa tu campo del JSON si viene; default 30
-      totalMensual += kWhDia * diasMes * cant;
-    });
+    listaElectrodomesticosEl.appendChild(cat);
   }
 
-  const totalAnual = totalMensual * 12;
+  listaElectrodomesticosEl.addEventListener('click', (ev)=>{
+    if(ev.target.classList.contains('quantity-btn')){
+      const input = ev.target.parentElement.querySelector('.appliance-quantity');
+      let v = parseInt(input.value, 10) || 0;
+      v += (ev.target.dataset.action === 'increase') ? 1 : (v>0 ? -1 : 0);
+      input.value = v;
+      input.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+  });
 
-  userSelections.totalMonthlyConsumption = totalMensual;
-  userSelections.totalAnnualConsumption  = totalAnual;
+  listaElectrodomesticosEl.addEventListener('change', (ev)=>{
+    if(ev.target.classList.contains('appliance-quantity')){
+      calcularConsumoTotal();
+    }
+  });
 
-  // si existen, actualizá inputs de resumen
-  if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = totalMensual.toFixed(2);
-  if (totalConsumoAnualDisplay)   totalConsumoAnualDisplay.value   = totalAnual.toFixed(2);
+  calcularConsumoTotal();
 }
 
-function calcularConsumo() {
-  recalcEnergySummary();
+function calcularConsumoTotal(){
+  let totalKwhMes = 0;
+  userSelections.electrodomesticos = {};
+  document.querySelectorAll('.appliance-quantity').forEach(input=>{
+    const q = parseInt(input.value,10)||0;
+    const kwh = parseFloat(input.dataset.kwhMes)||0;
+    const name = input.dataset.itemName || '';
+    if(q>0){
+      totalKwhMes += q * kwh;
+      userSelections.electrodomesticos[name] = q;
+    }
+  });
+  userSelections.totalMonthlyConsumption = totalKwhMes;
+  userSelections.totalAnnualConsumption = totalKwhMes * 12;
+  if(totalMensualEl) totalMensualEl.value = (totalKwhMes).toFixed(2);
+  if(totalAnualEl)   totalAnualEl.value   = (totalKwhMes*12).toFixed(2);
 }
 
-// ---------- Handlers para inputs de 12 meses (comercial/pyme) ----------
 let monthlyInputsWired = false;
-function ensureMonthlyInputsHandlers() {
-  if (monthlyInputsWired) return;
-
-  const ids = [
-    'consumo-enero','consumo-febrero','consumo-marzo','consumo-abril',
-    'consumo-mayo','consumo-junio','consumo-julio','consumo-agosto',
-    'consumo-septiembre','consumo-octubre','consumo-noviembre','consumo-diciembre'
-  ];
-  ids.forEach(id => {
+function ensureMonthlyInputsHandlers(){
+  if(monthlyInputsWired) return;
+  const ids = ['consumo-enero','consumo-febrero','consumo-marzo','consumo-abril','consumo-mayo','consumo-junio','consumo-julio','consumo-agosto','consumo-septiembre','consumo-octubre','consumo-noviembre','consumo-diciembre'];
+  ids.forEach(id=>{
     const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('input', () => {
-        recalcEnergyFromMonthlyInputs();
+    if(el){
+      el.addEventListener('input', ()=>{
+        let sum = 0;
+        ids.forEach(ix=> sum += Number(document.getElementById(ix)?.value || 0));
+        const prom = sum/12;
+        userSelections.totalMonthlyConsumption = Math.round(prom*100)/100;
+        userSelections.totalAnnualConsumption  = Math.round(sum);
+        if(totalMensualEl) totalMensualEl.value = userSelections.totalMonthlyConsumption;
+        if(totalAnualEl)   totalAnualEl.value   = userSelections.totalAnnualConsumption;
       });
     }
   });
   monthlyInputsWired = true;
 }
 
-function recalcEnergyFromMonthlyInputs() {
-  const ids = [
-    'consumo-enero','consumo-febrero','consumo-marzo','consumo-abril',
-    'consumo-mayo','consumo-junio','consumo-julio','consumo-agosto',
-    'consumo-septiembre','consumo-octubre','consumo-noviembre','consumo-diciembre'
-  ];
-  const valores = ids.map(id => Number(document.getElementById(id)?.value || 0));
-  const totalAnual = valores.reduce((acc, val) => acc + (Number.isFinite(val) ? val : 0), 0);
-  const promedioMensual = totalAnual / 12;
-
-  userSelections.totalMonthlyConsumption = Number.isFinite(promedioMensual) ? promedioMensual : 0;
-  userSelections.totalAnnualConsumption = Number.isFinite(totalAnual) ? totalAnual : 0;
-  recalcEnergySummaryFromMonthlyInputsUI();
-}
-
-// ---------- Actualiza los 2 campos del resumen ----------
-function recalcEnergySummaryFromMonthlyInputsUI(){
-  const kwhMes  = Number(userSelections.totalMonthlyConsumption || 0);
-  const kwhAnio = Number(userSelections.totalAnnualConsumption  || (kwhMes * 12));
-  if (totalConsumoMensualDisplay) totalConsumoMensualDisplay.value = kwhMes.toFixed(2);
-  if (totalConsumoAnualDisplay)   totalConsumoAnualDisplay.value   = kwhAnio.toFixed(2);
-}
-
-document.getElementById('next-to-paneles')?.addEventListener('click', async (e) => {
+document.getElementById('next-to-paneles')?.addEventListener('click', async (e)=>{
   e.preventDefault();
 
-  if (typeof calcularConsumoTotal === 'function') calcularConsumoTotal();
+  // recalcular por las dudas
+  if(typeof calcularConsumoTotal === 'function') calcularConsumoTotal();
 
-  if (!userSelections.location || typeof userSelections.location.lat !== 'number') {
+  // Validaciones mínimas
+  if(!userSelections.location || typeof userSelections.location.lat !== 'number'){
     alert('Falta confirmar la ubicación (lat/lng).');
     return;
   }
-  if (!userSelections.ciudad && userSelections.selectedCityName) {
+  if(!userSelections.ciudad && userSelections.selectedCityName){
     userSelections.ciudad = userSelections.selectedCityName;
   }
-  if (!userSelections.ciudad && userSelections.city) {
-    userSelections.ciudad = userSelections.city;
-  }
-
-  const anual = Number(userSelections.totalAnnualConsumption || 0);
-  if (!anual || anual <= 0) {
-    alert('El consumo anual es 0. Ingresá cantidades.');
+  const anual = Number(userSelections.totalAnnualConsumption||0);
+  if(!anual || anual <= 0){
+    alert('El consumo anual es 0. Ingresá cantidades/valores.');
     return;
   }
 
-  if ((userSelections.userType || '').toLowerCase() === 'basico') {
-    await generarInformeDesdeFrontend();
-    return;
-  }
-
-  document.getElementById('energia-section')?.classList.add('hidden');
-  document.getElementById('paneles-section')?.classList.remove('hidden');
+  await generarInformeDesdeFrontend();
 });
 
-async function generarInformeDesdeFrontend() {
-  const target = document.getElementById('resultados-informe');
-  if (!target) return;
-  target.classList.remove('hidden');
+async function generarInformeDesdeFrontend(){
+  const target = resultadosInformeEl;
+  if(!target) return;
+  show(target);
   target.innerHTML = '<div style="padding:12px">Generando informe…</div>';
 
-  try {
+  try{
     const res = await fetch('/api/generar_informe', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify(userSelections)
     });
-    const text = await res.text().catch(()=>'');
+    const text = await res.text().catch(()=> '');
+    if(!res.ok) throw new Error(`Error del servidor: ${res.status} ${text}`);
 
-    if (!res.ok) throw new Error(`Error del servidor: ${res.status} ${text}`);
+    const data = JSON.parse(text || '{}');
+    if(data.error) throw new Error(data.error);
 
-    const data = JSON.parse(text);
-    if (data.error) throw new Error(data.error);
-
-    // Render tabla B3:L50
     let tablaHTML = '';
-    if (Array.isArray(data.tabla_resultados)) {
+    if(Array.isArray(data.tabla_resultados)){
       tablaHTML = `
         <div style="overflow:auto; max-height:340px; border:1px solid #e5e7eb; margin-top:8px">
           <table style="width:100%; border-collapse:collapse">
@@ -709,23 +657,15 @@ async function generarInformeDesdeFrontend() {
           </table>
         </div>`;
     }
-
-    target.innerHTML = `
-      <h2>Informe generado</h2>
-      <p><b>Ciudad:</b> ${data.resumen?.ciudad ?? '-'}</p>
-      <p><b>Zona:</b> ${data.resumen?.zona ?? '-'}</p>
-      <p><b>Tipo:</b> ${data.resumen?.tipo ?? '-'}</p>
-      <p><b>Consumo mensual:</b> ${Number(data.resumen?.consumo_mensual_kwh || 0).toFixed(2)} kWh</p>
-      <p><b>Consumo anual:</b>   ${Number(data.resumen?.consumo_anual_kwh   || 0).toFixed(2)} kWh</p>
-      ${tablaHTML}
-    `;
+    target.innerHTML = `<h2>Informe</h2>${tablaHTML}`;
     target.scrollIntoView({behavior:'smooth'});
 
-  } catch (err) {
+  }catch(err){
     console.error('[INFORME] Error:', err);
     target.innerHTML = `<div style="color:#b91c1c">${err.message}</div>`;
   }
 }
+
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSavedLocation();
@@ -758,27 +698,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            userSelections.ciudad = userSelections.city;
             try {
-                const response = await fetch(`${API_BASE}/ubicacion`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ city: userSelections.city })
-                });
-
-                const data = await response.json().catch(() => ({}));
-                if (!response.ok || data?.ok !== true) {
-                    throw new Error(data?.error || 'No se pudo guardar la ubicación');
-                }
-
-                const savedCity = typeof data.city === 'string' && data.city.trim()
-                    ? data.city.trim()
-                    : userSelections.city;
+                await guardarUbicacion();
 
                 try {
                     localStorage.setItem('ubicacionSeleccionada', JSON.stringify({
                         lat: userLocation.lat,
                         lng: userLocation.lng,
-                        address: savedCity
+                        address: userSelections.city
                     }));
                 } catch (error) {
                     console.warn('No se pudo guardar la ubicación seleccionada:', error);
