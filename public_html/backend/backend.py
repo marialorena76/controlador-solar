@@ -3,6 +3,7 @@ from flask_cors import CORS
 import os, json
 from threading import Lock
 from utils_excel import escribir_datos_excel, leer_resultados_excel
+from excel_recalc import recalc_with_libreoffice, libreoffice_available
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # .../public_html/backend
 PROJECT_ROOT = os.path.dirname(BASE_DIR)               # .../public_html
@@ -69,6 +70,15 @@ def generar_informe():
 
         with excel_lock:
             escribir_datos_excel(EXCEL_PATH, ciudad, zona, tipo, mensual, anual, lat, lng)
+
+            if libreoffice_available():
+                try:
+                    recalc_with_libreoffice(EXCEL_PATH)
+                except Exception as e:
+                    return jsonify({"error": f"Fallo recálculo LibreOffice: {e}"}), 500
+            else:
+                return jsonify({"error": "LibreOffice no está instalado en el servidor. No se puede recalcular el Excel automáticamente."}), 500
+
             tabla = leer_resultados_excel(EXCEL_PATH, 3, 50, 2, 12)
 
         return jsonify({
