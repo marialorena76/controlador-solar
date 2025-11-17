@@ -6,8 +6,6 @@
     <title>Calculador Solar</title>
     <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./styles.css?v=prod2">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css">
     
     <style>
         :root {
@@ -67,29 +65,14 @@
         .logo { max-height: 88px; width: auto; }
         .logo-small { max-height: 40px; width: auto; }
 
-
- /* Altura visible del mapa */
-  #map { width: 100%; height: 520px; min-height: 520px; }
-
-  /* El contenedor del geocoder va sobre el mapa */
-  #map-container-section { position: relative; }
-  #geocoder-container {
-    position: absolute;
-    left: 50%;
-    bottom: 14px;
-    transform: translateX(-50%);
-    z-index: 1000;
-    width: min(700px, 90%);
-    pointer-events: none; /* no tapar clics del mapa */
-  }
-  #geocoder-container .leaflet-control { pointer-events: auto; }
-
-#map-screen {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1; 
-}
+        /* Selector de ciudad */
+        #map-container-section { position: relative; }
+        #map-screen {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
         .main-content-wrapper {
             display: flex;
             flex-grow: 1;
@@ -115,36 +98,18 @@
             align-items: stretch;
             gap: 1.5rem;
         }
-        #map {
+        .city-select-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .city-select-wrapper select {
             width: 100%;
-            height: 600px;
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
-        }
-        #geocoder-container {
-            margin-bottom: 1rem;
-        }
-        .leaflet-control-geocoder-form input {
-            font-family: var(--font-body);
+            padding: 0.85rem 1rem;
             font-size: 1rem;
-            padding: 0.8rem 1rem;
-            border-radius: 8px;
             border: 1px solid var(--border-color);
-        }
-        .location-details {
-            font-size: 0.9rem;
-            color: #555;
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
             border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
-        }
-        .location-details p {
-            margin: 0.5rem 0;
-        }
-        .location-details strong {
-            color: var(--text-dark);
+            font-family: var(--font-body);
         }
         .city-selection-card {
             width: 100%;
@@ -696,34 +661,6 @@
             border-bottom: 1px solid #555;
             padding-bottom: 5px;
         }
-/* === Posición del buscador del mapa === */
-#map-container-section {
-  position: relative;
-}
-
-#geocoder-container {
-  position: absolute;
-  left: 50%;
-  bottom: 14px;
-  transform: translateX(-50%);
-  z-index: 1000;
-  width: min(700px, 90%);
-  pointer-events: none;   /* no bloquea clics del mapa */
-}
-
-/* Habilitar interacción solo dentro del control */
-#geocoder-container .leaflet-control-geocoder {
-  pointer-events: auto;
-}
-
-/* Tamaño del mapa (si aún no lo agregaste) */
-#map {
-  height: 600px;
-  width: 100%;
-}
-
-/* seguridad: el mapa debajo */
-#map { position: relative; z-index: 0; height: 600px; }
 
     </style>
 </head>
@@ -750,15 +687,14 @@
                 </h2>
                 <p class="help-text">Elegí la localidad donde instalarás los paneles para continuar con el asistente.</p>
                 <div id="map-container-section">
-                    <div id="geocoder-container"></div>
-                    <button id="confirm-location-btn" class="selection-button" disabled>Confirmar ubicación</button>
-                    <div id="map"></div>
-                    <div class="location-details">
-                        <p><strong>Ciudad:</strong> <span id="address-display">-</span></p>
-                        <p><strong>Coordenadas:</strong> Lat: <span id="lat-display">-</span>, Lng: <span id="lng-display">-</span></p>
+                    <div class="city-select-wrapper">
+                      <label for="ciudad-select"><b>Seleccioná la ciudad de la instalación:</b></label>
+                      <select id="ciudad-select">
+                        <option value="">Elegí una ciudad...</option>
+                      </select>
+                      <button id="confirmar-ciudad-button" class="selection-button">Confirmar ciudad</button>
+                      <p id="ciudad-seleccionada-texto" style="margin-top: 0.8rem; font-size: 0.95rem; color: #555;"></p>
                     </div>
-                    <div id="map-error" class="city-error" role="alert"></div>
-                    <div id="map-loading" class="city-loading" role="status" style="text-align: center;">Cargando...</div>
                 </div>
 
             <!-- Initial wizard sections moved inside map-area for simpler flow control -->
@@ -1134,10 +1070,6 @@
     <div id="resultados-informe" class="basic-report-summary-container"></div>
 
     <script src="reportTableHelper.js?v=prod1" defer></script>
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-
     <!-- Tu script principal (ajustá la ruta si es distinta) -->
     <script src="calculador.js"></script>
 

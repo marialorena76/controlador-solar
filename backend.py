@@ -16,7 +16,7 @@ PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 DEFAULT_EXCEL_FILENAME = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_4.xlsx'
 EXCEL_RELATIVE_DIR = 'backend'
 EXCEL_FILE_PATH = os.path.join(SCRIPT_DIR, EXCEL_RELATIVE_DIR, DEFAULT_EXCEL_FILENAME)
-EXCEL_PATH = EXCEL_FILE_PATH
+EXCEL_PATH = os.path.abspath(EXCEL_FILE_PATH)
 
 excel_lock = Lock()
 # Nota: este candado se reutiliza tanto para la escritura directa en el archivo
@@ -87,6 +87,69 @@ def update_excel_cell():
         print(f"ERROR GENERAL en /api/excel/update_cell: {e}")
         print(traceback.format_exc())
         return jsonify({"success": False, "error": f"Error interno del servidor: {e}"}), 500
+
+
+# --- NUEVA RUTA: Para obtener la lista de ciudades ---
+@app.route('/api/ciudades', methods=['GET'])
+def obtener_ciudades():
+    try:
+        if not os.path.exists(EXCEL_PATH):
+            return jsonify({"error": f"Archivo Excel no encontrado en {EXCEL_PATH}"}), 404
+
+        try:
+            df_ciudades = pd.read_excel(EXCEL_PATH, sheet_name='Ciudades', engine='openpyxl')
+        except ValueError:
+            return jsonify({"error": "Hoja de ciudades no encontrada. TODO: ajustar nombre de la hoja que contiene la lista de ciudades."}), 500
+
+        columna_ciudad = 'Ciudad'
+        if columna_ciudad not in df_ciudades.columns:
+            return jsonify({"error": "Columna 'Ciudad' no encontrada. TODO: actualizar el nombre de la columna con los nombres de ciudad."}), 500
+
+        ciudades = [str(c).strip() for c in df_ciudades[columna_ciudad].dropna() if str(c).strip()]
+        return jsonify({"ciudades": ciudades})
+
+    except Exception as exc:  # noqa: BLE001
+        import traceback
+        print(f"ERROR en /api/ciudades: {exc}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno al obtener ciudades: {exc}"}), 500
+
+
+# --- NUEVA RUTA: Para guardar la ciudad seleccionada ---
+@app.route('/api/guardar_ciudad', methods=['POST'])
+def guardar_ciudad():
+    payload = request.get_json(silent=True) or {}
+    ciudad = (payload.get('ciudad') or payload.get('city') or '').strip()
+
+    if not ciudad:
+        return jsonify({"ok": False, "error": "Falta el campo 'ciudad' en la solicitud."}), 400
+
+    if not os.path.exists(EXCEL_PATH):
+        return jsonify({"ok": False, "error": f"Archivo Excel no encontrado en {EXCEL_PATH}"}), 404
+
+    with excel_lock:
+        wb = None
+        try:
+            wb = load_workbook(EXCEL_PATH, data_only=False)
+            if 'Datos de Entrada' not in wb.sheetnames:
+                return jsonify({"ok": False, "error": "Hoja 'Datos de Entrada' no encontrada en el Excel."}), 500
+
+            ws = wb['Datos de Entrada']
+            ws['B7'] = ciudad  # La celda B7 se usa actualmente para la ciudad de instalación
+            wb.save(EXCEL_PATH)
+        except Exception as exc:  # noqa: BLE001
+            import traceback
+            print(f"ERROR en /api/guardar_ciudad: {exc}")
+            print(traceback.format_exc())
+            return jsonify({"ok": False, "error": f"No se pudo guardar la ciudad: {exc}"}), 500
+        finally:
+            if wb is not None:
+                try:
+                    wb.close()
+                except Exception:
+                    pass
+
+    return jsonify({"ok": True, "ciudad": ciudad})
 
 
 # --- NUEVA RUTA: Para obtener la lista de electrodomésticos y sus consumos ---
