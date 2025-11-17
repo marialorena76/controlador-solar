@@ -83,12 +83,11 @@ async function cargarCiudades() {
     const resp = await fetch('/api/ciudades');
     const data = await resp.json();
     const select = document.getElementById('ciudad-select');
-    if (!select) return;
-
-    (data.ciudades || []).forEach((nombre) => {
+    select.innerHTML = '<option value="">Elegí una ciudad...</option>';
+    (data.ciudades || []).forEach((c) => {
       const opt = document.createElement('option');
-      opt.value = nombre;
-      opt.textContent = nombre;
+      opt.value = c;
+      opt.textContent = c;
       select.appendChild(opt);
     });
   } catch (err) {
@@ -96,52 +95,45 @@ async function cargarCiudades() {
   }
 }
 
-async function guardarCiudadEnBackend() {
-  const select = document.getElementById('ciudad-select');
-  const confirmBtn = document.getElementById('confirmar-ciudad-button');
-  if (!select) return;
+const confirmarBtn = document.getElementById('confirmar-ciudad-button');
 
-  const ciudadSeleccionada = select.value;
-  if (!ciudadSeleccionada) {
-    alert('Elegí una ciudad antes de confirmar.');
-    return;
-  }
+if (confirmarBtn) {
+  confirmarBtn.addEventListener('click', async () => {
+    const ciudad = document.getElementById('ciudad-select').value;
+    if (!ciudad) {
+      alert('Elegí una ciudad antes de continuar.');
+      return;
+    }
 
-  setCiudadSeleccionada(ciudadSeleccionada);
-  if (confirmBtn) confirmBtn.disabled = true;
-
-  try {
-    const res = await fetch('/api/guardar_ciudad', {
+    const resp = await fetch('/api/guardar_ciudad', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ciudad: userSelections.city })
+      body: JSON.stringify({ ciudad })
     });
 
-    if (!res.ok) {
-      const texto = await res.text().catch(() => '');
-      throw new Error(texto || 'No se pudo guardar la ciudad.');
+    const data = await resp.json();
+    if (!resp.ok || data.ok === false) {
+      alert('No se pudo guardar la ciudad.');
+      return;
     }
 
+    setCiudadSeleccionada(ciudad);
     try {
-      localStorage.setItem('ciudadSeleccionada', userSelections.city || '');
-    } catch (storageError) {
-      console.warn('No se pudo guardar la ciudad en localStorage:', storageError);
+      localStorage.setItem('ciudadSeleccionada', ciudad);
+    } catch (error) {
+      console.warn('No se pudo guardar la ciudad en localStorage:', error);
     }
 
-    alert('Ciudad guardada correctamente.');
+    document.getElementById('ciudad-seleccionada-texto').textContent =
+      'Ciudad seleccionada: ' + ciudad;
+
     showMapScreenFormSection('user-type-section');
     const mapAreaTitle = document.querySelector('.map-area h2');
     const mapAreaHelpText = document.querySelector('.map-area .help-text');
     if (mapAreaTitle) mapAreaTitle.style.display = 'none';
     if (mapAreaHelpText) mapAreaHelpText.style.display = 'none';
-  } catch (err) {
-    console.error('Error al guardar la ciudad:', err);
-    alert(err.message || 'No se pudo guardar la ciudad.');
-  } finally {
-    if (confirmBtn) confirmBtn.disabled = false;
-  }
+  });
 }
-
 
 function showScreen(screenId) {
   const screens = ['map-screen', 'data-form-screen'];
@@ -166,7 +158,6 @@ function showMapScreenFormSection(sectionIdToShow) {
 }
 
 function setupNavigationButtons() {
-  const confirmBtn = document.getElementById('confirmar-ciudad-button');
   const basicUserBtn = document.getElementById('basic-user-button');
   const expertUserBtn = document.getElementById('expert-user-button');
   const residentialBtn = document.getElementById('residential-button');
@@ -176,12 +167,6 @@ function setupNavigationButtons() {
   const incomeMediumBtn = document.getElementById('income-medium-button');
   const incomeLowBtn = document.getElementById('income-low-button');
   const sidebar = document.querySelector('#data-form-screen .sidebar');
-
-  if (confirmBtn) {
-    confirmBtn.addEventListener('click', () => {
-      guardarCiudadEnBackend();
-    });
-  }
 
   if (basicUserBtn) {
     basicUserBtn.addEventListener('click', () => {

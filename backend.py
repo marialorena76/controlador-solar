@@ -96,17 +96,24 @@ def obtener_ciudades():
         if not os.path.exists(EXCEL_PATH):
             return jsonify({"error": f"Archivo Excel no encontrado en {EXCEL_PATH}"}), 404
 
-        try:
-            df_ciudades = pd.read_excel(EXCEL_PATH, sheet_name='Ciudades', engine='openpyxl')
-        except ValueError:
-            return jsonify({"error": "Hoja de ciudades no encontrada. TODO: ajustar nombre de la hoja que contiene la lista de ciudades."}), 500
+        with excel_lock:
+            try:
+                excel_file = pd.ExcelFile(EXCEL_PATH, engine='openpyxl')
+            except Exception as exc:  # noqa: BLE001
+                return jsonify({"error": f"No se pudo abrir el archivo Excel: {exc}"}), 500
 
-        columna_ciudad = 'Ciudad'
-        if columna_ciudad not in df_ciudades.columns:
-            return jsonify({"error": "Columna 'Ciudad' no encontrada. TODO: actualizar el nombre de la columna con los nombres de ciudad."}), 500
+            df_ciudades = None
+            for sheet in excel_file.sheet_names:
+                df_sheet = excel_file.parse(sheet)
+                if 'Ciudad' in df_sheet.columns:
+                    df_ciudades = df_sheet
+                    break
 
-        ciudades = [str(c).strip() for c in df_ciudades[columna_ciudad].dropna() if str(c).strip()]
-        return jsonify({"ciudades": ciudades})
+            if df_ciudades is None:
+                return jsonify({"error": "No se encontró una columna 'Ciudad' en el Excel."}), 500
+
+            ciudades = [str(c).strip() for c in df_ciudades['Ciudad'].dropna() if str(c).strip()]
+            return jsonify({"ciudades": ciudades})
 
     except Exception as exc:  # noqa: BLE001
         import traceback
