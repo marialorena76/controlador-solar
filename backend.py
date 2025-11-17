@@ -98,22 +98,27 @@ def obtener_ciudades():
 
         with excel_lock:
             try:
-                excel_file = pd.ExcelFile(EXCEL_PATH, engine='openpyxl')
+                df_ciudades = pd.read_excel(
+                    EXCEL_PATH,
+                    sheet_name="Ciudades",
+                    usecols="A",
+                    header=None,
+                    engine="openpyxl",
+                )
             except Exception as exc:  # noqa: BLE001
                 return jsonify({"error": f"No se pudo abrir el archivo Excel: {exc}"}), 500
 
-            df_ciudades = None
-            for sheet in excel_file.sheet_names:
-                df_sheet = excel_file.parse(sheet)
-                if 'Ciudad' in df_sheet.columns:
-                    df_ciudades = df_sheet
-                    break
+        raw_ciudades = df_ciudades.iloc[:, 0].dropna()
+        ciudades_limpias = []
 
-            if df_ciudades is None:
-                return jsonify({"error": "No se encontró una columna 'Ciudad' en el Excel."}), 500
+        for ciudad in raw_ciudades:
+            ciudad_str = str(ciudad).strip()
+            if not ciudad_str or ciudad_str.lower() == "ciudad":
+                continue
+            ciudades_limpias.append(ciudad_str)
 
-            ciudades = [str(c).strip() for c in df_ciudades['Ciudad'].dropna() if str(c).strip()]
-            return jsonify({"ciudades": ciudades})
+        ciudades_unicas = sorted(set(ciudades_limpias))
+        return jsonify({"ciudades": ciudades_unicas})
 
     except Exception as exc:  # noqa: BLE001
         import traceback
@@ -126,7 +131,8 @@ def obtener_ciudades():
 @app.route('/api/guardar_ciudad', methods=['POST'])
 def guardar_ciudad():
     payload = request.get_json(silent=True) or {}
-    ciudad = (payload.get('ciudad') or payload.get('city') or '').strip()
+    raw_ciudad = payload.get('ciudad')
+    ciudad = '' if raw_ciudad is None else str(raw_ciudad).strip()
 
     if not ciudad:
         return jsonify({"ok": False, "error": "Falta el campo 'ciudad' en la solicitud."}), 400
@@ -135,24 +141,24 @@ def guardar_ciudad():
         return jsonify({"ok": False, "error": f"Archivo Excel no encontrado en {EXCEL_PATH}"}), 404
 
     with excel_lock:
-        wb = None
+        workbook = None
         try:
-            wb = load_workbook(EXCEL_PATH, data_only=False)
-            if 'Datos de Entrada' not in wb.sheetnames:
+            workbook = load_workbook(EXCEL_PATH)
+            if 'Datos de Entrada' not in workbook.sheetnames:
                 return jsonify({"ok": False, "error": "Hoja 'Datos de Entrada' no encontrada en el Excel."}), 500
 
-            ws = wb['Datos de Entrada']
-            ws['B7'] = ciudad  # La celda B7 se usa actualmente para la ciudad de instalación
-            wb.save(EXCEL_PATH)
+            worksheet = workbook['Datos de Entrada']
+            worksheet['B7'] = ciudad
+            workbook.save(EXCEL_PATH)
         except Exception as exc:  # noqa: BLE001
             import traceback
             print(f"ERROR en /api/guardar_ciudad: {exc}")
             print(traceback.format_exc())
             return jsonify({"ok": False, "error": f"No se pudo guardar la ciudad: {exc}"}), 500
         finally:
-            if wb is not None:
+            if workbook is not None:
                 try:
-                    wb.close()
+                    workbook.close()
                 except Exception:
                     pass
 
