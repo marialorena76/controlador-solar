@@ -1382,5 +1382,53 @@ def api_informe():
         print(traceback.format_exc(), flush=True)
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/api/ciudades', methods=['GET'])
+def api_ciudades():
+    """
+    Devuelve la lista de ciudades desde la hoja 'Ciudades' del Excel.
+    Formato esperado:
+    [
+      {"codigo": "001", "nombre": "La Plata"},
+      {"codigo": "002", "nombre": "Mar del Plata"},
+      ...
+    ]
+    """
+    try:
+        df = pd.read_excel(
+            EXCEL_FILE_PATH,
+            sheet_name='Ciudades',
+            usecols="A,B",
+            header=None,
+            skiprows=1,
+            nrows=1989,
+            names=['codigo', 'nombre'],
+            engine='openpyxl'
+        )
+
+        ciudades = []
+        for _, row in df.iterrows():
+            cod = row['codigo']
+            nom = row['nombre']
+
+            if pd.isna(cod) or pd.isna(nom):
+                continue
+
+            ciudades.append({
+                "codigo": str(cod).strip(),
+                "nombre": str(nom).strip()
+            })
+
+        return jsonify(ciudades), 200
+
+    except FileNotFoundError:
+        return jsonify({"error": f"Archivo Excel no encontrado en {EXCEL_FILE_PATH}"}), 404
+    except Exception as e:
+        import traceback
+        print("ERROR en /api/ciudades:", e)
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno al leer ciudades: {str(e)}"}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)
