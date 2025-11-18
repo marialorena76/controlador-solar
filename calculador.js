@@ -81,58 +81,28 @@ function setCiudadSeleccionada(ciudad) {
 async function cargarCiudades() {
   try {
     const resp = await fetch('/api/ciudades');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
+
     const select = document.getElementById('ciudad-select');
+    if (!select) {
+      console.error('No existe #ciudad-select en el DOM');
+      return;
+    }
+
+    // Dejar la opción por defecto
     select.innerHTML = '<option value="">Elegí una ciudad...</option>';
-    (data.ciudades || []).forEach((c) => {
+
+    (data.ciudades || []).forEach(nombre => {
       const opt = document.createElement('option');
-      opt.value = c;
-      opt.textContent = c;
+      opt.value = nombre;
+      opt.textContent = nombre;
       select.appendChild(opt);
     });
   } catch (err) {
     console.error('Error cargando ciudades:', err);
+    alert('No se pudieron cargar las ciudades desde el servidor.');
   }
-}
-
-const confirmarBtn = document.getElementById('confirmar-ciudad-button');
-
-if (confirmarBtn) {
-  confirmarBtn.addEventListener('click', async () => {
-    const ciudad = document.getElementById('ciudad-select').value;
-    if (!ciudad) {
-      alert('Elegí una ciudad antes de continuar.');
-      return;
-    }
-
-    const resp = await fetch('/api/guardar_ciudad', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ciudad })
-    });
-
-    const data = await resp.json();
-    if (!resp.ok || data.ok === false) {
-      alert('No se pudo guardar la ciudad.');
-      return;
-    }
-
-    setCiudadSeleccionada(ciudad);
-    try {
-      localStorage.setItem('ciudadSeleccionada', ciudad);
-    } catch (error) {
-      console.warn('No se pudo guardar la ciudad en localStorage:', error);
-    }
-
-    document.getElementById('ciudad-seleccionada-texto').textContent =
-      'Ciudad seleccionada: ' + ciudad;
-
-    showMapScreenFormSection('user-type-section');
-    const mapAreaTitle = document.querySelector('.map-area h2');
-    const mapAreaHelpText = document.querySelector('.map-area .help-text');
-    if (mapAreaTitle) mapAreaTitle.style.display = 'none';
-    if (mapAreaHelpText) mapAreaHelpText.style.display = 'none';
-  });
 }
 
 function showScreen(screenId) {
@@ -166,6 +136,10 @@ function setupNavigationButtons() {
   const incomeHighBtn = document.getElementById('income-high-button');
   const incomeMediumBtn = document.getElementById('income-medium-button');
   const incomeLowBtn = document.getElementById('income-low-button');
+  const ciudadSelect = document.getElementById('ciudad-select');
+  const confirmarCiudadButton = document.getElementById('confirmar-ciudad-button');
+  const ciudadSeleccionadaTexto = document.getElementById('ciudad-seleccionada-texto');
+  const userTypeSection = document.getElementById('user-type-section');
   const sidebar = document.querySelector('#data-form-screen .sidebar');
 
   if (basicUserBtn) {
@@ -219,6 +193,44 @@ function setupNavigationButtons() {
   if (incomeHighBtn) incomeHighBtn.addEventListener('click', () => handleIncomeSelection('ALTO'));
   if (incomeMediumBtn) incomeMediumBtn.addEventListener('click', () => handleIncomeSelection('MEDIO'));
   if (incomeLowBtn) incomeLowBtn.addEventListener('click', () => handleIncomeSelection('BAJO'));
+
+  if (confirmarCiudadButton && ciudadSelect) {
+    confirmarCiudadButton.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const ciudad = ciudadSelect.value;
+      if (!ciudad) {
+        alert('Elegí una ciudad antes de continuar.');
+        return;
+      }
+
+      try {
+        const resp = await fetch('/api/guardar_ciudad', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ciudad })
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          throw new Error(data.error || 'Error guardando ciudad');
+        }
+
+        userSelections.city = ciudad;
+        if (ciudadSeleccionadaTexto) {
+          ciudadSeleccionadaTexto.textContent = 'Ciudad seleccionada: ' + ciudad;
+        }
+
+        // Después de confirmar ciudad, mostrar la sección de tipo de usuario
+        if (typeof showFormSection === 'function' && userTypeSection) {
+          showFormSection(userTypeSection);
+        } else {
+          showMapScreenFormSection('user-type-section');
+        }
+      } catch (err) {
+        console.error('Error al guardar ciudad:', err);
+        alert('No se pudo guardar la ciudad en el servidor.');
+      }
+    });
+  }
 }
 
 function setupZonaInstalacionStep() {
