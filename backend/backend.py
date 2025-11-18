@@ -296,8 +296,9 @@ def _write_user_selections_block(worksheet, user_data: Dict[str, Any]) -> None:
         worksheet.cell(row=row_number, column=key_column_index, value=path)
         worksheet.cell(row=row_number, column=value_column_index, value=value)
 
+from typing import Optional
 
-def _coerce_float(*values: Any) -> float | None:
+def _coerce_float(*values: Any) -> Optional[float]:
     """Devuelve el primer valor convertible a float dentro de values."""
 
     for value in values:
