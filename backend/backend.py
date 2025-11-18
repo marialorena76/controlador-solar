@@ -115,6 +115,46 @@ app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path='')
 CORS(app)  # Habilita CORS para permitir solicitudes desde el frontend
 
 
+@app.route('/api/ciudades', methods=['GET'])
+def obtener_ciudades():
+    try:
+        df = pd.read_excel(
+            EXCEL_FILE_PATH,
+            sheet_name='Ciudades',
+            usecols="A,B",
+            header=None,
+            skiprows=1,
+            names=['codigo', 'nombre'],
+            engine='openpyxl',
+        )
+
+        ciudades = []
+        for _, fila in df.iterrows():
+            codigo = fila.get('codigo')
+            nombre = fila.get('nombre')
+
+            if pd.isna(codigo) or pd.isna(nombre):
+                continue
+
+            codigo_str = str(codigo).strip()
+            nombre_str = str(nombre).strip()
+
+            if not codigo_str or not nombre_str:
+                continue
+
+            ciudades.append({"id": codigo, "nombre": nombre_str})
+
+        return jsonify(ciudades)
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        return (
+            jsonify({"error": f"Error interno en /api/ciudades: {str(e)}"}),
+            500,
+        )
+
+
 # --- Ruta para actualizar una celda específica del Excel ---
 @app.route('/api/excel/update_cell', methods=['POST'])
 def update_excel_cell():
