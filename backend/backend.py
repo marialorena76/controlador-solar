@@ -116,7 +116,6 @@ CORS(app)  # Habilita CORS para permitir solicitudes desde el frontend
 
 
 @app.route('/api/ciudades', methods=['GET'])
-@app.route('/api/ciudades/', methods=['GET'])
 def obtener_ciudades():
     try:
         df = pd.read_excel(
@@ -150,10 +149,7 @@ def obtener_ciudades():
         import traceback
 
         traceback.print_exc()
-        return (
-            jsonify({"error": f"Error interno en /api/ciudades: {str(e)}"}),
-            500,
-        )
+        return jsonify({"error": f"Error interno en /api/ciudades: {str(e)}"}), 500
 
 
 # --- Ruta para actualizar una celda específica del Excel ---
