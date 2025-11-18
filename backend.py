@@ -859,6 +859,49 @@ def normalizar_texto(texto):
         texto = texto.replace(acentuada, sin_acento)
     return texto
 
+# --- NUEVA RUTA: Listado de ciudades con código y nombre ---
+@app.route('/api/ciudades', methods=['GET'])
+def listar_ciudades_detallado():
+    try:
+        if not os.path.exists(EXCEL_FILE_PATH):
+            return jsonify({"error": f"Archivo Excel no encontrado en {EXCEL_FILE_PATH}"}), 404
+
+        with excel_lock:
+            try:
+                df_ciudades = pd.read_excel(
+                    EXCEL_FILE_PATH,
+                    sheet_name='Ciudades',
+                    usecols="A,B",
+                    header=None,
+                    skiprows=1,
+                    nrows=1989,
+                    names=['codigo', 'nombre'],
+                    engine='openpyxl'
+                )
+            except Exception as e:  # noqa: BLE001
+                return jsonify({"error": f"No se pudo leer el archivo Excel: {e}"}), 500
+
+        ciudades = []
+        for _, row in df_ciudades.iterrows():
+            codigo = row.get('codigo')
+            nombre = row.get('nombre')
+
+            if pd.isna(codigo) and pd.isna(nombre):
+                continue
+
+            ciudades.append({
+                "codigo": "" if pd.isna(codigo) else str(codigo).strip(),
+                "nombre": "" if pd.isna(nombre) else str(nombre).strip()
+            })
+
+        return jsonify(ciudades)
+
+    except Exception as e:  # noqa: BLE001
+        import traceback
+        print(f"ERROR en /api/ciudades (listado detallado): {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Error interno al obtener ciudades: {str(e)}"}), 500
+
 # --- NUEVA RUTA: Para buscar ciudad y obtener código (Refactorizada) ---
 @app.route('/api/buscar_ciudad', methods=['POST'])
 def buscar_ciudad():
