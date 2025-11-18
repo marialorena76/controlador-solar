@@ -14,8 +14,7 @@ SCRIPT_DIR = BASE_DIR
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 
 DEFAULT_EXCEL_FILENAME = 'Calculador Solar - web 06-24_con ayuda - modificaciones 2025_4.xlsx'
-EXCEL_RELATIVE_DIR = 'backend'
-EXCEL_FILE_PATH = os.path.join(SCRIPT_DIR, EXCEL_RELATIVE_DIR, DEFAULT_EXCEL_FILENAME)
+EXCEL_FILE_PATH = os.path.join(SCRIPT_DIR, DEFAULT_EXCEL_FILENAME)
 EXCEL_PATH = os.path.abspath(EXCEL_FILE_PATH)
 
 excel_lock = Lock()
